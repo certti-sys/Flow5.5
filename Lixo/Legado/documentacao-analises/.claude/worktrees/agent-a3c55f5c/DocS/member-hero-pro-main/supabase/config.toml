@@ -1,0 +1,7 @@
+project_id = "lrexwvjqlkzegfkipbqt"
+
+[functions.process-webhook]
+verify_jwt = false
+
+[functions.migrate-users]
+verify_jwt = false

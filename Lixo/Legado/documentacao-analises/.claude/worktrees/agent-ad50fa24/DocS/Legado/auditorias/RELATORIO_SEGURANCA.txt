@@ -1,0 +1,235 @@
+RELATORIO DE AUDITORIA DE SEGURANCA - FLOW5 NEO VIDYA STREAM
+Data: 01/04/2026
+Local: C:\WWW Projetos\neo-vidya-stream-main\Flow5
+
+=================================================================
+RESUMO EXECUTIVO
+=================================================================
+
+VULNERABILIDADES CRÍTICAS ENCONTRADAS: 7
+PROBLEMAS DE SEGURANÇA: 12
+NÍVEL DE RISCO GERAL: CRÍTICO
+
+=================================================================
+1. AUTENTICAÇÃO - VULNERABILIDADES ENCONTRADAS
+=================================================================
+
+VULNERABILIDADE CRÍTICA #1: Tokens Armazenados em localStorage
+- Arquivo: src/hooks/useAuth.tsx
+- Risco: XSS pode extrair tokens JWT
+- Impacto: Acesso não autorizado à conta do usuário
+- Severidade: CRÍTICA (CVSS 8.1)
+
+VULNERABILIDADE CRÍTICA #2: Sem Rate Limiting
+- Arquivo: src/pages/Login.tsx
+- Risco: Brute force attack ilimitado
+- Impacto: Força bruta contra credenciais
+- Severidade: CRÍTICA (CVSS 7.5)
+
+PROBLEMA: Tokens JWT no localStorage
+- LocalStorage é vulnerável a XSS
+- JavaScript malicioso pode acessar localStorage.getItem()
+- Recomendação: Usar httpOnly cookies em vez de localStorage
+
+=================================================================
+2. AUTORIZAÇÃO - VULNERABILIDADES ENCONTRADAS  
+=================================================================
+
+VULNERABILIDADE CRÍTICA #3: Autorização Apenas no Frontend
+- Arquivo: src/components/AdminProtectedRoute.tsx
+- Risco: Verificação de admin apenas no React
+- Impacto: Atacante pode chamar APIs diretamente
+- Severidade: CRÍTICA (CVSS 8.8)
+- Exemplo: curl /admin/api pode ignorer frontend check
+
+Código vulnerável:
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+
+Isso é apenas UI. Não protege APIs reais.
+
+RECOMENDAÇÃO: Implementar Row Level Security (RLS) no Supabase
+- Adicionar políticas RLS em TODAS as tabelas
+- Validar permissões no backend antes de retornar dados
+- Frontend é apenas para UX, backend é segurança real
+
+=================================================================
+3. PROTEÇÃO DE DADOS - VULNERABILIDADES ENCONTRADAS
+=================================================================
+
+VULNERABILIDADE CRÍTICA #4: Credenciais EXPOSTAS em .env
+- Arquivo: .env (COMMITADO NO GIT!)
+- Risco: Chaves Supabase visíveis no histórico Git
+- Impacto: Qualquer pessoa com acesso ao repo tem credenciais
+- Severidade: CRÍTICA (CVSS 9.1)
+
+Encontrado em .env:
+  VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  VITE_SUPABASE_PROJECT_ID="lznckhxqbkqldedlmbfb"
+  VITE_SUPABASE_URL="https://lznckhxqbkqldedlmbfb.supabase.co"
+
+AÇÕES IMEDIATAS NECESSÁRIAS:
+1. Regenerar TODAS as chaves Supabase
+2. Remover .env do histórico Git:
+   git filter-branch --tree-filter 'rm -f .env' -- --all
+   git push origin --force-with-lease
+3. Adicionar .env via GitHub Secrets ou .env.local
+
+PROBLEMA: Dados de Pagamento
+- Arquivo: src/types/payment.ts
+- Risco: secret_key pode estar visível em queries
+- Impacto: Chaves de pagamento expostas
+- Recomendação: Nunca retornar secret_key para frontend
+
+=================================================================
+4. API & REQUISIÇÕES - VULNERABILIDADES ENCONTRADAS
+=================================================================
+
+VULNERABILIDADE CRÍTICA #5: CORS Muito Permissivo
+- Arquivo: supabase/functions/_shared/cors.ts
+- Risco: Qualquer site pode fazer requisições
+- Impacto: Requisições entre domínios sem restrição
+- Severidade: CRÍTICA (CVSS 8.2)
+
+Código vulnerável:
+  'Access-Control-Allow-Origin': '*'  // Aceita QUALQUER origem
+
+Recomendação - Whitelist de origens:
+  const allowedOrigins = [
+    'https://seu-dominio.com',
+    'https://app.seu-dominio.com'
+  ];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : 'null'
+  };
+
+PROBLEMA: Sem Validação de Permissões em APIs
+- Arquivo: supabase/functions/payment-ops/index.ts
+- Risco: Qualquer usuário pode criar pagamentos
+- Impacto: Fraude de pagamento, acesso não autorizado
+- Recomendação: Verificar permissões antes de processar
+
+PROBLEMA: Falta de Rate Limiting
+- Arquivo: supabase/functions/*
+- Risco: DDoS, brute force
+- Impacto: Função pode ser chamada ilimitadamente
+- Recomendação: Implementar rate limiting por IP/user
+
+VULNERABILIDADE CRÍTICA #6: Logs Expõem Dados Sensíveis
+- Arquivo: supabase/functions/webhooks-ingest/index.ts
+- Risco: Console.log expõe headers, payloads
+- Impacto: Tokens, informações sensíveis nos logs
+- Severidade: CRÍTICA (CVSS 7.5)
+
+Exemplo vulnerável:
+  console.log('Headers:', JSON.stringify(headers));  // Pode ter tokens!
+  console.log('Payload:', JSON.stringify(payload));  // Dados sensíveis
+
+=================================================================
+5. VULNERABILIDADES XSS, CSRF E OUTRAS
+=================================================================
+
+dangerouslySetInnerHTML ENCONTRADO:
+- Arquivo: src/components/ui/chart.tsx:70
+- Uso: CSS para cores de gráficos
+- Risco: BAIXO (conteúdo compilado, não user input)
+- Status: SEGURO
+
+CSRF PROTECTION:
+- SameSite cookies: ✅ Supabase default
+- CSRF tokens: ❌ Não implementado (não necessário com SameSite)
+- Status: PARCIALMENTE SEGURO
+
+CSP (Content Security Policy):
+- Status: ❌ NÃO IMPLEMENTADO
+- Recomendação: Adicionar CSP headers em vite.config.ts
+
+HSTS (HTTP Strict Transport Security):
+- Status: ❌ NÃO IMPLEMENTADO
+- Recomendação: Adicionar HSTS header
+
+=================================================================
+6. VALIDAÇÃO DE ENTRADA
+=================================================================
+
+✅ BOM: Zod schemas implementados
+- src/pages/Login.tsx: Email, senha, nome validados
+- src/types/checkout-form.ts: Dados de pagamento validados
+
+⚠️ PROBLEMA: Validação Incompleta em Serverless
+- supabase/functions/lesson-progress/index.ts: Sem Zod
+- Recomendação: Usar Zod em TODAS as funções serverless
+
+✅ BOM: CPF Validation com algoritmo Luhn
+✅ BOM: Email validation com Zod
+
+=================================================================
+7. PROBLEMAS ADICIONAIS ENCONTRADOS
+=================================================================
+
+CONSOLE LOGS EM PRODUÇÃO:
+- Múltiplos console.error() em código
+- Pode expor estrutura interna do sistema
+- Recomendação: Usar logger seguro em produção
+
+ARMAZENAMENTO EM LOCALSTORAGE:
+- navigation_layout armazenado em localStorage
+- Status: SEGURO (apenas dados não-sensíveis)
+- Risco: BAIXO
+
+GERENCIAMENTO DE TOKENS:
+- Sem logout automático por timeout ⚠️
+- Sem revogação explícita de tokens ⚠️
+- Sem rotação forçada de tokens ⚠️
+
+=================================================================
+8. RECOMENDAÇÕES IMEDIATAS (PRÓXIMAS 48H)
+=================================================================
+
+1. REGENERAR CREDENCIAIS SUPABASE
+   - Todas as chaves estão comprometidas (visíveis em Git)
+   - Novo SUPABASE_ANON_KEY
+   - Novo SUPABASE_PROJECT_ID (se possível)
+
+2. REMOVER .env DO GIT
+   - git filter-branch --tree-filter 'rm -f .env' -- --all
+   - git push origin --force-with-lease
+   - Adicionar .env via GitHub Secrets
+
+3. IMPLEMENTAR RATE LIMITING
+   - Login: máx 5 tentativas por 15 minutos
+   - APIs: máx 100 requisições por minuto por IP
+
+4. CORRIGIR CORS
+   - Substituir '*' com whitelist de domínios
+   - Adicionar validação de origem
+
+5. REMOVER LOGS SENSÍVEIS
+   - Remover console.log de headers, tokens
+   - Usar logger seguro em produção
+
+=================================================================
+9. RECOMENDAÇÕES IMPORTANTES (PRÓXIMA SEMANA)
+=================================================================
+
+6. IMPLEMENTAR ROW LEVEL SECURITY (RLS)
+   - Políticas para cada tabela
+   - Admin vê tudo, usuário vê apenas seus dados
+
+7. MIGRAR TOKENS PARA COOKIES HTTP-ONLY
+   - Reduz risco de XSS
+   - Use PKCE flow
+
+8. ADICIONAR VALIDAÇÃO DE PERMISSÕES EM APIs
+   - Verificar admin antes de operações sensíveis
+   - Usar SERVICE_ROLE_KEY no backend apenas
+
+9. IMPLEMENTAR CSP HEADERS
+   - Content-Security-Policy
+   - X-Content-Type-Options: nosniff
+   - X-Frame-Options: DENY
+
+10. ADICIONAR HSTS HEADER
+    - Strict-Transport-Security: max-age=31536000
+
+======================

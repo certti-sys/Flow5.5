@@ -1,0 +1,27 @@
+=== BACKUP INFORMATION ===
+Timestamp: 20260418-191316
+Date: Sat Apr 18 19:13:19     2026
+Project: Neo Vidya Stream (Flow5)
+Git Branch: main
+Git Commit: 8599a7dbcafeb804f24d0e8fde47fba935015f06
+Git Tag: backup-20260418-191316
+
+=== BACKUP CONTENTS ===
+- Git tag: backup-20260418-191316
+- Git branch: backup/auto-20260418-191316
+- Configuration files (.env, package.json, config.toml)
+- Database schema (schema-backup.sql)
+- Migrations (migrations-backup/)
+- Edge Functions (functions-backup/)
+
+=== RESTORE INSTRUCTIONS ===
+1. Git: git checkout backup-20260418-191316
+2. Config: cp backups/backup-20260418-191316/.env.backup .env
+3. Database: supabase db reset && psql < backups/backup-20260418-191316/schema-backup.sql
+4. Migrations: cp -r backups/backup-20260418-191316/migrations-backup/* supabase/migrations/
+5. Functions: cp -r backups/backup-20260418-191316/functions-backup/* supabase/functions/
+
+=== NOTES ===
+- Este backup NÃO inclui dados do banco (apenas schema)
+- Para backup completo de dados, use Supabase Dashboard
+- Mantenha este backup por pelo menos 30 dias

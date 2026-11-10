@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 240 10% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 13%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 85% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 6% 18%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 6% 15%;
+    --muted-foreground: 240 5% 64%;
+
+    --accent: 0 85% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 6% 20%;
+    --input: 240 6% 20%;
+    --ring: 0 85% 60%;
+
+    --radius: 0.75rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(0 85% 60%) 0%, hsl(25 95% 55%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(240 10% 8%) 0%, hsl(240 10% 12%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsla(240 8% 20% / 0.6) 0%, hsla(240 8% 15% / 0.4) 100%);
+
+    --gradient-text-start: 0 85% 60%;
+    --gradient-text-end: 25 95% 55%;
+
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
+    --shadow-card: 0 8px 32px hsla(0 0% 0% / 0.4);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Sidebar - usar mesma cor do card para consistência */
+    --sidebar-background: 240 10% 10%;
+    --sidebar-foreground: 240 5% 96%;
+    --sidebar-primary: 263.4 70% 50.4%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 8% 15%;
+    --sidebar-accent-foreground: 240 5% 96%;
+    --sidebar-border: 240 5% 15%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Ensure main content scroll is smooth */
+  main.overflow-y-auto {
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-xl border border-white/10;
+  }
+
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+
+  .hover-glow {
+    @apply transition-shadow duration-300;
+  }
+
+  .hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r bg-clip-text text-transparent;
+    background-image: linear-gradient(to right, hsl(var(--gradient-text-start, 0 85% 60%)), hsl(var(--gradient-text-end, 25 95% 55%)));
+  }
+
+  .cursor-grab {
+    cursor: grab;
+  }
+
+  .cursor-grab:active {
+    cursor: grabbing;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Scroll touch horizontal para mobile */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom Scrollbar - Netflix Dark Style */
+  .scrollbar-styled {
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(240 6% 25%) hsl(240 10% 10%);
+  }
+
+  .scrollbar-styled::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-styled::-webkit-scrollbar-track {
+    background: hsl(240 10% 10%);
+    border-radius: 4px;
+  }
+
+  .scrollbar-styled::-webkit-scrollbar-thumb {
+    background: hsl(240 6% 25%);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-styled::-webkit-scrollbar-thumb:hover {
+    background: hsl(240 6% 35%);
+  }
+
+  /* Drag feedback visual */
+  [data-dragging="true"]>* {
+    opacity: 0.8;
+    transform: scale(0.98);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  [data-dragging="false"]>*,
+  :not([data-dragging])>* {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+}
+
+/* Aplicar scrollbar styled globalmente */
+* {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(240 6% 25%) hsl(240 10% 10%);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: hsl(240 10% 10%);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(240 6% 25%);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(240 6% 35%);
+}
+
+/* Force modals to render above everything with correct positioning */
+body {
+  transform: none !important;
+}
+
+/* Force overlays - APENAS quando abertos */
+[data-state="open"][data-radix-dialog-overlay],
+[data-state="open"][data-radix-alert-dialog-overlay] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+}
+
+/* Force content positioning - EXCLUINDO popovers e sidebar */
+[role="dialog"]:not([data-radix-popper-content-wrapper] *):not([data-sidebar]):not(:has([data-sidebar])),
+[role="alertdialog"],
+[data-radix-dialog-content]:not([data-sidebar]):not(:has([data-sidebar])),
+[data-radix-alert-dialog-content] {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 10000 !important;
+  max-width: min(90vw, 672px) !important;
+  /* ANTES: 512px | ROLLBACK: voltar para 512px */
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+}
+
+/* Garantir que Popovers funcionem normalmente */
+[data-radix-popper-content-wrapper] [role="dialog"] {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  z-index: 50 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: auto !important;
+}

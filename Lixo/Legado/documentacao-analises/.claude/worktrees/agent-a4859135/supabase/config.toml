@@ -1,0 +1,37 @@
+project_id = "nrcmksrtatvghxueatno"
+
+[functions.webhooks-ingest]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.send-whatsapp]
+verify_jwt = true
+
+[functions.create-user]
+verify_jwt = true
+
+[functions.reset-user-password]
+verify_jwt = true
+
+[functions.video-proxy]
+verify_jwt = true
+
+[functions.lesson-progress]
+verify_jwt = true
+
+[functions.check-course-access]
+verify_jwt = true
+
+[functions.check-achievements]
+verify_jwt = true
+
+[functions.webhook-payment]
+verify_jwt = false
+
+[functions.payment-ops]
+verify_jwt = true

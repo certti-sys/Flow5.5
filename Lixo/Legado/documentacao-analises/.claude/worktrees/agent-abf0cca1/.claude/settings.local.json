@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(supabase functions:*)",
+      "mcp__supabase-mcp-server__list_projects",
+      "Bash(bash scripts/backup-complete.sh)",
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(supabase db *)",
+      "mcp__supabase-mcp-server__execute_sql",
+      "mcp__supabase-mcp-server__list_tables",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm run *)",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "Bash(wmic process *)",
+      "mcp__puppeteer__puppeteer_click",
+      "Bash(node -e \"const { z } = require\\('zod'\\); const emptyStringToNull = \\(value\\) => value === '' ? null : value; const schema = z.object\\({ code: z.string\\(\\).min\\(1\\).max\\(50\\), discount_type: z.enum\\(['percent','fixed']\\), discount_value: z.coerce.number\\(\\).positive\\(\\), max_uses: z.preprocess\\(emptyStringToNull, z.number\\(\\).int\\(\\).positive\\(\\).nullable\\(\\).optional\\(\\)\\), valid_from: z.preprocess\\(emptyStringToNull, z.string\\(\\).nullable\\(\\).optional\\(\\)\\), valid_until: z.preprocess\\(emptyStringToNull, z.string\\(\\).nullable\\(\\).optional\\(\\)\\), min_purchase_amount: z.coerce.number\\(\\).min\\(0\\), is_active: z.boolean\\(\\), product_ids: z.array\\(z.string\\(\\)\\).default\\([]\\) }\\); const sample = { code:'TOMA10', discount_type:'percent', discount_value:'10', max_uses:'', valid_from:'', valid_until:'', min_purchase_amount:'0', is_active:true, product_ids:[] }; const result = schema.safeParse\\(sample\\); console.log\\(JSON.stringify\\(result, null, 2\\)\\);\")",
+      "mcp__plugin_supabase_supabase__list_tables",
+      "mcp__plugin_supabase_supabase__list_migrations",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "Bash(npx tsx *)",
+      "Bash(git -C \"c:/WWW Projetos/neo-vidya-stream-main/Flow5/.claude/worktrees/agent-ad50fa24\" show --stat --oneline HEAD)",
+      "Bash(node scripts/test-checkout-form-schema.mjs)",
+      "Bash(git -C \"c:/WWW Projetos/neo-vidya-stream-main/Flow5/.claude/worktrees/agent-a3c55f5c\" diff -- src/pages/checkout/Checkout.tsx scripts/test-checkout-form-schema.mjs)",
+      "Bash(python -)",
+      "Bash(node \"c:/WWW Projetos/neo-vidya-stream-main/Flow5/scripts/test-checkout-form-schema.mjs\")",
+      "Bash(node \"C:/WWW Projetos/neo-vidya-stream-main/Flow5/.claude/worktrees/agent-acb7f926/scripts/test-payment-ops-schema.mjs\")"
+    ]
+  }
+}

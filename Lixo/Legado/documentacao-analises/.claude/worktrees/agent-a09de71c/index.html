@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduStream - Plataforma de Ensino a Distância</title>
+    <meta name="description" content="Aprenda com os melhores cursos online. Plataforma moderna de ensino a distância com experiência premium." />
+    <meta name="author" content="EduStream" />
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://*.supabase.co https://*.lovable.dev https://i.ytimg.com https://img.youtube.com https://*.mediadelivery.net https://*.b-cdn.net data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://*.b-cdn.net https://*.bunnycdn.com https://*.googlevideo.com https://*.vimeocdn.com; frame-src 'self' https://www.youtube.com https://youtube.com https://*.youtube.com https://www.youtube-nocookie.com https://vimeo.com https://*.vimeo.com https://player.vimeo.com https://*.wistia.com https://*.wistia.net https://iframe.mediadelivery.net https://*.pandavideo.com.br https://*.vturb.com.br https://player.vturb.com.br https://drive.google.com; media-src 'self' https://*.supabase.co https://*.b-cdn.net https://*.bunnycdn.com https://*.googlevideo.com https://*.vimeo.com; upgrade-insecure-requests;">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+
+    <meta property="og:title" content="EduStream - Plataforma EAD Premium" />
+    <meta property="og:description" content="Aprenda com os melhores cursos online. Experiência de aprendizado premium." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@EduStream" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+
+  <body>
+    <!-- Apply cached theme BEFORE React loads to prevent flash -->
+    <script>
+      (function() {
+        try {
+          // Apply cached color theme
+          var themeCache = localStorage.getItem('activeTheme');
+          if (themeCache) {
+            var theme = JSON.parse(themeCache);
+            if (theme && theme.palette) {
+              var root = document.documentElement;
+              var p = theme.palette;
+              root.style.setProperty('--primary', p['500']);
+              root.style.setProperty('--accent', p['500']);
+              root.style.setProperty('--ring', p['500']);
+              root.style.setProperty('--sidebar-primary', p['500']);
+              root.style.setProperty('--sidebar-ring', p['500']);
+              root.style.setProperty('--sidebar-accent', p['700']);
+              // Apply gradient
+              var h = p['500'].split(' ')[0];
+              root.style.setProperty('--gradient-primary', 'linear-gradient(135deg, hsl(' + p['500'] + ') 0%, hsl(' + h + ' 95% 55%) 100%)');
+              root.style.setProperty('--shadow-glow', '0 0 40px hsl(' + p['500'] + ' / 0.3)');
+            }
+          }
+          
+          // Apply cached layout setting to prevent layout flash
+          var layoutCache = localStorage.getItem('navigation_layout');
+          if (layoutCache) {
+            document.documentElement.dataset.layoutPreference = layoutCache;
+          }
+        } catch (e) {
+          // Silently fail - React will handle it
+        }
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

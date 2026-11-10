@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "read": {
+      "C:/WWW Projetos/neo-vidya-stream-main/Flow5/.opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "C:/WWW Projetos/neo-vidya-stream-main/Flow5/.opencode/get-shit-done/*": "allow"
+    }
+  }
+}
