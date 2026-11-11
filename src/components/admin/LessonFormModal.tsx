@@ -375,7 +375,7 @@ export function LessonFormModal({
                   </SelectContent>
                 </Select>
                 {errors.module_id && (
-                  <p className="text-sm text-destructive">{errors.module_id}</p>
+                  <p role="alert" className="text-sm text-destructive">{errors.module_id}</p>
                 )}
               </div>
 
@@ -386,10 +386,10 @@ export function LessonFormModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ex: Introdução ao React"
-                  className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                  className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                 />
                 {errors.title && (
-                  <p className="text-sm text-destructive">{errors.title}</p>
+                  <p role="alert" className="text-sm text-destructive">{errors.title}</p>
                 )}
               </div>
             </div>
@@ -420,10 +420,10 @@ export function LessonFormModal({
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                     placeholder="Ex: 15min ou 1h30min"
-                    className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                    className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                   />
                   {errors.duration && (
-                    <p className="text-sm text-destructive">{errors.duration}</p>
+                    <p role="alert" className="text-sm text-destructive">{errors.duration}</p>
                   )}
                 </div>
 
@@ -463,10 +463,10 @@ export function LessonFormModal({
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                     placeholder="Cole a URL do vídeo aqui..."
-                    className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                    className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                   />
                   {errors.video_url && (
-                    <p className="text-sm text-destructive">{errors.video_url}</p>
+                    <p role="alert" className="text-sm text-destructive">{errors.video_url}</p>
                   )}
                 </div>
 
@@ -524,12 +524,12 @@ export function LessonFormModal({
                       key={material.id}
                       className="flex items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors group cursor-move"
                     >
-                      <GripVertical className="w-4 h-4 text-white/30 group-hover:text-white/60 flex-shrink-0" />
+                      <GripVertical className="w-4 h-4 text-white/60 group-hover:text-white/60 flex-shrink-0" />
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <span className="flex-shrink-0 text-white/60">{materialIcons[material.type]}</span>
                         <span className="text-sm truncate text-white/80">{material.title}</span>
                         {material.is_required && (
-                          <span className="text-[10px] text-primary bg-primary/20 border border-primary/30 px-1.5 py-0.5 rounded flex-shrink-0 font-medium uppercase tracking-wider">
+                          <span className="text-[12px] text-primary bg-primary/20 border border-primary/30 px-1.5 py-0.5 rounded flex-shrink-0 font-medium uppercase tracking-wider">
                             Obrigatório
                           </span>
                         )}
@@ -563,9 +563,9 @@ export function LessonFormModal({
               ) : (
                 <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-[12px] bg-black/10">
                   <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-2">
-                    <FileText className="w-5 h-5 text-white/40" />
+                    <FileText className="w-5 h-5 text-white/60" />
                   </div>
-                  <p className="text-sm text-white/40 font-medium">Nenhum material adicionado</p>
+                  <p className="text-sm text-white/60 font-medium">Nenhum material adicionado</p>
                 </div>
               )}
             </div>
@@ -579,7 +579,7 @@ export function LessonFormModal({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Descreva o conteúdo da aula..."
                   rows={3}
-                  className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 resize-none"
+                  className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 resize-none"
                 />
               </div>
 
@@ -612,7 +612,7 @@ export function LessonFormModal({
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
-              className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-white w-full sm:w-auto min-w-[120px]"
+              className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto min-w-[120px]"
             >
               {saveMutation.isPending ? "Salvando..." : "Salvar Aula"}
             </Button>

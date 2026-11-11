@@ -150,7 +150,7 @@ export const LessonSidebar = ({ modules, courseId }: LessonSidebarProps) => {
                     </div>
                     <div className="min-w-0 pr-4">
                       <p className="font-medium text-sm truncate">{module.title}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[12px] text-muted-foreground">
                         {moduleCompleted}/{moduleLessons.length} aulas
                       </p>
                     </div>
@@ -200,7 +200,7 @@ export const LessonSidebar = ({ modules, courseId }: LessonSidebarProps) => {
                               }`}>
                               {lessonIndex + 1}. {lesson.title}
                             </p>
-                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground mt-0.5">
                               <Clock className="w-3 h-3" />
                               <span>{lesson.duration}</span>
                             </div>

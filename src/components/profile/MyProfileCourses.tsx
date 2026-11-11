@@ -75,7 +75,7 @@ export const MyProfileCourses = ({ courses, isLoading }: MyProfileCoursesProps) 
               <p className="text-[13px] font-bold text-white/80 group-hover:text-primary transition-colors truncate leading-tight">
                 {course.title}
               </p>
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5 font-medium uppercase tracking-wider opacity-60">
+              <span className="text-[12px] text-muted-foreground flex items-center gap-1 mt-0.5 font-medium uppercase tracking-wider opacity-60">
                 Acessar agora
                 <ArrowRight className="w-2.5 h-2.5" />
               </span>
@@ -87,7 +87,7 @@ export const MyProfileCourses = ({ courses, isLoading }: MyProfileCoursesProps) 
       <div className="mt-6 pt-4 border-t border-white/5">
         <Link
           to="/dashboard"
-          className="gradient-primary shadow-glow h-[40px] rounded-[12px] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest"
+          className="gradient-primary shadow-glow h-[40px] rounded-[12px] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 text-[12px] font-black uppercase tracking-widest"
         >
           Explorar Loja de Cursos
           <ArrowRight className="w-3 h-3" />

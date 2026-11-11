@@ -115,7 +115,7 @@ const CourseInfo = () => {
                     <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center mb-4 shadow-2xl">
                       <Lock className="w-10 h-10 text-white drop-shadow-lg" />
                     </div>
-                    <Badge variant="secondary" className="bg-primary text-white border-none px-4 py-1 text-xs font-bold tracking-widest uppercase">
+                    <Badge variant="secondary" className="bg-primary text-primary-foreground border-none px-4 py-1 text-xs font-bold tracking-widest uppercase">
                       Acesso Restrito
                     </Badge>
                   </div>
@@ -152,7 +152,7 @@ const CourseInfo = () => {
 
               {/* Badge & Category */}
               <div className="mb-4">
-                <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 uppercase tracking-widest text-[10px] font-black px-3 py-1">
+                <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 uppercase tracking-widest text-[12px] font-black px-3 py-1">
                   {course.category || "CURSO PREMIUM"}
                 </Badge>
               </div>
@@ -163,7 +163,7 @@ const CourseInfo = () => {
 
               <div className="flex items-center gap-4 mb-8">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[12px] font-bold">
                     {course.instructor?.substring(0, 2).toUpperCase()}
                   </div>
                   <span className="text-muted-foreground font-medium">por <span className="text-foreground">{course.instructor}</span></span>
@@ -244,7 +244,7 @@ const CourseInfo = () => {
                                   <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                                   <span className="text-sm font-medium">{lIdx + 1}. {lesson.title}</span>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground font-bold">{lesson.duration}</span>
+                                <span className="text-[12px] text-muted-foreground font-bold">{lesson.duration}</span>
                               </div>
                             ))}
                           </div>

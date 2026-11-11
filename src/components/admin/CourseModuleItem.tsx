@@ -46,14 +46,14 @@ export function CourseModuleItem({
       <AccordionTrigger className="py-5 hover:no-underline group/module transition-all">
         <div className="flex items-center justify-between flex-1 mr-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-[14px] text-white/30 border border-white/5 group-hover/module:border-primary/30 group-hover/module:text-primary transition-all">
+            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-[14px] text-white/60 border border-white/5 group-hover/module:border-primary/30 group-hover/module:text-primary transition-all">
               {module.order_index + 1}
             </div>
             <div className="text-left">
               <span className="font-bold text-[15px] text-white group-hover/module:text-primary transition-colors">
                 {module.title}
               </span>
-              <p className="text-[11px] text-muted-foreground/60">
+              <p className="text-[12px] text-muted-foreground">
                 {module.lessons?.length || 0} aulas cadastradas
               </p>
             </div>
@@ -89,13 +89,13 @@ export function CourseModuleItem({
       <AccordionContent className="pb-6">
         <div className="space-y-5 pt-2">
           <div className="flex items-center justify-between px-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/20">
+            <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">
               Listagem de Aulas
             </span>
             <Button
               variant="ghost" size="sm"
               onClick={() => onAddLesson(courseId, module.id)}
-              className="h-[34px] px-4 rounded-xl border border-white/10 hover:bg-white/10 text-[11px] font-bold uppercase tracking-wider gap-2"
+              className="h-[34px] px-4 rounded-xl border border-white/10 hover:bg-white/10 text-[12px] font-bold uppercase tracking-wider gap-2"
             >
               <Plus className="w-3.5 h-3.5 text-primary" />
               Nova Aula

@@ -150,7 +150,7 @@ export function ResetPasswordModal({ open, onOpenChange, student }: ResetPasswor
 
         <div className="p-6 space-y-6">
           <div className="p-5 rounded-[12px] bg-black/20 border border-white/5">
-            <p className="text-[12px] uppercase tracking-widest font-bold text-white/40 mb-3">Senha Temporária</p>
+            <p className="text-[12px] uppercase tracking-widest font-bold text-white/60 mb-3">Senha Temporária</p>
             <div className="flex items-center gap-3">
               <code className="flex-1 text-[20px] font-mono font-bold text-emerald-400 bg-white/[0.02] px-4 py-3 rounded-[8px] border border-white/5">
                 {tempPassword}

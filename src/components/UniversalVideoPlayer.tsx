@@ -441,7 +441,7 @@ export default function UniversalVideoPlayer({
               />
             </div>
 
-            <span className="text-white text-[10px] sm:text-sm font-medium whitespace-nowrap">
+            <span className="text-white text-[12px] sm:text-sm font-medium whitespace-nowrap">
               {formatVideoTime(played * duration)} / {formatVideoTime(duration)}
             </span>
           </div>

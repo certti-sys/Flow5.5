@@ -160,7 +160,7 @@ export default function Notifications() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]"
+                  className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]"
                 />
               </div>
 
@@ -173,7 +173,7 @@ export default function Notifications() {
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
                   required
-                  className="bg-black/20 border-white/10 text-white placeholder:text-white/20 rounded-[12px] resize-none"
+                  className="bg-black/20 border-white/10 text-white placeholder:text-white/60 rounded-[12px] resize-none"
                 />
               </div>
 
@@ -187,28 +187,28 @@ export default function Notifications() {
                     <SelectContent className="glass-card border-white/10 bg-black/90 backdrop-blur-xl rounded-[12px]">
                       <SelectItem value="info">
                         <span className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold uppercase text-[10px] tracking-wider py-0.5">
+                          <Badge variant="outline" className="bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold uppercase text-[12px] tracking-wider py-0.5">
                             Info
                           </Badge>
                         </span>
                       </SelectItem>
                       <SelectItem value="success">
                         <span className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-bold uppercase text-[10px] tracking-wider py-0.5">
+                          <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-bold uppercase text-[12px] tracking-wider py-0.5">
                             Sucesso
                           </Badge>
                         </span>
                       </SelectItem>
                       <SelectItem value="warning">
                         <span className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-amber-500/10 border-amber-500/20 text-amber-400 font-bold uppercase text-[10px] tracking-wider py-0.5">
+                          <Badge variant="outline" className="bg-amber-500/10 border-amber-500/20 text-amber-400 font-bold uppercase text-[12px] tracking-wider py-0.5">
                             Aviso
                           </Badge>
                         </span>
                       </SelectItem>
                       <SelectItem value="error">
                         <span className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-red-500/10 border-red-500/20 text-red-400 font-bold uppercase text-[10px] tracking-wider py-0.5">
+                          <Badge variant="outline" className="bg-red-500/10 border-red-500/20 text-red-400 font-bold uppercase text-[12px] tracking-wider py-0.5">
                             Erro
                           </Badge>
                         </span>
@@ -224,7 +224,7 @@ export default function Notifications() {
                     placeholder="Ex: /cursos/novo"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
-                    className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]"
+                    className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]"
                   />
                 </div>
               </div>
@@ -299,14 +299,14 @@ export default function Notifications() {
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "text-[9px] px-1.5 py-0 uppercase tracking-wider font-bold shrink-0",
+                                    "text-[12px] px-1.5 py-0 uppercase tracking-wider font-bold shrink-0",
                                     getNotificationTypeColor(notification.type)
                                   )}
                                 >
                                   {notification.type}
                                 </Badge>
                              </div>
-                             <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                             <p className="text-[12px] text-muted-foreground whitespace-nowrap shrink-0">
                                 {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
                              </p>
                           </div>

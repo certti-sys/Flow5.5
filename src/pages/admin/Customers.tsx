@@ -229,7 +229,7 @@ export default function Customers() {
                 <stat.icon className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground/60">{stat.label}</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{stat.label}</p>
                 <h3 className="text-2xl font-black text-white mt-0.5">{stat.value}</h3>
               </div>
             </div>
@@ -243,10 +243,10 @@ export default function Customers() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="text-left px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">Cliente</th>
-                <th className="text-left px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50 hidden md:table-cell">Financeiro</th>
-                <th className="text-left px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50 hidden lg:table-cell">Cadastro</th>
-                <th className="text-right px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">Ações</th>
+                <th className="text-left px-6 py-4 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80">Cliente</th>
+                <th className="text-left px-6 py-4 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80 hidden md:table-cell">Financeiro</th>
+                <th className="text-left px-6 py-4 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80 hidden lg:table-cell">Cadastro</th>
+                <th className="text-right px-6 py-4 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -261,7 +261,7 @@ export default function Customers() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12 rounded-2xl border border-white/10 group-hover/row:scale-105 transition-transform duration-500">
-                          <AvatarFallback className="bg-primary/20 text-primary font-black uppercase text-xs">
+                          <AvatarFallback className="bg-primary/20 text-foreground font-black uppercase text-xs">
                             {(customer.name || customer.email).slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
@@ -271,16 +271,16 @@ export default function Customers() {
                               {customer.name || "Sem Nome"}
                             </span>
                             {customer.user_id ? (
-                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase font-black px-1.5 h-4">
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[12px] uppercase font-black px-1.5 h-4">
                                 Vinculado
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="bg-white/5 text-muted-foreground/40 border-white/5 text-[9px] uppercase font-black px-1.5 h-4">
+                              <Badge variant="outline" className="bg-white/5 text-muted-foreground/80 border-white/5 text-[12px] uppercase font-black px-1.5 h-4">
                                 Lead
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground/60 flex items-center gap-1.5 mt-0.5">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                             <Mail className="w-3 h-3 opacity-40" />
                             {customer.email}
                           </p>
@@ -290,13 +290,13 @@ export default function Customers() {
                     <td className="px-6 py-4 hidden md:table-cell">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-white">{formatCurrency(customer.total_spent)}</p>
-                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-tighter">
+                        <p className="text-[12px] text-muted-foreground uppercase tracking-tighter">
                           {customer.orders_count} {customer.orders_count === 1 ? 'pedido' : 'pedidos'}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4 hidden lg:table-cell">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3 opacity-40" />
                         {format(new Date(customer.created_at), "dd MMM, yyyy", { locale: ptBR })}
                       </div>
@@ -343,7 +343,7 @@ export default function Customers() {
                     </Avatar>
                   </div>
                   <div>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-black tracking-widest mb-2 px-3">Cliente Profile</Badge>
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[12px] uppercase font-black tracking-widest mb-2 px-3">Cliente Profile</Badge>
                     <DialogTitle className="text-3xl font-black text-white tracking-tighter">
                       {selectedCustomer.name || "Sem Nome Definido"}
                     </DialogTitle>
@@ -370,11 +370,11 @@ export default function Customers() {
                 {/* Secondary Info Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 group hover:bg-white/[0.05] transition-colors">
-                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest block mb-1">Documento CPF</span>
+                    <span className="text-[12px] text-muted-foreground font-black uppercase tracking-widest block mb-1">Documento CPF</span>
                     <span className="text-white font-mono font-bold tracking-widest">{selectedCustomer.cpf || "NÃO INFORMADO"}</span>
                   </div>
                   <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 group hover:bg-white/[0.05] transition-colors">
-                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest block mb-1">Status da Conta</span>
+                    <span className="text-[12px] text-muted-foreground font-black uppercase tracking-widest block mb-1">Status da Conta</span>
                     <div className="mt-1 flex items-center justify-between">
                       {selectedCustomer.user_id ? (
                         <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
@@ -383,7 +383,7 @@ export default function Customers() {
                       ) : (
                         <Button
                           size="sm" variant="ghost"
-                          className="h-7 text-[10px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 transition-all rounded-full px-3"
+                          className="h-7 text-[12px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 transition-all rounded-full px-3"
                           onClick={() => linkUserMutation.mutate({ email: selectedCustomer.email })}
                         >
                           Vincular Agora
@@ -426,7 +426,7 @@ export default function Customers() {
                                 )}
                               </div>
                               <div>
-                                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">PEDIDO #{order.id.slice(0, 8)}</p>
+                                <p className="text-[12px] font-black text-muted-foreground/80 uppercase tracking-widest">PEDIDO #{order.id.slice(0, 8)}</p>
                                 <p className="text-white font-bold text-sm mt-0.5 line-clamp-1">
                                   {order.order_items?.map(i => i.product?.name).join(", ") || "Sem produtos"}
                                 </p>
@@ -434,7 +434,7 @@ export default function Customers() {
                             </div>
                             <div className="text-right">
                               <p className="text-emerald-400 font-black text-[15px]">{formatCurrency(order.total_amount)}</p>
-                              <p className="text-[10px] text-muted-foreground/60 font-bold uppercase mt-0.5">{order.status}</p>
+                              <p className="text-[12px] text-muted-foreground font-bold uppercase mt-0.5">{order.status}</p>
                             </div>
                           </div>
                         </div>
@@ -452,7 +452,7 @@ export default function Customers() {
               <div className="p-8 border-t border-white/5 bg-black/40 flex items-center justify-end rounded-b-[32px]">
                 <Button
                   onClick={() => setSelectedCustomer(null)}
-                  className="h-12 px-10 glass-card border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase tracking-widest text-[11px] text-white bg-transparent"
+                  className="h-12 px-10 glass-card border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase tracking-widest text-[12px] text-white bg-transparent"
                 >
                   Fechar Registro
                 </Button>
@@ -480,12 +480,12 @@ export default function Customers() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-10 flex flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="h-12 flex-1 glass-card border-white/10 hover:bg-white/5 rounded-xl font-bold uppercase tracking-widest text-[10px] mt-0 text-white bg-transparent">
+            <AlertDialogCancel className="h-12 flex-1 glass-card border-white/10 hover:bg-white/5 rounded-xl font-bold uppercase tracking-widest text-[12px] mt-0 text-white bg-transparent">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => customerToDelete && deleteMutation.mutate(customerToDelete.email)}
-              className="h-12 flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-glow-red"
+              className="h-12 flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-xl font-black uppercase tracking-widest text-[12px] shadow-glow-red"
             >
               Confirmar Exclusão
             </AlertDialogAction>

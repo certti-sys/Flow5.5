@@ -58,7 +58,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <p className="text-red-100 text-sm sm:text-base mb-4 leading-relaxed">
             {adminError.message}
           </p>
-          <button onClick={() => window.location.reload()} className="bg-primary text-white font-semibold py-2 px-6 rounded-lg hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 text-sm sm:text-base">
+          <button onClick={() => window.location.reload()} className="bg-primary text-primary-foreground font-semibold py-2 px-6 rounded-lg hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 text-sm sm:text-base">
             Recarregar Página
           </button>
         </div>

@@ -216,7 +216,7 @@ export function ConfigureMappingsWizard({
                               <SelectItem key={idx} value={f.path || `field_${idx}`}>
                                 <div className="flex flex-col">
                                   <span className="font-mono text-xs">{f.path}</span>
-                                  <span className="text-[10px] text-muted-foreground">
+                                  <span className="text-[12px] text-muted-foreground">
                                     {f.type}: {String(f.example).substring(0, 30)}
                                   </span>
                                 </div>
@@ -225,7 +225,7 @@ export function ConfigureMappingsWizard({
                           </SelectContent>
                         </Select>
                         {mappings[field.value] && (
-                          <div className="px-2 py-1 bg-muted rounded text-[10px] font-mono truncate">
+                          <div className="px-2 py-1 bg-muted rounded text-[12px] font-mono truncate">
                             Exemplo: {getFieldExample(usableFields, mappings[field.value])}
                           </div>
                         )}
@@ -244,7 +244,7 @@ export function ConfigureMappingsWizard({
                                 {field.label}
                                 {field.required && <span className="text-destructive">*</span>}
                               </p>
-                              <p className="text-[10px] text-muted-foreground truncate">
+                              <p className="text-[12px] text-muted-foreground truncate">
                                 {field.description}
                               </p>
                             </div>

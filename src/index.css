@@ -20,7 +20,9 @@ All colors MUST be HSL.
     --popover-foreground: 0 0% 98%;
 
     --primary: 0 85% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Texto escuro sobre o primário: branco reprova contraste AA em qualquer
+       primário claro. O tema ativo recalcula este valor em applyThemeToCSSVariables. */
+    --primary-foreground: 240 10% 10%;
 
     --secondary: 240 6% 18%;
     --secondary-foreground: 0 0% 98%;
@@ -237,6 +239,18 @@ body {
   max-height: 90vh !important;
   overflow-y: auto !important;
   margin: 0 !important;
+}
+
+/* Respeita quem pediu menos movimento no sistema operacional */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Garantir que Popovers funcionem normalmente */

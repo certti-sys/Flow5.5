@@ -141,7 +141,7 @@ export function EditStudentModal({ open, onOpenChange, student }: EditStudentMod
                         <Input 
                           placeholder="João Silva" 
                           {...field} 
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -160,7 +160,7 @@ export function EditStudentModal({ open, onOpenChange, student }: EditStudentMod
                           type="email" 
                           placeholder="joao@example.com" 
                           {...field} 
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -178,7 +178,7 @@ export function EditStudentModal({ open, onOpenChange, student }: EditStudentMod
                         <Input 
                           placeholder="+55 11 99999-9999" 
                           {...field} 
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />

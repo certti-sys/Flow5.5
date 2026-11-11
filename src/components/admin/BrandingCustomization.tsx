@@ -164,7 +164,7 @@ export const BrandingCustomization = () => {
                </div>
                <div>
                   <CardTitle className="text-[20px] font-bold text-white tracking-tight">Banner Principal (Hero)</CardTitle>
-                  <CardDescription className="text-[14px] text-muted-foreground/40 font-medium">Configure a primeira impressão dos seus alunos.</CardDescription>
+                  <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">Configure a primeira impressão dos seus alunos.</CardDescription>
                </div>
             </div>
           </CardHeader>
@@ -172,7 +172,7 @@ export const BrandingCustomization = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <div>
-                  <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-2.5">Texto do Badge</Label>
+                  <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">Texto do Badge</Label>
                   <div className="relative">
                     <Send className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/20" />
                     <Input
@@ -187,7 +187,7 @@ export const BrandingCustomization = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-2.5">Linha 1</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">Linha 1</Label>
                     <Input
                       id="title1"
                       value={formData.banner_title_line1}
@@ -196,7 +196,7 @@ export const BrandingCustomization = () => {
                     />
                   </div>
                   <div>
-                    <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-2.5">Linha 2</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">Linha 2</Label>
                     <Input
                       id="title2"
                       value={formData.banner_title_line2}
@@ -205,7 +205,7 @@ export const BrandingCustomization = () => {
                     />
                   </div>
                   <div>
-                    <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-2.5 pl-1">Linha 3 (Destaque)</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5 pl-1">Linha 3 (Destaque)</Label>
                     <Input
                       id="title3"
                       value={formData.banner_title_line3}
@@ -216,7 +216,7 @@ export const BrandingCustomization = () => {
                 </div>
 
                 <div>
-                  <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-2.5">Subtítulo</Label>
+                  <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">Subtítulo</Label>
                   <Textarea
                     id="subtitle"
                     value={formData.banner_subtitle}
@@ -229,11 +229,11 @@ export const BrandingCustomization = () => {
 
               <div className="space-y-6">
                 <div>
-                  <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-4 pr-2">Configuração dos Botões</Label>
+                  <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-4 pr-2">Configuração dos Botões</Label>
                   <div className="p-6 glass-card border-white/5 rounded-[12px] bg-white/[0.01] space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-2.5">
-                          <Label className="text-[11px] font-black text-white/20 uppercase tracking-tighter">Botão Primário</Label>
+                          <Label className="text-[12px] font-black text-white/60 uppercase tracking-tighter">Botão Primário</Label>
                           <Input
                             id="btn1"
                             value={formData.banner_button_primary_text}
@@ -252,7 +252,7 @@ export const BrandingCustomization = () => {
                           </div>
                        </div>
                        <div className="space-y-2.5">
-                          <Label className="text-[11px] font-black text-white/20 uppercase tracking-tighter">Botão Secundário</Label>
+                          <Label className="text-[12px] font-black text-white/60 uppercase tracking-tighter">Botão Secundário</Label>
                           <Input
                             id="btn2"
                             value={formData.banner_button_secondary_text}
@@ -275,7 +275,7 @@ export const BrandingCustomization = () => {
                 </div>
 
                 <div>
-                   <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-4">Mídia de Fundo</Label>
+                   <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-4">Mídia de Fundo</Label>
                    <ImageUploadField
                     label=""
                     currentImageUrl={formData.banner_background_url}
@@ -288,7 +288,7 @@ export const BrandingCustomization = () => {
 
                 <div className="flex items-center justify-between p-4 glass-card border-white/5 rounded-[12px] bg-white/[0.01]">
                   <div className="flex items-center gap-3">
-                    <LayoutIcon className="w-5 h-5 text-muted-foreground/30" />
+                    <LayoutIcon className="w-5 h-5 text-muted-foreground/70" />
                     <Label htmlFor="stats-card" className="cursor-pointer text-[14px] font-bold text-white/60">
                       Mostrar card de estatísticas
                     </Label>
@@ -317,13 +317,13 @@ export const BrandingCustomization = () => {
                   </div>
                   <div>
                      <CardTitle className="text-[20px] font-bold text-white tracking-tight">Logotipo</CardTitle>
-                     <CardDescription className="text-[14px] text-muted-foreground/40 font-medium">A marca principal da sua escola.</CardDescription>
+                     <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">A marca principal da sua escola.</CardDescription>
                   </div>
                </div>
             </CardHeader>
             <CardContent className="p-8 space-y-8">
               <div className="space-y-4">
-                <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-4">Modo de Exibição na Navbar</Label>
+                <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-4">Modo de Exibição na Navbar</Label>
                 <RadioGroup
                   value={formData.logo_display_mode}
                   onValueChange={(value: 'icon_text' | 'horizontal') =>
@@ -359,7 +359,7 @@ export const BrandingCustomization = () => {
                 {formData.logo_display_mode === 'icon_text' ? (
                   <>
                     <div>
-                      <Label className="text-[13px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-2.5">Nome da Plataforma</Label>
+                      <Label className="text-[13px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-2.5">Nome da Plataforma</Label>
                       <Input
                         id="logo-text"
                         value={formData.logo_text}
@@ -404,13 +404,13 @@ export const BrandingCustomization = () => {
                    </div>
                    <div>
                       <CardTitle className="text-[20px] font-bold text-white tracking-tight">Presença Digital</CardTitle>
-                      <CardDescription className="text-[14px] text-muted-foreground/40 font-medium">Configure como você aparece no navegador.</CardDescription>
+                      <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">Configure como você aparece no navegador.</CardDescription>
                    </div>
                 </div>
              </CardHeader>
              <CardContent className="p-8 space-y-8">
                 <div>
-                  <Label className="text-[13px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-2.5 pl-1">Título do Navegador</Label>
+                  <Label className="text-[13px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-2.5 pl-1">Título do Navegador</Label>
                   <Input
                     id="page-title"
                     value={formData.page_title}
@@ -418,7 +418,7 @@ export const BrandingCustomization = () => {
                     placeholder="Ex: Nome da Escola - Dashboard"
                     className="glass-card border-white/10 h-[44px] rounded-[12px] focus:border-primary/50 text-[14px] font-medium"
                   />
-                  <p className="text-[11px] text-muted-foreground/20 mt-2 font-mono uppercase tracking-tighter">Este texto aparece no topo da aba do browser.</p>
+                  <p className="text-[12px] text-muted-foreground/80 mt-2 font-mono uppercase tracking-tighter">Este texto aparece no topo da aba do browser.</p>
                 </div>
 
                 <div className="p-6 rounded-[12px] bg-white/[0.01] border border-white/5">
@@ -449,14 +449,14 @@ export const BrandingCustomization = () => {
                    </div>
                    <div>
                       <CardTitle className="text-[20px] font-bold text-white tracking-tight">Gradiente de Texto</CardTitle>
-                      <CardDescription className="text-[14px] text-muted-foreground/40 font-medium">Personalize as cores de destaque visual.</CardDescription>
+                      <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">Personalize as cores de destaque visual.</CardDescription>
                    </div>
                 </div>
              </CardHeader>
              <CardContent className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <Label className="text-[13px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-2.5">Cor Inicial</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-2.5">Cor Inicial</Label>
                     <div className="flex gap-3">
                       <div className="relative group overflow-hidden rounded-[12px] flex-shrink-0">
                          <Input
@@ -477,7 +477,7 @@ export const BrandingCustomization = () => {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-[13px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-2.5">Cor Final</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-2.5">Cor Final</Label>
                     <div className="flex gap-3">
                       <div className="relative group overflow-hidden rounded-[12px] flex-shrink-0">
                          <Input
@@ -502,7 +502,7 @@ export const BrandingCustomization = () => {
                 <div className="p-10 rounded-[24px] glass-card border-white/10 relative overflow-hidden flex items-center justify-center text-center">
                    <div className="absolute inset-0 bg-gradient-to-tr from-black/20 to-transparent pointer-events-none" />
                    <div className="relative z-10">
-                      <p className="text-[11px] font-black text-white/20 uppercase tracking-widest mb-4">Preview do Gradiente</p>
+                      <p className="text-[12px] font-black text-white/60 uppercase tracking-widest mb-4">Preview do Gradiente</p>
                       <h2 
                         className="text-4xl sm:text-5xl font-black italic tracking-tighter"
                         style={{ 
@@ -526,7 +526,7 @@ export const BrandingCustomization = () => {
                    </div>
                    <div>
                       <CardTitle className="text-[20px] font-bold text-white tracking-tight">Tela de Login</CardTitle>
-                      <CardDescription className="text-[14px] text-muted-foreground/40 font-medium">Branding fora da plataforma.</CardDescription>
+                      <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">Branding fora da plataforma.</CardDescription>
                    </div>
                 </div>
              </CardHeader>

@@ -76,7 +76,7 @@ export const NotificationBell = () => {
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full text-[12px] font-bold text-primary-foreground flex items-center justify-center">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
@@ -137,7 +137,7 @@ export const NotificationBell = () => {
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                           {notification.message}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+                        <p className="text-[12px] text-muted-foreground/70 mt-1.5">
                           {formatDistanceToNow(new Date(notification.created_at), {
                             addSuffix: true,
                             locale: ptBR,

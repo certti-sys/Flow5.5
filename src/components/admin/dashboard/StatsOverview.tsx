@@ -34,7 +34,7 @@ function StatItem({ icon, label, value, trend, change, suffix, color }: StatItem
           )}>
             {icon}
           </div>
-          <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">{label}</span>
+          <span className="text-[12px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
         </div>
         
         <div className="flex items-end justify-between">
@@ -43,10 +43,10 @@ function StatItem({ icon, label, value, trend, change, suffix, color }: StatItem
           </h3>
           {change && (
             <div className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider",
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-black border uppercase tracking-wider",
               trend === "up" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
               trend === "down" ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
-              "bg-white/5 text-muted-foreground/60 border-white/10"
+              "bg-white/5 text-muted-foreground border-white/10"
             )}>
               {trend === "up" ? "↑" : trend === "down" ? "↓" : "•"} {change}
             </div>

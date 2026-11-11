@@ -180,18 +180,18 @@ const Login = () => {
                   Nome completo
                 </Label>
                 <div className="relative flex items-center">
-                  <User className="absolute left-3 w-5 h-5 text-white/40 pointer-events-none" />
+                  <User className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
                   <Input
                     id="name"
                     type="text"
                     placeholder="Seu nome completo"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/40"
+                    className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
                     disabled={loading}
                   />
                 </div>
-                {errors.name && <p className="text-xs text-red-400 font-medium">{errors.name}</p>}
+                {errors.name && <p role="alert" className="text-xs text-red-400 font-medium">{errors.name}</p>}
               </div>
             )}
 
@@ -200,18 +200,18 @@ const Login = () => {
                 E-mail
               </Label>
               <div className="relative flex items-center">
-                <Mail className="absolute left-3 w-5 h-5 text-white/40 pointer-events-none" />
+                <Mail className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/40"
+                  className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
                   disabled={loading}
                 />
               </div>
-              {errors.email && <p className="text-xs text-red-400 font-medium">{errors.email}</p>}
+              {errors.email && <p role="alert" className="text-xs text-red-400 font-medium">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -230,21 +230,21 @@ const Login = () => {
                 )}
               </div>
               <div className="relative flex items-center">
-                <Lock className="absolute left-3 w-5 h-5 text-white/40 pointer-events-none" />
+                <Lock className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 pr-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/40"
+                  className="pl-10 pr-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  className="absolute right-3 text-white/40 hover:text-white transition-colors cursor-pointer"
+                  className="absolute right-3 text-white/60 hover:text-white transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -254,13 +254,13 @@ const Login = () => {
                   )}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-400 font-medium">{errors.password}</p>}
+              {errors.password && <p role="alert" className="text-xs text-red-400 font-medium">{errors.password}</p>}
             </div>
 
             {/* Botão primário - apenas o CTA chama atenção */}
             <Button
               type="submit"
-              className="w-full bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 text-base"
+              className="w-full bg-primary text-primary-foreground font-semibold py-3 px-6 rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 text-base"
               disabled={loading}
             >
               {loading ? "Processando..." : isSignup ? "Criar Conta" : "Entrar na Plataforma"}
@@ -281,7 +281,7 @@ const Login = () => {
 
         {/* Rodapé de segurança */}
         <p className="text-center text-xs text-white/50 mt-8 flex items-center justify-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-white/40" />
+          <ShieldCheck className="w-4 h-4 text-white/60" />
           <span className="text-white/50">Protegido por criptografia de ponta a ponta</span>
         </p>
       </div>

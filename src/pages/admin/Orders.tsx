@@ -198,7 +198,7 @@ export default function Orders() {
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
     return (
-      <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 font-bold text-[10px] uppercase tracking-wider border-white/5", config.color, config.border)}>
+      <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 font-bold text-[12px] uppercase tracking-wider border-white/5", config.color, config.border)}>
         <Icon className="w-3 h-3 mr-1.5" />
         {config.label}
       </Badge>
@@ -238,7 +238,7 @@ export default function Orders() {
                   <Button
                     onClick={() => setSelectedIds([])}
                     variant="ghost"
-                    className="text-white/40 hover:text-white font-bold text-[13px]"
+                    className="text-white/60 hover:text-white font-bold text-[13px]"
                   >
                     Limpar ({selectedIds.length})
                   </Button>
@@ -276,7 +276,7 @@ export default function Orders() {
                 className={cn(
                   "px-4 py-1.5 text-[12px] font-bold rounded-lg transition-all",
                   statusFilter === f.id
-                    ? "bg-primary text-white shadow-glow-sm"
+                    ? "bg-primary text-primary-foreground shadow-glow-sm"
                     : "text-muted-foreground hover:text-white"
                 )}
               >
@@ -294,7 +294,7 @@ export default function Orders() {
           <div className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest mb-1 block">Faturamento Total</span>
+                <span className="text-[12px] font-bold text-emerald-400 uppercase tracking-widest mb-1 block">Faturamento Total</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-black text-white">{formatCurrency(stats.total)}</span>
                 </div>
@@ -309,11 +309,11 @@ export default function Orders() {
           <div className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-blue-400 uppercase tracking-widest mb-1 block">Vendas Pagas</span>
+                <span className="text-[12px] font-bold text-blue-400 uppercase tracking-widest mb-1 block">Vendas Pagas</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-black text-white">{formatCurrency(stats.paid)}</span>
                 </div>
-                <span className="text-xs text-blue-400/60 mt-1 font-bold uppercase tracking-wider">+8% vs 7d</span>
+                <span className="text-xs text-blue-400 mt-1 font-bold uppercase tracking-wider">+8% vs 7d</span>
               </div>
               <div className="p-3 rounded-full bg-primary/10 border border-primary/20">
                 <CheckCircle className="w-5 h-5 text-blue-400" />
@@ -325,7 +325,7 @@ export default function Orders() {
           <div className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-widest mb-1 block">Pendentes</span>
+                <span className="text-[12px] font-bold text-amber-400 uppercase tracking-widest mb-1 block">Pendentes</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-black text-white">{formatCurrency(stats.waiting)}</span>
                 </div>
@@ -340,7 +340,7 @@ export default function Orders() {
           <div className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-purple-400 uppercase tracking-widest mb-1 block">Ticket Médio</span>
+                <span className="text-[12px] font-bold text-purple-400 uppercase tracking-widest mb-1 block">Ticket Médio</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-black text-white">{formatCurrency(stats.average)}</span>
                 </div>
@@ -358,7 +358,7 @@ export default function Orders() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-white/[0.03] border-b border-white/5 text-muted-foreground/60 text-[11px] font-bold uppercase tracking-[0.1em]">
+              <tr className="bg-white/[0.03] border-b border-white/5 text-muted-foreground text-[12px] font-bold uppercase tracking-[0.1em]">
                 <th className="px-6 py-4 text-left w-[40px]"></th>
                 <th className="px-6 py-4 text-left">Pedido / Cliente</th>
                 <th className="px-6 py-4 text-center">Status</th>
@@ -401,8 +401,8 @@ export default function Orders() {
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-10 w-10 rounded-xl border border-white/10 shadow-sm transition-transform group-hover/row:scale-105 duration-500">
-                            <AvatarImage src={order.profile?.avatar_url} />
-                            <AvatarFallback className="bg-primary/20 text-primary font-bold uppercase text-[10px]">
+                            <AvatarImage src={order.profile?.avatar_url} alt={order.customer_name || order.profile?.name || "Avatar do cliente"} />
+                            <AvatarFallback className="bg-primary/20 text-foreground font-bold uppercase text-[12px]">
                               {(order.customer_name || order.profile?.name || "U").slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
@@ -412,7 +412,7 @@ export default function Orders() {
                               <p className="font-bold text-[14px] text-white/90 leading-tight group-hover/row:text-primary transition-colors">
                                 {order.customer_name || order.profile?.name || "Sem nome"}
                               </p>
-                              <span className="text-[10px] font-mono text-white/30 truncate hidden sm:inline">#{order.id.slice(0, 8)}</span>
+                              <span className="text-[12px] font-mono text-white/60 truncate hidden sm:inline">#{order.id.slice(0, 8)}</span>
                             </div>
                             <div className="flex items-center gap-2 mt-1 text-[12px] text-muted-foreground group-hover/row:text-white/60 transition-colors">
                               <span className="flex items-center gap-1">
@@ -477,8 +477,8 @@ export default function Orders() {
               <DialogHeader className="px-8 py-6 border-b border-white/5 bg-white/[0.01]">
                 <div className="flex items-center gap-5">
                   <Avatar className="w-16 h-16 rounded-[16px] border border-white/10 shadow-2xl">
-                    <AvatarImage src={selectedOrder.profile?.avatar_url} />
-                    <AvatarFallback className="bg-primary/20 text-primary text-[20px] font-black uppercase">
+                    <AvatarImage src={selectedOrder.profile?.avatar_url} alt={selectedOrder.customer_name || selectedOrder.profile?.name || "Avatar do cliente"} />
+                    <AvatarFallback className="bg-primary/20 text-foreground text-[20px] font-black uppercase">
                       {(selectedOrder.customer_name || selectedOrder.profile?.name || "U").slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
@@ -498,11 +498,11 @@ export default function Orders() {
               <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto scrollbar-styled">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-5 rounded-[16px] bg-white/[0.02] border border-white/5">
-                    <span className="text-[11px] text-muted-foreground uppercase font-black tracking-widest block mb-2">Status do Pedido</span>
+                    <span className="text-[12px] text-muted-foreground uppercase font-black tracking-widest block mb-2">Status do Pedido</span>
                     <StatusBadge status={selectedOrder.status} />
                   </div>
                   <div className="p-5 rounded-[16px] bg-white/[0.02] border border-white/5 text-right flex flex-col items-end">
-                    <span className="text-[11px] text-muted-foreground uppercase font-black tracking-widest block mb-2">Total do Checkout</span>
+                    <span className="text-[12px] text-muted-foreground uppercase font-black tracking-widest block mb-2">Total do Checkout</span>
                     <span className="text-[24px] font-black text-white leading-none tracking-tighter">{formatCurrency(selectedOrder.total_amount)}</span>
                   </div>
                 </div>
@@ -517,7 +517,7 @@ export default function Orders() {
                       <div key={item.id} className="flex items-center justify-between p-4 bg-white/[0.01] border border-white/5 rounded-[14px]">
                         <div className="flex items-center gap-4">
                           <div className="w-11 h-11 rounded-[12px] bg-white/[0.03] border border-white/5 flex items-center justify-center">
-                            <Package className="w-5 h-5 text-white/20" />
+                            <Package className="w-5 h-5 text-white/60" />
                           </div>
                           <div>
                             <div className="font-bold text-white text-[14px] underline decoration-primary/20 underline-offset-4">{item.product?.name || "Item Adquirido"}</div>
@@ -538,10 +538,10 @@ export default function Orders() {
                     </div>
                     {selectedOrder.payments?.map((payment) => (
                       <div key={payment.id} className="bg-white/[0.02] border border-white/5 p-4 rounded-[14px] flex flex-col gap-3">
-                        <Badge variant="outline" className="w-fit bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-black">
+                        <Badge variant="outline" className="w-fit bg-primary/10 text-primary border-primary/20 text-[12px] uppercase font-black">
                           {payment.payment_method_type === 'pix' ? 'PIX' : 'CARTÃO DE CRÉDITO'}
                         </Badge>
-                        <div className="text-[11px] font-mono text-white/30 truncate bg-black/40 p-2 rounded-lg border border-white/5">
+                        <div className="text-[12px] font-mono text-white/60 truncate bg-black/40 p-2 rounded-lg border border-white/5">
                           EXT_ID: {payment.external_payment_id}
                         </div>
                       </div>

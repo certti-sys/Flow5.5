@@ -140,8 +140,8 @@ export default function WebhookHub() {
               <Shield className="w-5 h-5 text-emerald-500" />
             </div>
             <div>
-              <p className="text-[12px] uppercase tracking-widest font-bold text-white/40">Endpoint Único</p>
-              <p className="text-[11px] text-white/20">Use essa URL em todas as plataformas</p>
+              <p className="text-[12px] uppercase tracking-widest font-bold text-white/60">Endpoint Único</p>
+              <p className="text-[12px] text-white/60">Use essa URL em todas as plataformas</p>
             </div>
           </div>
           <div className="flex gap-2 flex-1 w-full">
@@ -150,7 +150,7 @@ export default function WebhookHub() {
               <Copy className="w-5 h-5" />
             </Button>
           </div>
-          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 font-bold text-[10px] uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 font-bold text-[12px] uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
             <Zap className="w-3 h-3 mr-1" /> Auto Discovery
           </Badge>
         </div>
@@ -167,7 +167,7 @@ export default function WebhookHub() {
               { value: "health", label: "Saúde de Dados", icon: ActivitySquare },
               { value: "advanced", label: "Avançado", icon: Settings },
             ].map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className={cn("flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all", "data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg", "data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/60")}>
+              <TabsTrigger key={tab.value} value={tab.value} className={cn("flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all", "data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg", "data-[state=inactive]:text-white/60 data-[state=inactive]:hover:text-white/60")}>
                 <tab.icon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </TabsTrigger>
@@ -199,23 +199,23 @@ export default function WebhookHub() {
                         </div>
                         <div>
                           <h4 className="font-bold text-[15px] text-white">{platform.display_name}</h4>
-                          <p className="text-[11px] font-mono text-white/30">{platform.name}</p>
+                          <p className="text-[12px] font-mono text-white/60">{platform.name}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={cn("rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider", platform.is_active ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(34,197,94,0.3)]" : "bg-white/5 text-white/40 border-white/10")}>
+                      <Badge variant="outline" className={cn("rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-wider", platform.is_active ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(34,197,94,0.3)]" : "bg-white/5 text-white/60 border-white/10")}>
                         {platform.is_active ? "Ativo" : "Inativo"}
                       </Badge>
                     </div>
 
                     {platform.webhook_secret && (
                       <div className="mb-6 p-4 bg-black/40 rounded-[12px] border border-white/5">
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-white/20 mb-1">Secret</p>
-                        <code className="text-[11px] font-mono text-white/40 block truncate">{platform.webhook_secret.substring(0, 24)}...</code>
+                        <p className="text-[12px] uppercase tracking-widest font-bold text-white/60 mb-1">Secret</p>
+                        <code className="text-[12px] font-mono text-white/60 block truncate">{platform.webhook_secret.substring(0, 24)}...</code>
                       </div>
                     )}
 
                     <div className="flex gap-2 relative z-20">
-                      <Button variant="outline" size="sm" className="flex-1 glass-card border-white/10 hover:bg-white/5 h-[44px] rounded-[12px] text-[11px] uppercase tracking-widest font-bold text-white" onClick={() => openConfigModal(platform)}>
+                      <Button variant="outline" size="sm" className="flex-1 glass-card border-white/10 hover:bg-white/5 h-[44px] rounded-[12px] text-[12px] uppercase tracking-widest font-bold text-white" onClick={() => openConfigModal(platform)}>
                         <Settings className="w-4 h-4 mr-2" /> Configurar
                       </Button>
                       <Button variant="outline" size="sm" className="glass-card border-white/10 hover:bg-white/5 w-[44px] h-[44px] rounded-[12px] p-0" onClick={() => { setSelectedPlatform(platform.id); setActiveTab('history'); }}>
@@ -231,7 +231,7 @@ export default function WebhookHub() {
               <div className="w-[80px] h-[80px] rounded-full bg-white/5 flex items-center justify-center"><Globe className="w-10 h-10 text-white/10" /></div>
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">Nenhuma plataforma configurada</h3>
-                <p className="text-white/40 max-w-[300px] mt-1 text-[14px]">Adicione sua primeira plataforma para começar a receber webhooks.</p>
+                <p className="text-white/60 max-w-[300px] mt-1 text-[14px]">Adicione sua primeira plataforma para começar a receber webhooks.</p>
               </div>
               <Button onClick={() => openConfigModal()} className="gradient-primary shadow-glow h-[44px] px-6 rounded-[12px] font-bold text-[13px] tracking-tight">
                 <Plus className="w-4 h-4 mr-2" /> Adicionar Plataforma

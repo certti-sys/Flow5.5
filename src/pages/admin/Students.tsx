@@ -85,7 +85,7 @@ const StudentCard = ({ student, onEdit, onAssignCourses, onResetPassword, onSusp
             <div className="relative">
               <Avatar className="h-12 w-12 rounded-2xl border border-white/10 shadow-2xl group-hover:scale-105 transition-transform duration-500">
                 <AvatarImage src={student.avatar_url} alt={student.name} />
-                <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs uppercase">
+                <AvatarFallback className="bg-primary/20 text-foreground font-bold text-xs uppercase">
                   {student.name?.charAt(0)}
                 </AvatarFallback>
               </Avatar>
@@ -112,12 +112,12 @@ const StudentCard = ({ student, onEdit, onAssignCourses, onResetPassword, onSusp
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`inline-flex items-center px-2.5 py-1 border border-white/5 text-[10px] font-bold uppercase tracking-widest rounded-full ${
+            <span className={`inline-flex items-center px-2.5 py-1 border border-white/5 text-[12px] font-bold uppercase tracking-widest rounded-full ${
               student.status === "suspended" ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"
             }`}>
               {student.status === "suspended" ? "Suspenso" : "Ativo"}
             </span>
-            <div className="flex items-center gap-2 text-[12px] text-muted-foreground/60">
+            <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
               <Calendar className="w-3 h-3 opacity-40" />
               <span>{new Date(student.member_since).toLocaleDateString("pt-BR")}</span>
             </div>
@@ -171,7 +171,7 @@ const StudentCard = ({ student, onEdit, onAssignCourses, onResetPassword, onSusp
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+          <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
             <span>ID: #{student.id.slice(0, 4)}</span>
           </div>
         </div>
@@ -279,7 +279,7 @@ export default function AdminStudents() {
             <button
               onClick={() => setStatusFilter("all")}
               className={`px-3 py-1.5 text-[12px] font-bold rounded-xl transition-all ${
-                statusFilter === "all" ? "bg-primary text-white shadow-glow-sm" : "text-muted-foreground hover:text-white"
+                statusFilter === "all" ? "bg-primary text-primary-foreground shadow-glow-sm" : "text-muted-foreground hover:text-primary-foreground"
               }`}
             >
               Todos
@@ -287,7 +287,7 @@ export default function AdminStudents() {
             <button
               onClick={() => setStatusFilter("active")}
               className={`px-3 py-1.5 text-[12px] font-bold rounded-xl transition-all ${
-                statusFilter === "active" ? "bg-primary text-white shadow-glow-sm" : "text-muted-foreground hover:text-white"
+                statusFilter === "active" ? "bg-primary text-primary-foreground shadow-glow-sm" : "text-muted-foreground hover:text-primary-foreground"
               }`}
             >
               Ativos
@@ -295,7 +295,7 @@ export default function AdminStudents() {
             <button
               onClick={() => setStatusFilter("suspended")}
               className={`px-3 py-1.5 text-[12px] font-bold rounded-xl transition-all ${
-                statusFilter === "suspended" ? "bg-primary text-white shadow-glow-sm" : "text-muted-foreground hover:text-white"
+                statusFilter === "suspended" ? "bg-primary text-primary-foreground shadow-glow-sm" : "text-muted-foreground hover:text-primary-foreground"
               }`}
             >
               Suspensos

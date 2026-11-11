@@ -242,12 +242,12 @@ const Comments = () => {
       <motion.div variants={item} className="glass-card p-6 rounded-[16px] border-white/10">
         <div className="flex flex-wrap items-center gap-4">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
             <Input
               placeholder="Buscar por texto ou autor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-[44px] glass-card border-white/10 focus:border-primary/50 rounded-[12px] text-white placeholder:text-white/40"
+              className="pl-10 h-[44px] glass-card border-white/10 focus:border-primary/50 rounded-[12px] text-white placeholder:text-white/60"
             />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -310,7 +310,7 @@ const Comments = () => {
           {sortedComments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-10" />
-              <p className="text-[14px] text-white/40">Nenhum comentário encontrado</p>
+              <p className="text-[14px] text-white/60">Nenhum comentário encontrado</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -319,8 +319,8 @@ const Comments = () => {
                   <div className="flex items-center gap-3 mb-3">
                     <div className="relative">
                       <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-lg">
-                        <AvatarImage src={comment.profiles?.avatar_url || ""} />
-                        <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs uppercase">
+                        <AvatarImage src={comment.profiles?.avatar_url || ""} alt={comment.profiles?.name || "Avatar do usuário"} />
+                        <AvatarFallback className="bg-primary/20 text-foreground font-bold text-xs uppercase">
                           {comment.profiles?.name?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -339,13 +339,13 @@ const Comments = () => {
                       "{comment.content}"
                     </p>
                   </div>
-                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground/60">
+                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3 h-3 opacity-40" />
                       <span>{new Date(comment.created_at).toLocaleDateString("pt-BR")}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 border border-white/5 text-[10px] font-bold uppercase tracking-widest rounded-full ${
+                      <span className={`inline-flex items-center px-2 py-0.5 border border-white/5 text-[12px] font-bold uppercase tracking-widest rounded-full ${
                         comment.parent_id ? "bg-blue-500/10 text-blue-400" :
                         "bg-green-500/10 text-green-400"
                       }`}>
@@ -374,7 +374,7 @@ const Comments = () => {
       </motion.div>
 
       {!isLoading && (
-        <motion.p variants={item} className="text-sm text-muted-foreground/50 text-center font-bold mt-4">
+        <motion.p variants={item} className="text-sm text-muted-foreground/80 text-center font-bold mt-4">
           Exibindo {sortedComments.length} de {comments.length} comentários encontrados
         </motion.p>
       )}
@@ -407,9 +407,9 @@ const Comments = () => {
                     placeholder="Escreva sua resposta..."
                     value=""
                     onChange={() => {}}
-                    className="min-h-[140px] glass-card border-white/10 focus:border-primary/50 bg-black/40 rounded-[16px] p-4 text-[14px] placeholder:text-white/40 resize-none outline-none block w-full"
+                    className="min-h-[140px] glass-card border-white/10 focus:border-primary/50 bg-black/40 rounded-[16px] p-4 text-[14px] placeholder:text-white/60 resize-none outline-none block w-full"
                   />
-                  <div className="absolute bottom-3 right-3 text-[10px] uppercase font-bold text-white/20">
+                  <div className="absolute bottom-3 right-3 text-[12px] uppercase font-bold text-white/60">
                     Sua resposta será pública
                   </div>
                 </div>
@@ -419,7 +419,7 @@ const Comments = () => {
               <Button variant="outline" className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold" onClick={() => setReplyOpen(false)}>
                 Cancelar
               </Button>
-              <Button className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-white shadow-glow transition-all active:scale-95" onClick={() => setReplyOpen(false)}>
+              <Button className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow transition-all active:scale-95" onClick={() => setReplyOpen(false)}>
                 Enviar Resposta
               </Button>
             </div>

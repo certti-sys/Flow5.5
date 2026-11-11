@@ -58,13 +58,13 @@ export const LayoutCustomization = () => {
                  </div>
                  <div>
                     <CardTitle className="text-[20px] font-bold text-white tracking-tight">Arquitetura de Navegação</CardTitle>
-                    <CardDescription className="text-[14px] text-muted-foreground/40 font-medium">Escolha como os alunos navegam pela escola.</CardDescription>
+                    <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">Escolha como os alunos navegam pela escola.</CardDescription>
                  </div>
               </div>
             </CardHeader>
             <CardContent className="p-8 space-y-8">
               <div className="space-y-6">
-                <Label className="text-[13px] font-bold text-muted-foreground/40 uppercase tracking-widest block mb-4">Selecione o Layout</Label>
+                <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-4">Selecione o Layout</Label>
                 
                 <RadioGroup
                   value={formData.navigation_layout}
@@ -96,8 +96,8 @@ export const LayoutCustomization = () => {
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                          <div className="flex items-center gap-2">
-                            <Sidebar className={`w-4 h-4 ${formData.navigation_layout === 'sidebar' ? 'text-primary' : 'text-muted-foreground/40'}`} />
-                            <span className={`text-[14px] font-bold ${formData.navigation_layout === 'sidebar' ? 'text-white' : 'text-muted-foreground/60'}`}>Menu Lateral</span>
+                            <Sidebar className={`w-4 h-4 ${formData.navigation_layout === 'sidebar' ? 'text-primary' : 'text-muted-foreground/80'}`} />
+                            <span className={`text-[14px] font-bold ${formData.navigation_layout === 'sidebar' ? 'text-white' : 'text-muted-foreground'}`}>Menu Lateral</span>
                          </div>
                          {formData.navigation_layout === 'sidebar' && (
                             <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
@@ -131,8 +131,8 @@ export const LayoutCustomization = () => {
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                          <div className="flex items-center gap-2">
-                            <PanelTop className={`w-4 h-4 ${formData.navigation_layout === 'horizontal' ? 'text-primary' : 'text-muted-foreground/40'}`} />
-                            <span className={`text-[14px] font-bold ${formData.navigation_layout === 'horizontal' ? 'text-white' : 'text-muted-foreground/60'}`}>Menu Superior</span>
+                            <PanelTop className={`w-4 h-4 ${formData.navigation_layout === 'horizontal' ? 'text-primary' : 'text-muted-foreground/80'}`} />
+                            <span className={`text-[14px] font-bold ${formData.navigation_layout === 'horizontal' ? 'text-white' : 'text-muted-foreground'}`}>Menu Superior</span>
                          </div>
                          {formData.navigation_layout === 'horizontal' && (
                             <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
@@ -151,7 +151,7 @@ export const LayoutCustomization = () => {
                     <Label htmlFor="compact" className="text-[15px] font-bold text-white cursor-pointer">
                       Sidebar Compacta por Padrão
                     </Label>
-                    <p className="text-[13px] text-muted-foreground/40 font-medium">Inicia o menu apenas com ícones para maior foco no conteúdo.</p>
+                    <p className="text-[13px] text-muted-foreground/80 font-medium">Inicia o menu apenas com ícones para maior foco no conteúdo.</p>
                   </div>
                   <Switch
                     id="compact"
@@ -163,11 +163,11 @@ export const LayoutCustomization = () => {
               )}
 
                <div className="mt-8 p-6 glass-card border-white/5 rounded-[12px]">
-                  <p className="text-[11px] font-black text-white/20 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <p className="text-[12px] font-black text-white/60 uppercase tracking-widest mb-4 flex items-center gap-2">
                      <div className="w-1 h-1 rounded-full bg-primary" />
                      Dica de UX
                   </p>
-                  <p className="text-[13px] text-muted-foreground/60 leading-relaxed font-medium">
+                  <p className="text-[13px] text-muted-foreground leading-relaxed font-medium">
                      Layouts <span className="text-white">Topbar</span> são ótimos para escolas com poucos cursos, enquanto a <span className="text-white">Sidebar</span> é recomendada para bibliotecas de conteúdo mais densas.
                   </p>
                </div>

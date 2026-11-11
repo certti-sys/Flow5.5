@@ -201,7 +201,7 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
                             </div>
                         ))}
                         {categories.length === 0 && (
-                            <p className="text-center text-white/40 text-[14px] py-4">Nenhuma categoria encontrada.</p>
+                            <p className="text-center text-white/60 text-[14px] py-4">Nenhuma categoria encontrada.</p>
                         )}
                     </div>
                 </div>

@@ -49,9 +49,9 @@ export const ProfileHero = ({ profile, userEmail, onEditClick, userStats, xpProg
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-3 mb-1">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">
                 {profile?.name || "Usuário"}
-              </h1>
+              </h2>
               <Badge variant="secondary" className="shrink-0">
                 🎓 Estudante Ativo
               </Badge>

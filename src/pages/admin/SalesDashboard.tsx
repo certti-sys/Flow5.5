@@ -283,9 +283,9 @@ export default function SalesDashboard() {
             <div className="relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground/60 font-bold uppercase tracking-widest mb-1">Total de Vendas</p>
+                  <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest mb-1">Total de Vendas</p>
                   <p className="text-2xl font-black text-white leading-tight">{metrics?.totalSales || 0}</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">{metrics?.paidOrders} pedidos pagos</p>
+                  <p className="text-xs text-muted-foreground mt-1">{metrics?.paidOrders} pedidos pagos</p>
                 </div>
                 <div className="p-3 rounded-full bg-primary/10 border border-primary/20">
                   <ShoppingCart className="w-6 h-6 text-primary" />
@@ -298,9 +298,9 @@ export default function SalesDashboard() {
             <div className="relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground/60 font-bold uppercase tracking-widest mb-1">Ticket Médio</p>
+                  <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest mb-1">Ticket Médio</p>
                   <p className="text-2xl font-black text-white leading-tight">{formatCurrency(metrics?.avgTicket || 0)}</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">por venda</p>
+                  <p className="text-xs text-muted-foreground mt-1">por venda</p>
                 </div>
                 <div className="p-3 rounded-full bg-purple-500/10 border border-purple-500/20">
                   <CreditCard className="w-6 h-6 text-purple-500" />
@@ -313,9 +313,9 @@ export default function SalesDashboard() {
             <div className="relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground/60 font-bold uppercase tracking-widest mb-1">Conversão</p>
+                  <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest mb-1">Conversão</p>
                   <p className="text-2xl font-black text-white leading-tight">{metrics?.conversionRate || 0}%</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">{metrics?.pendingOrders} pendentes</p>
+                  <p className="text-xs text-muted-foreground mt-1">{metrics?.pendingOrders} pendentes</p>
                 </div>
                 <div className="p-3 rounded-full bg-orange-500/10 border border-orange-500/20">
                   <TrendingUp className="w-6 h-6 text-orange-500" />
@@ -425,7 +425,7 @@ export default function SalesDashboard() {
                   {Object.entries(metrics.byMethod).map(([method, amount]) => (
                     <div key={method} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.01] border border-white/5">
                       <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-bold px-2 py-1">
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[12px] uppercase font-bold px-2 py-1">
                           {method.toUpperCase()}
                         </Badge>
                       </div>
@@ -492,7 +492,7 @@ export default function SalesDashboard() {
             <Users className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-[12px] font-bold text-muted-foreground/60 uppercase tracking-widest">Clientes Cadastrados</p>
+            <p className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest">Clientes Cadastrados</p>
             <p className="text-2xl font-black text-white">{metrics?.totalCustomers || 0}</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

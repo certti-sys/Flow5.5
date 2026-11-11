@@ -91,7 +91,7 @@ export const LevelUpModal = ({ isOpen, onClose, level }: LevelUpModalProps) => {
             >
               <Button 
                 onClick={onClose}
-                className="bg-primary hover:bg-primary/90 text-white font-black px-10 py-6 rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)] transition-all hover:scale-105 active:scale-95 text-lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-10 py-6 rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)] transition-all hover:scale-105 active:scale-95 text-lg"
               >
                 CONTINUAR JORNADA
               </Button>

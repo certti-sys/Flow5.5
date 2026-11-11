@@ -56,27 +56,27 @@ export const SearchBar = ({ fullWidth = false }: SearchBarProps) => {
         sideOffset={10}
       >
         <div className="relative p-2 bg-card border-b border-white/5">
-          <Search className="absolute left-4.5 inset-y-0 my-auto h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" strokeWidth={1.5} />
+          <Search className="absolute left-4.5 inset-y-0 my-auto h-3.5 w-3.5 text-muted-foreground pointer-events-none" strokeWidth={1.5} />
           <Input
             ref={inputRef}
             autoFocus
             placeholder="Buscar..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 w-full bg-muted/20 border-none focus-visible:ring-1 focus-visible:ring-primary/20 h-9 text-sm placeholder:text-muted-foreground/50 transition-all"
+            className="pl-8 w-full bg-muted/20 border-none focus-visible:ring-1 focus-visible:ring-primary/20 h-9 text-sm placeholder:text-muted-foreground/80 transition-all"
           />
         </div>
 
         <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
           {!showResults ? (
-            <div className="p-6 text-center text-muted-foreground/60 text-xs flex flex-col items-center gap-1.5">
+            <div className="p-6 text-center text-muted-foreground text-xs flex flex-col items-center gap-1.5">
               <Search className="w-6 h-6 opacity-10" />
               <p>Mínimo de 2 caracteres</p>
             </div>
           ) : isLoading ? (
-            <div className="p-6 text-center text-muted-foreground/60 text-xs animate-pulse">Buscando...</div>
+            <div className="p-6 text-center text-muted-foreground text-xs animate-pulse">Buscando...</div>
           ) : results.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground/60 text-xs italic">Nenhum curso encontrado.</div>
+            <div className="p-6 text-center text-muted-foreground text-xs italic">Nenhum curso encontrado.</div>
           ) : (
             <div className="py-1">
               {results.map((course) => (
@@ -94,7 +94,7 @@ export const SearchBar = ({ fullWidth = false }: SearchBarProps) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-xs truncate group-hover:text-primary transition-colors leading-tight">{course.title}</p>
-                    <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{course.category}</p>
+                    <p className="text-[12px] text-muted-foreground/70 truncate mt-0.5">{course.category}</p>
                   </div>
                 </button>
               ))}

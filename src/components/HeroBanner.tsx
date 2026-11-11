@@ -38,7 +38,7 @@ export const HeroBanner = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              <span className="text-[10px] md:text-xs font-medium uppercase tracking-wider text-primary-foreground/90">
+              <span className="text-[12px] md:text-xs font-medium uppercase tracking-wider text-primary">
                 {settings.banner_badge_text}
               </span>
             </div>
@@ -46,7 +46,12 @@ export const HeroBanner = () => {
 
           {/* Title - more balanced sizes */}
           {(settings.banner_title_line1 || settings.banner_title_line2 || settings.banner_title_line3) && (
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-4">
+            <h2
+              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-4"
+              aria-label={[settings.banner_title_line1, settings.banner_title_line2, settings.banner_title_line3]
+                .filter(Boolean)
+                .join(" ")}
+            >
               <span className="block">{settings.banner_title_line1}</span>
               <span className="block text-white/90">{settings.banner_title_line2}</span>
               {settings.banner_title_line3 && (
@@ -54,7 +59,7 @@ export const HeroBanner = () => {
                   {settings.banner_title_line3}
                 </span>
               )}
-            </h1>
+            </h2>
           )}
 
           {/* Subtitle - better readability */}

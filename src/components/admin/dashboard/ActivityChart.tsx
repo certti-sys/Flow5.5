@@ -17,7 +17,7 @@ export function ActivityChart({ data }: ActivityChartProps) {
             </div>
             Atividade Semanal
           </h3>
-          <p className="text-[11px] text-muted-foreground/40 uppercase font-black tracking-widest pl-11">Aulas concluídas nos últimos 7 dias</p>
+          <p className="text-[12px] text-muted-foreground/80 uppercase font-black tracking-widest pl-11">Aulas concluídas nos últimos 7 dias</p>
         </div>
       </div>
       

@@ -142,7 +142,7 @@ export default function MonitoringSettings() {
                   <li>Vá em <strong>Settings &gt; Projects &gt; [Nome] &gt; Client Keys (DSN)</strong>.</li>
                   <li>Copie a URL do DSN e cole no campo acima.</li>
                 </ol>
-                <p className="text-[10px] text-muted-foreground italic">* O Sentry captura falhas de carregamento de vídeo, erros de script e lentidão na plataforma.</p>
+                <p className="text-[12px] text-muted-foreground italic">* O Sentry captura falhas de carregamento de vídeo, erros de script e lentidão na plataforma.</p>
               </div>
             </CardContent>
           </Card>
@@ -177,11 +177,11 @@ export default function MonitoringSettings() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 border border-white/5 rounded-lg text-center bg-white/5">
                   <p className="text-2xl font-bold text-white">{logs.length}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Logs Ativos</p>
+                  <p className="text-[12px] text-muted-foreground uppercase">Logs Ativos</p>
                 </div>
                 <div className="p-3 border border-white/5 rounded-lg text-center bg-white/5">
                   <p className="text-2xl font-bold text-white flex items-center justify-center gap-1">7 <span className="text-xs font-normal">dias</span></p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Retenção</p>
+                  <p className="text-[12px] text-muted-foreground uppercase">Retenção</p>
                 </div>
               </div>
             </CardContent>
@@ -213,10 +213,10 @@ export default function MonitoringSettings() {
                     <Table className="w-full">
                       <TableHeader className="bg-white/5 sticky top-0 z-10">
                         <TableRow className="border-none">
-                          <TableHead className="w-[180px] px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Data/Hora</TableHead>
-                          <TableHead className="w-[100px] px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Nível</TableHead>
-                          <TableHead className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Evento</TableHead>
-                          <TableHead className="px-6 py-3 text-right text-[11px] font-bold uppercase tracking-widest text-white/40">Ação</TableHead>
+                          <TableHead className="w-[180px] px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Data/Hora</TableHead>
+                          <TableHead className="w-[100px] px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Nível</TableHead>
+                          <TableHead className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Evento</TableHead>
+                          <TableHead className="px-6 py-3 text-right text-[12px] font-bold uppercase tracking-widest text-white/60">Ação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-white/5">

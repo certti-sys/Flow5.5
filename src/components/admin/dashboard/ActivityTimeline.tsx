@@ -49,11 +49,11 @@ export function ActivityTimeline({ logs }: ActivityTimelineProps) {
             </div>
             Audit Log: Atividade do Sistema
           </h3>
-          <p className="text-[11px] text-muted-foreground/40 uppercase font-black tracking-widest pl-11">Monitoramento de segurança em tempo real</p>
+          <p className="text-[12px] text-muted-foreground/80 uppercase font-black tracking-widest pl-11">Monitoramento de segurança em tempo real</p>
         </div>
         <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-2">
-          <Terminal className="w-3 h-3 text-muted-foreground/40" />
-          <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Live Feed</span>
+          <Terminal className="w-3 h-3 text-muted-foreground/80" />
+          <span className="text-[12px] font-black text-white/60 uppercase tracking-widest">Live Feed</span>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function ActivityTimeline({ logs }: ActivityTimelineProps) {
                 <div className="absolute left-[20px] top-[48px] bottom-[-20px] w-[1px] bg-white/[0.03] group-hover/log:bg-primary/20 transition-all duration-500" />
               )}
               
-              <div className="w-10 h-10 rounded-2xl bg-black/60 border border-white/5 flex items-center justify-center text-muted-foreground/40 shrink-0 relative z-10 group-hover/log:border-primary/30 group-hover/log:text-primary group-hover/log:shadow-glow-sm transition-all duration-300">
+              <div className="w-10 h-10 rounded-2xl bg-black/60 border border-white/5 flex items-center justify-center text-muted-foreground/80 shrink-0 relative z-10 group-hover/log:border-primary/30 group-hover/log:text-primary group-hover/log:shadow-glow-sm transition-all duration-300">
                 {ACTION_ICONS[log.action] || <Clock className="w-4 h-4" />}
               </div>
               
@@ -77,11 +77,11 @@ export function ActivityTimeline({ logs }: ActivityTimelineProps) {
                     <p className="text-[13px] text-white font-bold group-hover/log:text-primary transition-colors truncate">
                     {getActionLabel(log.action, log.details)}
                     </p>
-                    <span className="text-[9px] uppercase font-black tracking-widest text-muted-foreground/30 bg-white/[0.02] border border-white/5 px-2 py-0.5 rounded-lg group-hover/log:text-white/60 transition-colors">
+                    <span className="text-[12px] uppercase font-black tracking-widest text-muted-foreground/80 bg-white/[0.02] border border-white/5 px-2 py-0.5 rounded-lg group-hover/log:text-white/60 transition-colors">
                     {log.resource_type}
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground/40 uppercase font-black text-[9px] tracking-widest">
+                <div className="flex items-center gap-2 text-muted-foreground/80 uppercase font-black text-[12px] tracking-widest">
                   <Clock className="w-2.5 h-2.5 opacity-30" />
                   <span>
                     {formatDistanceToNow(new Date(log.created_at), {
@@ -97,7 +97,7 @@ export function ActivityTimeline({ logs }: ActivityTimelineProps) {
       ) : (
         <div className="py-12 flex flex-col items-center justify-center text-center gap-4 bg-white/[0.01] rounded-3xl border border-dashed border-white/10">
           <ShieldCheck className="w-8 h-8 text-muted-foreground/20" />
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Nenhum evento crítico</p>
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Nenhum evento crítico</p>
         </div>
       )}
     </Card>

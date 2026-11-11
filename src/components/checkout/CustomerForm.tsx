@@ -88,7 +88,7 @@ export function CustomerForm({ form }: CustomerFormProps) {
                 />
             </div>
 
-            <div className="text-[10px] text-green-600 font-medium cursor-help hover:underline decoration-dotted underline-offset-2">
+            <div className="text-[12px] text-green-600 font-medium cursor-help hover:underline decoration-dotted underline-offset-2">
                 Por que pedimos esse dado?
             </div>
         </div>

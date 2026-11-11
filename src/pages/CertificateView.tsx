@@ -447,7 +447,7 @@ export default function CertificateView() {
         </Link>
         <Button
           onClick={handleDownload}
-          className="bg-primary hover:bg-primary/90 text-white font-bold border-0 shadow-xl shadow-primary/20 rounded-xl"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold border-0 shadow-xl shadow-primary/20 rounded-xl"
         >
           <FileDown className="w-4 h-4 mr-2" />
           Baixar Certificado (PDF)
@@ -467,7 +467,7 @@ export default function CertificateView() {
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-amber-500/10 blur-[100px] rounded-full pointer-events-none" />
             <div className="mt-14 mb-8 flex items-center gap-4 z-10">
               {certLogo ? <img src={certLogo} alt="Logo" className="h-14 object-contain" /> : <Award className="w-10 h-10 text-primary" />}
-              {!settings.certificate_logo_url && <h1 className="text-2xl font-black text-white tracking-widest">{settings.logo_text || 'STREAM'}</h1>}
+              {!settings.certificate_logo_url && <span className="text-2xl font-black text-white tracking-widest">{settings.logo_text || 'STREAM'}</span>}
             </div>
             <h2 className="text-4xl font-black text-white/90 tracking-widest mb-1 z-10" style={{ fontFamily: 'serif' }}>CERTIFICADO</h2>
             <p className="text-xs font-bold text-amber-500 tracking-[0.3em] uppercase mb-8 z-10">De Conclusão de Curso</p>
@@ -475,10 +475,10 @@ export default function CertificateView() {
               <p className="text-sm text-white/50 mb-2">Certificamos que</p>
               <h3 className="text-3xl font-bold text-white mb-4 border-b border-white/15 pb-2">{cert.user?.name || 'Aluno'}</h3>
               <p className="text-sm text-white/70">concluiu com sucesso: <strong className="text-amber-400 block text-lg mt-1">{cert.course?.title}</strong></p>
-              <p className="text-xs text-white/40 mt-4">Finalizado em {issueDate}</p>
+              <p className="text-xs text-white/60 mt-4">Finalizado em {issueDate}</p>
             </div>
             <div className="absolute bottom-12 left-12 right-12 flex justify-between items-end z-10">
-              <div><ShieldCheck className="w-8 h-8 text-primary/50 mb-1" /><p className="text-[8px] text-white/30 font-mono break-all max-w-[180px]">{cert.id}</p></div>
+              <div><ShieldCheck className="w-8 h-8 text-primary/50 mb-1" /><p className="text-[8px] text-white/60 font-mono break-all max-w-[180px]">{cert.id}</p></div>
               <div className="text-center">
                 {settings.certificate_signature_url && <img src={settings.certificate_signature_url} className="max-h-12 object-contain mb-1" alt="Assinatura" />}
                 <div className="w-40 h-px bg-white/20 mx-auto mb-1" />
@@ -499,11 +499,11 @@ export default function CertificateView() {
             <div className="absolute bottom-5 right-5 w-8 h-8 border-b-2 border-r-2 border-yellow-600" />
             <div className="mt-10 mb-2 flex items-center gap-3 z-10">
               {certLogo ? <img src={certLogo} alt="Logo" className="h-12 object-contain" /> : <Award className="w-10 h-10 text-yellow-700" />}
-              {!settings.certificate_logo_url && <h1 className="text-xl font-black tracking-widest" style={{ color: '#3d2e00' }}>{settings.logo_text || 'STREAM'}</h1>}
+              {!settings.certificate_logo_url && <span className="text-xl font-black tracking-widest" style={{ color: '#3d2e00' }}>{settings.logo_text || 'STREAM'}</span>}
             </div>
             <div className="w-40 h-0.5 mx-auto mb-2" style={{ background: 'linear-gradient(to right, transparent, #c9a84c, transparent)' }} />
             <h2 className="text-4xl font-black tracking-widest mb-1 z-10" style={{ color: '#2c1a00', fontFamily: 'Georgia, serif' }}>CERTIFICADO</h2>
-            <p className="text-[10px] font-bold tracking-[0.35em] uppercase mb-6 z-10" style={{ color: '#8a6e00' }}>De Conclusão de Curso</p>
+            <p className="text-[12px] font-bold tracking-[0.35em] uppercase mb-6 z-10" style={{ color: '#8a6e00' }}>De Conclusão de Curso</p>
             <div className="text-center max-w-[65%] z-10">
               <p className="text-sm mb-2 italic" style={{ color: '#7a6a50' }}>Certificamos que</p>
               <h3 className="text-3xl font-bold mb-4 pb-2 border-b" style={{ color: '#1a1000', borderColor: '#d4b96a', fontFamily: 'Georgia, serif' }}>{cert.user?.name || 'Aluno'}</h3>
@@ -541,7 +541,7 @@ export default function CertificateView() {
             </div>
             {/* Right content */}
             <div className="flex-1 flex flex-col justify-center px-10 pt-6 pb-8">
-              <p className="text-[10px] font-bold tracking-[0.3em] uppercase mb-1" style={{ color: settings.gradient_start_color || '#7c3aed', opacity: 0.7 }}>Certificado de Conclusão</p>
+              <p className="text-[12px] font-bold tracking-[0.3em] uppercase mb-1" style={{ color: settings.gradient_start_color || '#7c3aed', opacity: 0.7 }}>Certificado de Conclusão</p>
               <h2 className="text-4xl font-black text-gray-900 tracking-[0.12em] mb-4" style={{ lineHeight: 1 }}>DIPLOMA</h2>
               <p className="text-sm text-gray-400 mb-2">Certificamos que</p>
               <h3 className="text-3xl font-black text-gray-900 mb-3 pb-2" style={{ borderBottom: `2px solid ${settings.gradient_start_color || '#7c3aed'}` }}>{cert.user?.name || 'Aluno'}</h3>
@@ -567,14 +567,14 @@ export default function CertificateView() {
                 {certLogo ? <img src={certLogo} alt="Logo" className="h-10 object-contain brightness-0 invert" /> : <span className="text-lg font-black text-white tracking-widest">{settings.logo_text || 'STREAM'}</span>}
               </div>
               <div className="text-right">
-                <p className="text-[8px] font-bold text-white/40 tracking-widest uppercase">Certificado Oficial</p>
+                <p className="text-[8px] font-bold text-white/60 tracking-widest uppercase">Certificado Oficial</p>
                 <p className="text-sm font-bold text-white/80 tracking-wider">Certificado de Conclusão</p>
               </div>
             </div>
             {/* Body */}
             <div className="flex-1 flex items-center px-12 gap-10">
               <div className="flex-1 flex flex-col">
-                <p className="text-[9px] font-bold tracking-[0.3em] uppercase mb-1 text-[#1e3a5f] opacity-60">Diploma Oficial</p>
+                <p className="text-[12px] font-bold tracking-[0.3em] uppercase mb-1 text-[#1e3a5f] opacity-60">Diploma Oficial</p>
                 <h2 className="text-4xl font-black text-gray-900 tracking-[0.1em] mb-3" style={{ lineHeight: 1 }}>CERTIFICADO</h2>
                 <div className="w-14 h-1 bg-[#1e3a5f] rounded mb-4" />
                 <p className="text-sm text-gray-400 mb-2">Certificamos que</p>
@@ -587,14 +587,14 @@ export default function CertificateView() {
                 <div className="text-center">
                   {settings.certificate_signature_url && <img src={settings.certificate_signature_url} className="max-h-10 object-contain mb-1" alt="Assinatura" />}
                   <div className="w-32 h-px bg-[#1e3a5f]/30 mb-1" />
-                  <p className="text-[10px] font-bold text-[#1e3a5f]">{settings.certificate_instructor_name || 'Diretoria'}</p>
+                  <p className="text-[12px] font-bold text-[#1e3a5f]">{settings.certificate_instructor_name || 'Diretoria'}</p>
                 </div>
               </div>
             </div>
             {/* Footer */}
             <div className="bg-[#f0f4f8] border-t-2 border-[#1e3a5f] px-10 py-3 flex justify-between items-center shrink-0">
               <p className="text-[7px] text-gray-400 font-mono break-all max-w-[300px]">{cert.id}</p>
-              <p className="text-[10px] text-gray-400">{issueDate} · Documento válido e verificável</p>
+              <p className="text-[12px] text-gray-400">{issueDate} · Documento válido e verificável</p>
             </div>
           </div>
         )}

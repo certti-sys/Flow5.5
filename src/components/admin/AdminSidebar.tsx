@@ -219,7 +219,7 @@ export function AdminSidebar() {
                 <p className="font-bold text-sm text-foreground leading-tight truncate">
                   {profile?.name || "Administrador"}
                 </p>
-                <p className="text-[10px] text-white/40 truncate">{user?.email || "Painel administrativo"}</p>
+                <p className="text-[12px] text-white/60 truncate">{user?.email || "Painel administrativo"}</p>
               </div>
               <button
                 onClick={toggleSidebar}
@@ -261,7 +261,7 @@ export function AdminSidebar() {
 
         {/* 1. Visão Geral */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">Visão Geral</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">Visão Geral</SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(overviewItems)}
           </SidebarGroupContent>
@@ -269,7 +269,7 @@ export function AdminSidebar() {
 
         {/* 2. Acadêmico */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">Acadêmico</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">Acadêmico</SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(academicItems)}
           </SidebarGroupContent>
@@ -277,7 +277,7 @@ export function AdminSidebar() {
 
         {/* 3. Comercial */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">Comercial</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">Comercial</SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(commercialItems)}
           </SidebarGroupContent>
@@ -285,7 +285,7 @@ export function AdminSidebar() {
 
         {/* 6. Aparência & Design */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">Aparência & Design</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">Aparência & Design</SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(appearanceItems)}
           </SidebarGroupContent>
@@ -293,7 +293,7 @@ export function AdminSidebar() {
 
         {/* 4. Canais de Comunicação */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">Canais de Comunicação</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">Canais de Comunicação</SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(communicationItems)}
           </SidebarGroupContent>
@@ -301,7 +301,7 @@ export function AdminSidebar() {
 
         {/* 5. Configurações do Sistema */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">Configurações do Sistema</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">Configurações do Sistema</SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(systemItems)}
           </SidebarGroupContent>

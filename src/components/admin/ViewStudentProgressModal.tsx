@@ -132,7 +132,7 @@ export function ViewStudentProgressModal({
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h4 className="text-[14px] font-medium text-white/90 leading-none mb-1.5">{course.courseTitle}</h4>
-                    <p className="text-[12px] text-white/40">
+                    <p className="text-[12px] text-white/60">
                       {course.completedLessons} de {course.totalLessons} aulas concluídas
                     </p>
                   </div>
@@ -152,7 +152,7 @@ export function ViewStudentProgressModal({
           ) : (
             <div className="text-center py-12 bg-black/20 border border-white/5 rounded-[12px]">
               <BarChart2 className="w-12 h-12 text-white/10 mx-auto mb-3" />
-              <p className="text-[14px] text-white/40">
+              <p className="text-[14px] text-white/60">
                 Nenhum curso atribuído para este aluno.
               </p>
             </div>

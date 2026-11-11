@@ -216,7 +216,7 @@ export function VideoPreview({ url, platform, onValidation }: VideoPreviewProps)
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-2 p-4">
               <AlertCircle className="w-8 h-8 mx-auto text-destructive" />
-              <p className="text-sm text-destructive">{error}</p>
+              <p role="alert" className="text-sm text-destructive">{error}</p>
             </div>
           </div>
         ) : (

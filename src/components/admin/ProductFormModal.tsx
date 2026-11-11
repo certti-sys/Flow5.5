@@ -208,20 +208,20 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                                 <TabsList className="bg-transparent h-auto p-0 gap-6 w-full justify-start rounded-none">
                                     <TabsTrigger 
                                         value="general"
-                                        className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                                        className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
                                     >
                                         Geral
                                     </TabsTrigger>
                                     <TabsTrigger 
                                         value="access" 
-                                        className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium flex items-center gap-2"
+                                        className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium flex items-center gap-2"
                                     >
                                         <BookOpen className="w-4 h-4" />
                                         Acesso
                                     </TabsTrigger>
                                     <TabsTrigger 
                                         value="customization" 
-                                        className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium flex items-center gap-2"
+                                        className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium flex items-center gap-2"
                                     >
                                         <Palette className="w-4 h-4" />
                                         Visual
@@ -238,7 +238,7 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                                             <FormItem>
                                                 <FormLabel className="text-white/80 font-medium">Nome do Produto</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="Curso Completo de..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]" />
+                                                    <Input placeholder="Curso Completo de..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -251,7 +251,7 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                                             <FormItem>
                                                 <FormLabel className="text-white/80 font-medium">Descrição</FormLabel>
                                                 <FormControl>
-                                                    <Textarea placeholder="Detalhes do curso..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 min-h-[100px] resize-none" />
+                                                    <Textarea placeholder="Detalhes do curso..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 min-h-[100px] resize-none" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -448,7 +448,7 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                                             <FormItem className="pt-2">
                                                 <FormLabel className="text-white/80 font-medium">Banner URL (Topo do Checkout)</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="https://..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]" />
+                                                    <Input placeholder="https://..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -461,7 +461,7 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                                             <FormItem>
                                                 <FormLabel className="text-white/80 font-medium">Logo URL</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="https://..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]" />
+                                                    <Input placeholder="https://..." {...field} className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

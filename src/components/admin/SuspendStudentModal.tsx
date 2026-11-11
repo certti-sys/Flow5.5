@@ -185,7 +185,7 @@ export function SuspendStudentModal({ open, onOpenChange, student }: SuspendStud
                 name="suspension_reason"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[12px] uppercase tracking-widest font-bold text-white/40">Motivo da Suspensão</FormLabel>
+                    <FormLabel className="text-[12px] uppercase tracking-widest font-bold text-white/60">Motivo da Suspensão</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Descreva o motivo da suspensão..."

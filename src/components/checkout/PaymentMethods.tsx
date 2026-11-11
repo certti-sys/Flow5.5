@@ -47,7 +47,7 @@ export function PaymentMethods({ form, onMethodChange, allowedMethods = ["credit
                     <CreditCard className="w-5 h-5 text-muted-foreground" />
                     Meios de pagamento
                 </h2>
-                <Lock className="w-4 h-4 text-muted-foreground/60" />
+                <Lock className="w-4 h-4 text-muted-foreground" />
             </div>
 
             {/* Botões lado a lado com flex (ocupam espaço igual) */}

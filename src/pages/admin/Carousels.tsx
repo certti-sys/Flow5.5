@@ -170,7 +170,7 @@ export default function AdminCarousels() {
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               variant="outline"
-              className="glass-card border-white/10 hover:bg-white/5 h-[40px] px-6 rounded-xl gap-2 font-bold uppercase tracking-wider text-[11px]"
+              className="glass-card border-white/10 hover:bg-white/5 h-[40px] px-6 rounded-xl gap-2 font-bold uppercase tracking-wider text-[12px]"
             >
               <Plus className="w-4 h-4" />
               Criar Primeiro Carrossel
@@ -221,7 +221,7 @@ export default function AdminCarousels() {
                           </div>
                         </td>
                         <td className="px-6 py-5 hidden md:table-cell">
-                          <span className={`inline-flex items-center px-[10px] py-[4px] text-[10px] uppercase font-bold tracking-widest rounded-[6px] border ${
+                          <span className={`inline-flex items-center px-[10px] py-[4px] text-[12px] uppercase font-bold tracking-widest rounded-[6px] border ${
                             carousel.type === 'auto'
                               ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                               : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
@@ -236,15 +236,15 @@ export default function AdminCarousels() {
                           <div className="flex items-center gap-2">
                              <div className="flex items-center gap-1 text-[13px] font-bold text-white px-2 py-1 bg-black/40 rounded-xl border border-white/5">
                                {carousel.cards_per_view_desktop}
-                               <span className="text-[10px] text-muted-foreground opacity-50">D</span>
+                               <span className="text-[12px] text-muted-foreground opacity-50">D</span>
                              </div>
                              <div className="flex items-center gap-1 text-[13px] font-bold text-white/80 px-2 py-1 bg-black/40 rounded-xl border border-white/5">
                                {carousel.cards_per_view_tablet}
-                               <span className="text-[10px] text-muted-foreground opacity-50">T</span>
+                               <span className="text-[12px] text-muted-foreground opacity-50">T</span>
                              </div>
                              <div className="flex items-center gap-1 text-[13px] font-bold text-white/60 px-2 py-1 bg-black/40 rounded-xl border border-white/5">
                                {carousel.cards_per_view_mobile}
-                               <span className="text-[10px] text-muted-foreground opacity-50">M</span>
+                               <span className="text-[12px] text-muted-foreground opacity-50">M</span>
                              </div>
                           </div>
                         </td>

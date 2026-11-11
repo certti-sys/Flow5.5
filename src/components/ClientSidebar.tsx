@@ -161,7 +161,7 @@ export function ClientSidebar({ showUserInfo = false }: ClientSidebarProps) {
                 <p className="font-bold text-sm text-foreground leading-tight truncate">
                   {profile?.name || "Usuário"}
                 </p>
-                <p className="text-[10px] text-white/40 truncate">{user?.email || "Aluno"}</p>
+                <p className="text-[12px] text-white/60 truncate">{user?.email || "Aluno"}</p>
               </div>
               <button
                 onClick={toggleSidebar}
@@ -174,12 +174,12 @@ export function ClientSidebar({ showUserInfo = false }: ClientSidebarProps) {
 
             {/* Gamification compact */}
             <div className="mt-2.5 pt-2.5 border-t border-white/[0.06] space-y-1.5">
-              <div className="flex items-center justify-between text-[10px] font-medium">
+              <div className="flex items-center justify-between text-[12px] font-medium">
                 <span className="flex items-center gap-1 font-bold text-amber-500">
                   <Trophy className="h-3 w-3" />
                   Nível {userStats?.level || 1}
                 </span>
-                <span className="text-white/40">
+                <span className="text-white/60">
                   {xpProgress.current}/{xpProgress.required} XP
                 </span>
                 <span className="flex items-center gap-1 font-bold text-orange-500">
@@ -196,7 +196,7 @@ export function ClientSidebar({ showUserInfo = false }: ClientSidebarProps) {
       {/* Navigation */}
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">
+          <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">
             Navegação
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -233,7 +233,7 @@ export function ClientSidebar({ showUserInfo = false }: ClientSidebarProps) {
         {/* Admin Section */}
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-3">
+            <SidebarGroupLabel className="text-[12px] font-bold uppercase tracking-widest text-white/60 px-3">
               Administração
             </SidebarGroupLabel>
             <SidebarGroupContent>

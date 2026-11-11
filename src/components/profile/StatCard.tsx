@@ -57,7 +57,7 @@ export const StatCard = ({
           <div className="text-lg sm:text-xl md:text-3xl font-bold text-gradient tabular-nums">
             {displayValue}
           </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5 line-clamp-2">
+          <p className="text-[12px] sm:text-xs text-muted-foreground font-medium mt-0.5 line-clamp-2">
             {label}
           </p>
         </div>

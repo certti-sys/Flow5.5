@@ -273,15 +273,15 @@ const Dashboard = () => {
                       </h3>
                       <div className="flex items-center gap-2 mt-2">
                         <Progress value={course.progress} className="h-1.5 flex-1 bg-white/20" />
-                        <span className="text-[11px] text-primary font-bold shrink-0">{course.progress}%</span>
+                        <span className="text-[12px] text-primary font-bold shrink-0">{course.progress}%</span>
                       </div>
-                      <p className="text-[11px] text-white/50 mt-1.5">
+                      <p className="text-[12px] text-white/50 mt-1.5">
                         {course.completedLessons}/{course.totalLessons} aulas
                       </p>
                     </div>
 
                     {/* Action Icon - always visible */}
-                    <div className="shrink-0 w-9 h-9 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <div className="shrink-0 w-9 h-9 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Play className="w-4 h-4 fill-current" />
                     </div>
                   </div>
@@ -309,13 +309,13 @@ const Dashboard = () => {
               © {new Date().getFullYear()} EduStream. Todos os direitos reservados.
             </p>
             <div className="flex gap-6">
-              <button className="hover:text-white transition-colors cursor-pointer">
+              <button className="hover:text-white transition-colors cursor-pointer py-1.5">
                 Termos de Uso
               </button>
-              <button className="hover:text-white transition-colors cursor-pointer">
+              <button className="hover:text-white transition-colors cursor-pointer py-1.5">
                 Política de Privacidade
               </button>
-              <button className="hover:text-white transition-colors cursor-pointer">
+              <button className="hover:text-white transition-colors cursor-pointer py-1.5">
                 Suporte
               </button>
             </div>

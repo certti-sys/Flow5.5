@@ -220,13 +220,13 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
             <TabsList className="bg-transparent h-auto p-0 gap-6 w-full justify-start rounded-none">
               <TabsTrigger 
                 value="individual"
-                className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-emerald-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-emerald-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
               >
                 Cursos Individuais
               </TabsTrigger>
               <TabsTrigger 
                 value="category"
-                className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-emerald-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-emerald-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
               >
                 Por Categoria
               </TabsTrigger>
@@ -279,7 +279,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
                         className="flex-1 cursor-pointer"
                       >
                         <p className="text-[14px] font-medium text-white/90 leading-none mb-1">{course.title}</p>
-                        <p className="text-[12px] text-white/40">
+                        <p className="text-[12px] text-white/60">
                           {course.category} • {course.duration}
                         </p>
                       </label>
@@ -321,7 +321,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
                               {categoryCourses.length} curso(s)
                             </span>
                           </div>
-                          <p className="text-[12px] text-white/40 line-clamp-2 mt-1">
+                          <p className="text-[12px] text-white/60 line-clamp-2 mt-1">
                             {categoryCourses.map(c => c.title).join(", ")}
                           </p>
                         </label>

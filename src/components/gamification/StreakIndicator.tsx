@@ -22,7 +22,7 @@ export const StreakIndicator = ({ currentStreak, bestStreak, className = "" }: S
           <Flame className={cn("w-4 h-4 sm:w-5 sm:h-5 text-white", !isActive && "opacity-50")} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Sequência Atual</p>
+          <p className="text-[12px] sm:text-xs text-muted-foreground">Sequência Atual</p>
           <p className="text-base sm:text-lg md:text-xl font-bold text-gradient tabular-nums">
             {currentStreak} {currentStreak === 1 ? "dia" : "dias"}
           </p>
@@ -30,7 +30,7 @@ export const StreakIndicator = ({ currentStreak, bestStreak, className = "" }: S
       </div>
       
       <div className="pt-2 sm:pt-3 border-t border-white/10">
-        <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Melhor Sequência</p>
+        <p className="text-[12px] sm:text-xs text-muted-foreground mb-0.5">Melhor Sequência</p>
         <p className="text-sm sm:text-base font-semibold text-foreground tabular-nums">
           🏆 {bestStreak} {bestStreak === 1 ? "dia" : "dias"}
         </p>

@@ -97,19 +97,19 @@ export default function ThemeCustomization() {
           <TabsList className="!flex w-full overflow-x-auto scrollbar-none bg-transparent gap-1">
             <TabsTrigger 
               value="colors" 
-              className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40"
+              className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60"
             >
               <Palette className="h-3.5 w-3.5" /> Cores do Tema
             </TabsTrigger>
             <TabsTrigger 
               value="branding" 
-              className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40"
+              className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60"
             >
               <ImageIcon className="h-3.5 w-3.5" /> Branding
             </TabsTrigger>
             <TabsTrigger 
               value="layout" 
-              className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40"
+              className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60"
             >
               <LayoutIcon className="h-3.5 w-3.5" /> Layout
             </TabsTrigger>
@@ -130,7 +130,7 @@ export default function ThemeCustomization() {
 
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <Label className="text-[13px] font-bold text-muted-foreground/50 uppercase tracking-widest pl-1">HEX Code</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest pl-1">HEX Code</Label>
                     <div className="flex gap-3">
                       <Input
                         type="text"
@@ -152,7 +152,7 @@ export default function ThemeCustomization() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-[13px] font-bold text-muted-foreground/50 uppercase tracking-widest pl-1">Live Preview</Label>
+                    <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest pl-1">Live Preview</Label>
                     <div
                       className="h-28 rounded-[16px] border-2 border-white/10 shadow-glow transition-all relative overflow-hidden"
                       style={{ backgroundColor: selectedColor }}
@@ -172,7 +172,7 @@ export default function ThemeCustomization() {
                     </div>
                     <div>
                       <h2 className="text-[18px] font-bold text-white leading-none">Paleta Gerada</h2>
-                      <p className="text-[12px] text-muted-foreground/40 mt-1">Geração automática de tons baseada na sua cor</p>
+                      <p className="text-[12px] text-muted-foreground/80 mt-1">Geração automática de tons baseada na sua cor</p>
                     </div>
                   </div>
                 </div>
@@ -199,7 +199,7 @@ export default function ThemeCustomization() {
                             <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             {isCopied ? <Check className="w-4 h-4" /> : shade}
                           </div>
-                          <span className="text-[11px] font-mono font-medium text-muted-foreground/50 mt-2 flex items-center gap-1">
+                          <span className="text-[12px] font-mono font-medium text-muted-foreground/80 mt-2 flex items-center gap-1">
                             {hexCode}
                             <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </span>
@@ -218,14 +218,14 @@ export default function ThemeCustomization() {
                 
                 <div className="flex flex-col gap-1">
                   <h2 className="text-[20px] font-bold text-white tracking-tight">Preview Studio</h2>
-                  <p className="text-[14px] text-muted-foreground/50">Veja como suas novas cores se comportam em elementos reais da interface.</p>
+                  <p className="text-[14px] text-muted-foreground/80">Veja como suas novas cores se comportam em elementos reais da interface.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                   {/* Interactive Elements */}
                   <div className="space-y-6">
                     <div>
-                      <Label className="text-[12px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-4">Interatividade</Label>
+                      <Label className="text-[12px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-4">Interatividade</Label>
                       <div className="flex flex-wrap gap-3">
                         <Button className="gradient-primary shadow-glow h-[44px] px-6 rounded-[12px] font-bold text-[13px]">Principal</Button>
                         <Button variant="outline" className="glass-card border-white/10 hover:bg-white/5 h-[44px] px-6 rounded-[12px] font-bold text-[13px]">Outline</Button>
@@ -236,7 +236,7 @@ export default function ThemeCustomization() {
                     <Separator className="bg-white/5" />
 
                     <div>
-                      <Label className="text-[12px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-4">Sinalização</Label>
+                      <Label className="text-[12px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-4">Sinalização</Label>
                       <div className="flex flex-wrap gap-2">
                         <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 rounded-full font-bold">Premium</Badge>
                         <Badge className="bg-white/5 text-muted-foreground border-white/10 px-3 py-1 rounded-full font-bold">Destaque</Badge>
@@ -247,7 +247,7 @@ export default function ThemeCustomization() {
 
                   {/* Sandbox Card */}
                   <div className="lg:col-span-2">
-                    <Label className="text-[12px] font-bold text-muted-foreground/30 uppercase tracking-widest block mb-4">Card de Prateleira</Label>
+                    <Label className="text-[12px] font-bold text-muted-foreground/70 uppercase tracking-widest block mb-4">Card de Prateleira</Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <Card className="glass-card border-white/10 p-0 rounded-[20px] overflow-hidden group cursor-pointer hover:border-primary/30 transition-all">
                         <div className="aspect-video bg-black/40 flex items-center justify-center relative">
@@ -255,11 +255,11 @@ export default function ThemeCustomization() {
                            <Palette className="w-10 h-10 text-white/10 group-hover:text-primary/20 transition-colors" />
                         </div>
                         <div className="p-5 space-y-3">
-                          <Badge className="bg-primary/20 text-primary border-0 rounded-md text-[10px] font-black uppercase">Design System</Badge>
+                          <Badge className="bg-primary/20 text-primary border-0 rounded-md text-[12px] font-black uppercase">Design System</Badge>
                           <h3 className="text-[17px] font-bold text-white tracking-tight group-hover:text-primary transition-colors">
                             Laboratório de Cores
                           </h3>
-                          <p className="text-[13px] text-muted-foreground/60 leading-relaxed line-clamp-2">
+                          <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
                             Entenda como a percepção visual afeta o engajamento dos seus alunos na plataforma.
                           </p>
                           <div className="pt-2 flex items-center justify-between">
@@ -267,9 +267,9 @@ export default function ThemeCustomization() {
                                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                                   <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-glow-sm" />
                                </div>
-                               <span className="text-[11px] font-bold text-muted-foreground/80 uppercase">Ativo</span>
+                               <span className="text-[12px] font-bold text-muted-foreground/80 uppercase">Ativo</span>
                              </div>
-                             <Button size="sm" className="h-8 rounded-[8px] text-[11px] px-4 font-black">EDITAR</Button>
+                             <Button size="sm" className="h-8 rounded-[8px] text-[12px] px-4 font-black">EDITAR</Button>
                           </div>
                         </div>
                       </Card>
@@ -279,7 +279,7 @@ export default function ThemeCustomization() {
                             <AlertCircle className="w-6 h-6" />
                          </div>
                          <h4 className="text-[15px] font-bold text-white">Sobre a Visualização</h4>
-                         <p className="text-[13px] text-muted-foreground/50 px-4">
+                         <p className="text-[13px] text-muted-foreground/80 px-4">
                            Esta área é apenas um simulador para garantir que a acessibilidade e contraste estejam perfeitos antes de publicar.
                          </p>
                       </div>

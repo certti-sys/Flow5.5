@@ -177,7 +177,7 @@ export default function ProductsPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-white/[0.03] border-b border-white/5 text-muted-foreground/60 text-[11px] font-bold uppercase tracking-[0.1em]">
+              <tr className="bg-white/[0.03] border-b border-white/5 text-muted-foreground text-[12px] font-bold uppercase tracking-[0.1em]">
                 <th className="px-6 py-4 text-left">Informações do Produto</th>
                 <th className="px-6 py-4 text-center hidden sm:table-cell">Status</th>
                 <th className="px-6 py-4 text-left hidden md:table-cell">Tipo</th>
@@ -224,7 +224,7 @@ export default function ProductsPage() {
                         <Badge
                           variant="outline"
                           className={cn(
-                            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border-white/5 transition-all duration-300",
+                            "rounded-full px-2.5 py-0.5 text-[12px] font-bold uppercase tracking-wider border-white/5 transition-all duration-300",
                             product.active
                               ? "bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]"
                               : "bg-red-500/10 text-red-500 border-red-500/20"
@@ -240,7 +240,7 @@ export default function ProductsPage() {
                       <td className="px-6 py-5 hidden md:table-cell">
                         <Badge
                           variant="outline"
-                          className="text-[10px] uppercase font-bold tracking-widest bg-black/40 border-white/5 text-white/40 rounded-lg"
+                          className="text-[12px] uppercase font-bold tracking-widest bg-black/40 border-white/5 text-white/60 rounded-lg"
                         >
                           {product.type === 'one_time' ? 'Venda Única' : 'Assinatura'}
                         </Badge>
@@ -287,7 +287,7 @@ export default function ProductsPage() {
                         <Package className="w-8 h-8 text-white/10" />
                       </div>
                       <div>
-                        <p className="text-white/40 font-bold uppercase tracking-widest text-[12px]">Nenhum produto encontrado</p>
+                        <p className="text-white/60 font-bold uppercase tracking-widest text-[12px]">Nenhum produto encontrado</p>
                         <Button variant="link" onClick={() => setSearchTerm("")} className="text-primary mt-1 text-[13px] font-bold">Limpar Busca</Button>
                       </div>
                     </div>

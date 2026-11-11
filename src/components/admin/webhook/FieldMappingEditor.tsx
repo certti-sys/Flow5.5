@@ -193,7 +193,7 @@ export function FieldMappingEditor({
       {filteredMappings.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <ArrowRight className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+            <ArrowRight className="w-12 h-12 mx-auto mb-4 text-muted-foreground/80" />
             <p className="text-muted-foreground mb-4">
               Nenhum mapeamento configurado. Crie mapeamentos para conectar campos do webhook aos campos internos do sistema.
             </p>

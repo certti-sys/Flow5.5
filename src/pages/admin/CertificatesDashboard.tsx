@@ -30,7 +30,7 @@ const CertificateCard = ({ cert }: { cert: CertificateData }) => {
             <div className="relative">
               <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-2xl group-hover/row:scale-105 transition-transform duration-300">
                 <AvatarImage src={cert.profiles?.avatar_url || ""} alt={cert.profiles?.name} />
-                <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs uppercase">
+                <AvatarFallback className="bg-primary/20 text-foreground font-bold text-xs uppercase">
                   {cert.profiles?.name?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -39,16 +39,16 @@ const CertificateCard = ({ cert }: { cert: CertificateData }) => {
               <h3 className="font-bold text-white text-[14px] leading-tight group-hover/row:text-primary transition-colors truncate">
                 {cert.profiles?.name}
               </h3>
-              <p className="text-[12px] text-muted-foreground/60 mt-0.5">
+              <p className="text-[12px] text-muted-foreground mt-0.5">
                 {cert.courses?.title || "Curso não encontrado"}
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[9px] uppercase font-bold px-2 py-0.5 rounded-md">
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[12px] uppercase font-bold px-2 py-0.5 rounded-md">
             Concluído
           </Badge>
         </div>
-        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground/60">
+        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="w-3 h-3 mr-1" />
           <span>{new Date(cert.id).toLocaleDateString("pt-BR")}</span>
         </div>
@@ -62,10 +62,10 @@ const CertificateCard = ({ cert }: { cert: CertificateData }) => {
           <Link
             to={`/certificado/${cert.id}`}
             target="_blank"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-white"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[12px] font-bold text-white"
           >
             <ExternalLink className="w-4 h-4 mr-1" />
-            <span className="text-[11px] font-bold">Ver Certificado</span>
+            <span className="text-[12px] font-bold">Ver Certificado</span>
           </Link>
         </div>
       </div>
@@ -142,12 +142,12 @@ export default function CertificatesDashboard() {
           <Button
             variant="outline"
             onClick={() => setSearchTerm("")}
-            className="glass-card border-white/10 hover:bg-white/5 h-10 px-4 rounded-[12px] text-[11px] font-bold"
+            className="glass-card border-white/10 hover:bg-white/5 h-10 px-4 rounded-[12px] text-[12px] font-bold"
           >
             Limpar
           </Button>
           <Button
-            className="bg-primary hover:bg-primary/90 text-white h-[44px] px-6 rounded-[12px] font-bold"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground h-[44px] px-6 rounded-[12px] font-bold"
           >
             <Plus className="w-4 h-4 mr-2" />
             Novo Certificado
@@ -162,7 +162,7 @@ export default function CertificatesDashboard() {
               placeholder="Buscar aluno, curso ou certificado..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-[44px] glass-card border-white/10 rounded-[12px] text-white placeholder:text-white/40"
+              className="pl-10 h-[44px] glass-card border-white/10 rounded-[12px] text-white placeholder:text-white/60"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           </div>

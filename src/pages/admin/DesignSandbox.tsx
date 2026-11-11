@@ -119,7 +119,7 @@ export default function DesignSandbox() {
                 </div>
                 <div className="text-right">
                   <p className="text-[14px] font-bold text-gradient">R$ 197,90</p>
-                  <span className="text-[10px] uppercase tracking-tighter font-bold text-emerald-500/80">Confirmado</span>
+                  <span className="text-[12px] uppercase tracking-tighter font-bold text-emerald-500/80">Confirmado</span>
                 </div>
               </div>
             ))}
@@ -153,7 +153,7 @@ export default function DesignSandbox() {
               </div>
               
               <div className="p-[16px] rounded-[12px] bg-primary/10 border border-primary/20">
-                <h5 className="text-[11px] font-bold uppercase tracking-widest text-primary mb-[4px]">Dica Premium</h5>
+                <h5 className="text-[12px] font-bold uppercase tracking-widest text-primary mb-[4px]">Dica Premium</h5>
                 <p className="text-[12px] text-muted-foreground leading-[18px]">
                   Aumente sua conversão aplicando Order Bumps em sessões de alta visualização.
                 </p>
@@ -162,15 +162,15 @@ export default function DesignSandbox() {
               <div className="grid grid-cols-2 gap-[16px]">
                 <div className="p-[16px] rounded-[12px] bg-black/40 border border-white/10 text-center group hover:border-primary/30 transition-all">
                   <p className="text-[20px] font-bold font-geist tracking-tighter">128</p>
-                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Clicks</p>
+                  <p className="text-[12px] text-muted-foreground uppercase font-semibold">Clicks</p>
                 </div>
                 <div className="p-[16px] rounded-[12px] bg-black/40 border border-white/10 text-center group hover:border-primary/30 transition-all">
                   <p className="text-[20px] font-bold font-geist tracking-tighter">42</p>
-                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Leads</p>
+                  <p className="text-[12px] text-muted-foreground uppercase font-semibold">Leads</p>
                 </div>
               </div>
 
-              <Button className="w-full h-[48px] glass-card border-white/10 hover:bg-white/10 text-[11px] uppercase tracking-widest font-bold">
+              <Button className="w-full h-[48px] glass-card border-white/10 hover:bg-white/10 text-[12px] uppercase tracking-widest font-bold">
                 Explorar Insights
               </Button>
             </div>

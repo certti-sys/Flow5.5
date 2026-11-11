@@ -183,14 +183,14 @@ export default function GatewaysPage() {
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-[15px] text-white capitalize">{gateway.name}</h4>
-                                            <p className="text-[11px] font-mono text-white/30">{gateway.slug}</p>
+                                            <p className="text-[12px] font-mono text-white/60">{gateway.slug}</p>
                                         </div>
                                     </div>
 
                                     {gateway.is_default && (
                                         <Badge
                                             variant="outline"
-                                            className="bg-primary/10 text-primary border-primary/20 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                                            className="bg-primary/10 text-primary border-primary/20 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(139,92,246,0.3)]"
                                         >
                                             <Star className="w-3 h-3 mr-1 fill-primary" />
                                             Padrão
@@ -204,11 +204,11 @@ export default function GatewaysPage() {
                                         {gateway.is_active ? (
                                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                         ) : (
-                                            <XCircle className="w-4 h-4 text-white/20" />
+                                            <XCircle className="w-4 h-4 text-white/60" />
                                         )}
                                         <span className={cn(
                                             "text-[13px] font-medium",
-                                            gateway.is_active ? "text-emerald-400" : "text-white/40"
+                                            gateway.is_active ? "text-emerald-400" : "text-white/60"
                                         )}>
                                             {gateway.is_active ? "Ativo" : "Inativo"}
                                         </span>
@@ -226,7 +226,7 @@ export default function GatewaysPage() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="flex-1 glass-card border-white/10 hover:bg-white/5 h-[44px] rounded-[12px] text-[11px] uppercase tracking-widest font-bold text-white"
+                                        className="flex-1 glass-card border-white/10 hover:bg-white/5 h-[44px] rounded-[12px] text-[12px] uppercase tracking-widest font-bold text-white"
                                         onClick={() => handleConfigure(gateway)}
                                     >
                                         <Settings className="w-4 h-4 mr-2" />
@@ -242,7 +242,7 @@ export default function GatewaysPage() {
                                             "w-10 h-10 rounded-[12px] transition-all shadow-lg",
                                             gateway.is_default
                                                 ? "bg-primary/10 border-primary/20 text-primary cursor-default"
-                                                : "glass-card border-white/10 hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-400 text-white/40"
+                                                : "glass-card border-white/10 hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-400 text-white/60"
                                         )}
                                     >
                                         {gateway.is_default ? (
@@ -267,7 +267,7 @@ export default function GatewaysPage() {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-white tracking-tight">Nenhum gateway encontrado</h3>
-                        <p className="text-white/40 max-w-[300px] mt-1 text-[14px]">
+                        <p className="text-white/60 max-w-[300px] mt-1 text-[14px]">
                             Configure um provedor de pagamento para habilitar o checkout.
                         </p>
                     </div>

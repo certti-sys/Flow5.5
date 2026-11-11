@@ -449,7 +449,7 @@ const Lesson = () => {
       <div key={comment.id} className={`${isReply ? "ml-8 pl-4 border-l-2 border-primary/30" : ""}`}>
         <div className="flex gap-3">
           <Avatar className={`${isReply ? "w-8 h-8" : "w-10 h-10"} flex-shrink-0`}>
-            <AvatarImage src={comment.profiles?.avatar_url || ""} />
+            <AvatarImage src={comment.profiles?.avatar_url || ""} alt={comment.profiles?.name || "Avatar do usuário"} />
             <AvatarFallback className={comment.isAuthorAdmin ? "bg-primary text-primary-foreground" : ""}>
               {comment.profiles?.name?.charAt(0) || "U"}
             </AvatarFallback>
@@ -647,9 +647,9 @@ const Lesson = () => {
                     {lessonData.modules.courses.category}
                   </Badge>
 
-                  <h1 className="text-2xl md:text-3xl font-bold leading-tight tracking-tight">
+                  <h2 className="text-2xl md:text-3xl font-bold leading-tight tracking-tight">
                     {lessonData.modules.courses.title}
-                  </h1>
+                  </h2>
 
                   {lessonData.modules.courses.description && (
                     <p className="text-muted-foreground text-[14px] line-clamp-2 max-w-2xl">
@@ -713,11 +713,11 @@ const Lesson = () => {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 md:gap-6">
                 <div className="flex-1 space-y-2 md:space-y-3">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 uppercase tracking-wider text-[10px] font-bold">
+                    <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 uppercase tracking-wider text-[12px] font-bold">
                       {lessonData.modules?.title}
                     </Badge>
                     {lessonData.duration && (
-                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <span className="flex items-center gap-1 text-[12px] text-muted-foreground font-medium uppercase tracking-wider">
                         <Clock className="w-3 h-3" />
                         {lessonData.duration}
                       </span>

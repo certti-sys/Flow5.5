@@ -265,9 +265,9 @@ export default function AdminCourses() {
               variant="ghost"
               onClick={() => setSelectedCategory("todos")}
               className={cn(
-                "h-8 px-4 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all",
+                "h-8 px-4 rounded-xl text-[12px] font-bold uppercase tracking-wider transition-all",
                 selectedCategory === "todos"
-                  ? "bg-primary text-white shadow-glow"
+                  ? "bg-primary text-primary-foreground shadow-glow"
                   : "bg-white/5 text-muted-foreground hover:bg-white/10"
               )}
             >
@@ -279,9 +279,9 @@ export default function AdminCourses() {
                 variant="ghost"
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  "h-8 px-4 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap",
+                  "h-8 px-4 rounded-xl text-[12px] font-bold uppercase tracking-wider transition-all whitespace-nowrap",
                   selectedCategory === cat
-                    ? "bg-primary text-white shadow-glow"
+                    ? "bg-primary text-primary-foreground shadow-glow"
                     : "bg-white/5 text-muted-foreground hover:bg-white/10"
                 )}
               >
@@ -326,16 +326,16 @@ export default function AdminCourses() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md">
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[12px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md">
                             {course.category}
                           </Badge>
                           {course.is_published === false && (
-                            <Badge variant="outline" className="bg-white/5 text-muted-foreground/60 border-white/10 text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md">
+                            <Badge variant="outline" className="bg-white/5 text-muted-foreground border-white/10 text-[12px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md">
                               Rascunho
                             </Badge>
                           )}
                           <div className="h-1 w-1 rounded-full bg-white/10 mx-1" />
-                          <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-tighter">ID: #{course.id.slice(0,4)}</span>
+                          <span className="text-[12px] font-bold text-muted-foreground uppercase tracking-tighter">ID: #{course.id.slice(0,4)}</span>
                         </div>
 
                         <h3 className="font-black text-[22px] text-white leading-tight group-hover/course:text-primary transition-colors tracking-tight">
@@ -400,7 +400,7 @@ export default function AdminCourses() {
                         </div>
                         <Button
                           onClick={() => handleAddModule(course.id)}
-                          className="bg-primary hover:bg-primary/90 text-white shadow-glow h-[40px] px-6 rounded-[12px] text-[12px] font-bold uppercase tracking-wider gap-2 transition-all hover:scale-105"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow h-[40px] px-6 rounded-[12px] text-[12px] font-bold uppercase tracking-wider gap-2 transition-all hover:scale-105"
                         >
                           <Plus className="w-4 h-4" />
                           Adicionar Módulo
@@ -485,13 +485,13 @@ export default function AdminCourses() {
               </div>
             </AlertDialogHeader>
           <AlertDialogFooter className="mt-10 flex flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="flex-1 h-[44px] glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 font-bold uppercase tracking-widest text-[11px]">
+            <AlertDialogCancel className="flex-1 h-[44px] glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 font-bold uppercase tracking-widest text-[12px]">
               Manter Curso
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); confirmDelete(); }}
               disabled={deleteMutation.isPending}
-              className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold uppercase tracking-widest text-[11px]"
+              className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold uppercase tracking-widest text-[12px]"
             >
               Excluir Agora
             </AlertDialogAction>
@@ -516,12 +516,12 @@ export default function AdminCourses() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-10 flex flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="h-[44px] flex-1 glass-card border-white/10 hover:bg-white/5 rounded-[16px] font-bold uppercase tracking-widest text-[11px] mt-0">
+            <AlertDialogCancel className="h-[44px] flex-1 glass-card border-white/10 hover:bg-white/5 rounded-[16px] font-bold uppercase tracking-widest text-[12px] mt-0">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteModule}
-              className="h-[44px] flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-[16px] font-bold uppercase tracking-widest text-[11px] shadow-glow-red"
+              className="h-[44px] flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-[16px] font-bold uppercase tracking-widest text-[12px] shadow-glow-red"
             >
               EXCLUIR AGORA
             </AlertDialogAction>

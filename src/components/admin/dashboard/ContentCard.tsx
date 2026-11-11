@@ -19,7 +19,7 @@ export function ContentCard({ avgLessonsPerCourse, avgModulesPerCourse, totalMod
             </div>
             Inventory
           </h3>
-          <p className="text-[11px] text-muted-foreground/40 uppercase font-black tracking-widest pl-11">Acervo de conteúdo digital</p>
+          <p className="text-[12px] text-muted-foreground/80 uppercase font-black tracking-widest pl-11">Acervo de conteúdo digital</p>
         </div>
       </div>
 
@@ -29,7 +29,7 @@ export function ContentCard({ avgLessonsPerCourse, avgModulesPerCourse, totalMod
             <div className="p-2 rounded-xl bg-white/5 border border-white/5 group-hover:border-primary/20 group-hover:text-primary transition-all">
               <Clock className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-black uppercase tracking-widest opacity-60">Média Aulas/Curso</span>
+            <span className="text-[12px] font-black uppercase tracking-widest opacity-60">Média Aulas/Curso</span>
           </div>
           <span className="text-sm font-black text-white px-3 py-1 rounded-lg bg-black/40 border border-white/5">
             {avgLessonsPerCourse}
@@ -41,7 +41,7 @@ export function ContentCard({ avgLessonsPerCourse, avgModulesPerCourse, totalMod
             <div className="p-2 rounded-xl bg-white/5 border border-white/5 group-hover:border-primary/20 group-hover:text-primary transition-all">
               <Layers className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-black uppercase tracking-widest opacity-60">Média Módulos/Curso</span>
+            <span className="text-[12px] font-black uppercase tracking-widest opacity-60">Média Módulos/Curso</span>
           </div>
           <span className="text-sm font-black text-white px-3 py-1 rounded-lg bg-black/40 border border-white/5">
             {avgModulesPerCourse}
@@ -51,11 +51,11 @@ export function ContentCard({ avgLessonsPerCourse, avgModulesPerCourse, totalMod
         <div className="pt-6 mt-2 border-t border-white/5">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-black tracking-[2px] text-muted-foreground/40">Total Módulos</span>
+              <span className="text-[12px] uppercase font-black tracking-[2px] text-muted-foreground/80">Total Módulos</span>
               <p className="text-xl font-black text-primary tracking-tighter">{totalModules}</p>
             </div>
             <div className="space-y-1 text-right">
-              <span className="text-[10px] uppercase font-black tracking-[2px] text-muted-foreground/40">Total Aulas</span>
+              <span className="text-[12px] uppercase font-black tracking-[2px] text-muted-foreground/80">Total Aulas</span>
               <p className="text-xl font-black text-primary tracking-tighter">{totalLessons}</p>
             </div>
           </div>

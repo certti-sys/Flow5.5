@@ -342,7 +342,7 @@ export function ProductMappingsEditor({
       ) : (
         <Card>
           <CardContent className="py-8 text-center">
-            <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+            <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground/80" />
             <p className="text-muted-foreground mb-4">
               Nenhum mapeamento de produto encontrado.
             </p>

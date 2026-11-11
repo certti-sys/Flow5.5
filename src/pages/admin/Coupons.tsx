@@ -166,13 +166,13 @@ export default function AdminCouponsPage() {
           <table className="w-full">
             <thead className="bg-white/[0.02]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Código</th>
-                <th className="px-6 py-4 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Tipo</th>
-                <th className="px-6 py-4 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Valor</th>
-                <th className="px-6 py-4 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Validade</th>
-                <th className="px-6 py-4 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Uso</th>
-                <th className="px-6 py-4 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-4 text-left text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Código</th>
+                <th className="px-6 py-4 text-left text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Tipo</th>
+                <th className="px-6 py-4 text-left text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Valor</th>
+                <th className="px-6 py-4 text-left text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Validade</th>
+                <th className="px-6 py-4 text-left text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Uso</th>
+                <th className="px-6 py-4 text-left text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-right text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -181,7 +181,7 @@ export default function AdminCouponsPage() {
                   <td colSpan={7} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
-                        <Tag className="w-10 h-10 text-muted-foreground/30" />
+                        <Tag className="w-10 h-10 text-muted-foreground/70" />
                       </div>
                       <p className="text-muted-foreground text-sm">Nenhum cupom encontrado</p>
                       <Button onClick={() => setDialogOpen(true)} variant="outline" className="gap-2 h-10 px-6 rounded-[12px] font-bold text-[12px]">
@@ -210,7 +210,7 @@ export default function AdminCouponsPage() {
                       {coupon.uses_count} / {coupon.max_uses || '∞'}
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 font-bold text-[10px] uppercase tracking-wider border-white/5",
+                      <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 font-bold text-[12px] uppercase tracking-wider border-white/5",
                         coupon.is_active ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
                       )}>
                         {coupon.is_active ? <CheckCircle className="w-3 h-3 mr-1.5" /> : <XCircle className="w-3 h-3 mr-1.5" />}

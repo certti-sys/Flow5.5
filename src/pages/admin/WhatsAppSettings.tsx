@@ -195,22 +195,22 @@ export default function WhatsAppSettings() {
       <Tabs defaultValue="provider" className="space-y-6">
         <div className="glass-card border border-white/10 rounded-[16px] p-[6px]">
           <TabsList className="!flex w-full overflow-x-auto scrollbar-none bg-transparent gap-1">
-            <TabsTrigger value="provider" className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40">
+            <TabsTrigger value="provider" className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60">
               <Settings2 className="h-3.5 w-3.5" /> Provedor
             </TabsTrigger>
-            <TabsTrigger value="config" className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40">
+            <TabsTrigger value="config" className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60">
               <Settings2 className="h-3.5 w-3.5" /> Configuração
             </TabsTrigger>
-            <TabsTrigger value="templates" className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40">
+            <TabsTrigger value="templates" className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60">
               <FileText className="h-3.5 w-3.5" /> Templates
             </TabsTrigger>
-            <TabsTrigger value="variables" className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40">
+            <TabsTrigger value="variables" className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60">
               <Variable className="h-3.5 w-3.5" /> Variáveis
             </TabsTrigger>
-            <TabsTrigger value="test" className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40">
+            <TabsTrigger value="test" className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60">
               <Send className="h-3.5 w-3.5" /> Teste
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex-shrink-0 text-[11px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/40">
+            <TabsTrigger value="logs" className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60">
               <History className="h-3.5 w-3.5" /> Histórico
             </TabsTrigger>
           </TabsList>
@@ -231,8 +231,8 @@ export default function WhatsAppSettings() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-white text-[15px]">{provider.name}</h4>
-                          {provider.recommended && (<Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 uppercase tracking-wider font-bold">Recomendado</Badge>)}
-                          {!provider.available && (<Badge variant="outline" className="text-[10px] bg-white/5 text-white/40 border-white/10 uppercase tracking-wider font-bold"><Lock className="h-3 w-3 mr-1" /> Em breve</Badge>)}
+                          {provider.recommended && (<Badge variant="outline" className="text-[12px] bg-primary/10 text-primary border-primary/20 uppercase tracking-wider font-bold">Recomendado</Badge>)}
+                          {!provider.available && (<Badge variant="outline" className="text-[12px] bg-white/5 text-white/60 border-white/10 uppercase tracking-wider font-bold"><Lock className="h-3 w-3 mr-1" /> Em breve</Badge>)}
                         </div>
                         <p className="text-[13px] text-white/50 mt-1">{provider.description}</p>
                       </div>
@@ -274,15 +274,15 @@ export default function WhatsAppSettings() {
               <div className="grid gap-6">
                 <div className="space-y-2">
                   <Label className="text-white/80 font-medium text-[13px]">URL da API</Label>
-                  <Input placeholder="https://api.evolution.exemplo.com" value={currentSettings.evolution_api_url || ''} onChange={(e) => setFormData(prev => ({ ...prev, evolution_api_url: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]" />
+                  <Input placeholder="https://api.evolution.exemplo.com" value={currentSettings.evolution_api_url || ''} onChange={(e) => setFormData(prev => ({ ...prev, evolution_api_url: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-white/80 font-medium text-[13px]">API Key <span className="text-white/40 font-normal">(Global ou Exclusiva)</span></Label>
-                  <Input type="password" placeholder="Sua chave de API" value={currentSettings.evolution_api_key || ''} onChange={(e) => setFormData(prev => ({ ...prev, evolution_api_key: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px] font-mono" />
+                  <Label className="text-white/80 font-medium text-[13px]">API Key <span className="text-white/60 font-normal">(Global ou Exclusiva)</span></Label>
+                  <Input type="password" placeholder="Sua chave de API" value={currentSettings.evolution_api_key || ''} onChange={(e) => setFormData(prev => ({ ...prev, evolution_api_key: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px] font-mono" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-white/80 font-medium text-[13px]">Nome da Instância</Label>
-                  <Input placeholder="minha-instancia-wpp" value={currentSettings.evolution_instance_name || ''} onChange={(e) => setFormData(prev => ({ ...prev, evolution_instance_name: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]" />
+                  <Input placeholder="minha-instancia-wpp" value={currentSettings.evolution_instance_name || ''} onChange={(e) => setFormData(prev => ({ ...prev, evolution_instance_name: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]" />
                 </div>
               </div>
 
@@ -297,12 +297,12 @@ export default function WhatsAppSettings() {
                 </div>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-white/80 font-medium text-[13px]">Delay entre mensagens <span className="text-white/40">(ms)</span></Label>
-                    <Input type="number" value={currentSettings.delay_between_messages ?? 1000} onChange={(e) => setFormData(prev => ({ ...prev, delay_between_messages: parseInt(e.target.value) || 1000 }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]" />
+                    <Label className="text-white/80 font-medium text-[13px]">Delay entre mensagens <span className="text-white/60">(ms)</span></Label>
+                    <Input type="number" value={currentSettings.delay_between_messages ?? 1000} onChange={(e) => setFormData(prev => ({ ...prev, delay_between_messages: parseInt(e.target.value) || 1000 }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-white/80 font-medium text-[13px]">DDI (País) Padrão</Label>
-                    <Input placeholder="55" value={currentSettings.default_country_code || '55'} onChange={(e) => setFormData(prev => ({ ...prev, default_country_code: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]" />
+                    <Input placeholder="55" value={currentSettings.default_country_code || '55'} onChange={(e) => setFormData(prev => ({ ...prev, default_country_code: e.target.value }))} className="bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]" />
                   </div>
                 </div>
               </div>
@@ -334,8 +334,8 @@ export default function WhatsAppSettings() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <p className="font-semibold text-white text-[14px]">{template.title}</p>
-                                <Badge variant="outline" className={cn("text-[10px] uppercase font-bold tracking-wider px-2 py-0 border", edit.active ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-white/40 border-white/10")}>{edit.active ? 'Ativo' : 'Inativo'}</Badge>
-                                <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0 bg-white/5 border-white/10 text-white/60">{categoryLabels[template.category] || template.category}</Badge>
+                                <Badge variant="outline" className={cn("text-[12px] uppercase font-bold tracking-wider px-2 py-0 border", edit.active ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-white/60 border-white/10")}>{edit.active ? 'Ativo' : 'Inativo'}</Badge>
+                                <Badge variant="outline" className="text-[12px] uppercase font-bold tracking-wider px-1.5 py-0 bg-white/5 border-white/10 text-white/60">{categoryLabels[template.category] || template.category}</Badge>
                               </div>
                               <p className="text-[12px] text-white/50 mt-1">{template.description}</p>
                             </div>
@@ -355,17 +355,17 @@ export default function WhatsAppSettings() {
 
                               <div className="space-y-3">
                                 <Label className="text-[13px] text-white/80 font-medium">Textos Dinâmicos</Label>
-                                <div className="flex flex-wrap gap-1.5">{availableVariables.slice(0, 8).map((v) => (<button key={v.name} onClick={() => copyVariable(v.name)} className="px-2.5 py-1 text-[11px] font-mono bg-white/5 hover:bg-white/10 border border-white/5 rounded-[6px] text-white/80 transition-colors">{copiedVar === v.name ? (<span className="text-emerald-400">Copiado!</span>) : (v.name)}</button>))}</div>
+                                <div className="flex flex-wrap gap-1.5">{availableVariables.slice(0, 8).map((v) => (<button key={v.name} onClick={() => copyVariable(v.name)} className="px-2.5 py-1 text-[12px] font-mono bg-white/5 hover:bg-white/10 border border-white/5 rounded-[6px] text-white/80 transition-colors">{copiedVar === v.name ? (<span className="text-emerald-400">Copiado!</span>) : (v.name)}</button>))}</div>
                               </div>
 
                               <div className="space-y-3">
                                 <Label className="text-[13px] text-white/80 font-medium">Corpo da Mensagem do WhatsApp</Label>
                                 <Textarea value={edit.message} onChange={(e) => { setTemplateEdits(prev => ({ ...prev, [template.id]: { ...edit, message: e.target.value } })); }} rows={10} className="font-mono text-[13px] bg-black/40 border-white/10 text-white resize-none rounded-[10px]" placeholder="Use *negrito* para destacar texto..." />
-                                <p className="text-[11px] text-muted-foreground">Suporta marcação nativa do WhatsApp: *negrito*, _itálico_, ~tachado~</p>
+                                <p className="text-[12px] text-muted-foreground">Suporta marcação nativa do WhatsApp: *negrito*, _itálico_, ~tachado~</p>
                               </div>
 
                               <div>
-                                <Button size="sm" onClick={() => handleSaveTemplate(template.id)} disabled={isUpdating || !hasChanges} className={cn("h-[40px] px-6 rounded-[10px] w-full font-medium transition-all", hasChanges ? "gradient-primary shadow-glow" : "bg-white/5 text-white/40")}>{isUpdating ? (<RefreshCw className="h-4 w-4 mr-2 animate-spin" />) : (<Save className="h-4 w-4 mr-2" />)} Salvar Este Template</Button>
+                                <Button size="sm" onClick={() => handleSaveTemplate(template.id)} disabled={isUpdating || !hasChanges} className={cn("h-[40px] px-6 rounded-[10px] w-full font-medium transition-all", hasChanges ? "gradient-primary shadow-glow" : "bg-white/5 text-white/60")}>{isUpdating ? (<RefreshCw className="h-4 w-4 mr-2 animate-spin" />) : (<Save className="h-4 w-4 mr-2" />)} Salvar Este Template</Button>
                               </div>
                             </div>
 
@@ -375,8 +375,8 @@ export default function WhatsAppSettings() {
 
                               <div className="rounded-[16px] bg-[#E5DDD5] overflow-hidden relative shadow-inner border border-white/10 min-h-[300px]">
                                 <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'url("https://w0.peakpx.com/wallpaper/818/148/HD-wallpaper-whatsapp-background-cool-dark-green-new-theme-whatsapp.jpg")', backgroundSize: 'cover' }}></div>
-                                <div className="h-12 bg-[#075E54] flex items-center px-4 relative z-10 shadow-md"><div className="w-8 h-8 rounded-full bg-white/20 overflow-hidden flex items-center justify-center"><span className="text-white text-xs font-bold font-sans">FM</span></div><div className="ml-3"><p className="text-white font-semibold text-[14px] leading-tight">Flow Members</p><p className="text-white/70 text-[11px] leading-tight mt-0.5">conta comercial verificada</p></div></div>
-                                <div className="p-4 relative z-10 space-y-4"><div className="bg-[#DCF8C6] p-3 rounded-[12px] rounded-tl-sm shadow-sm max-w-[85%] self-end mx-auto relative ml-auto border border-black/5"><p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#111111] font-sans">{getPreviewMessage(edit.message)}</p><div className="text-[10px] text-gray-500 text-right mt-1.5 flex items-center justify-end gap-1 font-sans">{format(new Date(), 'HH:mm', { locale: ptBR })}<svg viewBox="0 0 16 15" width="16" height="15"><path fill="#53bdeb" d="m15.01 3.316-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.72a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z"></path></svg></div></div></div></div>
+                                <div className="h-12 bg-[#075E54] flex items-center px-4 relative z-10 shadow-md"><div className="w-8 h-8 rounded-full bg-white/20 overflow-hidden flex items-center justify-center"><span className="text-white text-xs font-bold font-sans">FM</span></div><div className="ml-3"><p className="text-white font-semibold text-[14px] leading-tight">Flow Members</p><p className="text-white/70 text-[12px] leading-tight mt-0.5">conta comercial verificada</p></div></div>
+                                <div className="p-4 relative z-10 space-y-4"><div className="bg-[#DCF8C6] p-3 rounded-[12px] rounded-tl-sm shadow-sm max-w-[85%] self-end mx-auto relative ml-auto border border-black/5"><p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#111111] font-sans">{getPreviewMessage(edit.message)}</p><div className="text-[12px] text-gray-500 text-right mt-1.5 flex items-center justify-end gap-1 font-sans">{format(new Date(), 'HH:mm', { locale: ptBR })}<svg viewBox="0 0 16 15" width="16" height="15"><path fill="#53bdeb" d="m15.01 3.316-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.72a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z"></path></svg></div></div></div></div>
                             </div>
                           </div>
                         </AccordionContent>
@@ -397,7 +397,7 @@ export default function WhatsAppSettings() {
               <p className="text-[12px] text-muted-foreground">Shortcodes interpretados nos templates</p>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">{availableVariables.map((v) => (<button key={v.name} onClick={() => copyVariable(v.name)} className="group flex flex-col items-start justify-center gap-1.5 p-4 bg-black/20 border border-white/5 hover:border-white/20 hover:bg-white/5 rounded-[12px] transition-all relative overflow-hidden"><div className="flex items-center justify-between w-full"><code className="text-[13px] font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-[6px] tracking-tight">{v.name}</code>{copiedVar === v.name ? <Check className="h-4 w-4 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 text-white/40 shrink-0 transition-opacity" />}</div><p className="text-[12px] text-white/50">{v.desc}</p></button>))}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">{availableVariables.map((v) => (<button key={v.name} onClick={() => copyVariable(v.name)} className="group flex flex-col items-start justify-center gap-1.5 p-4 bg-black/20 border border-white/5 hover:border-white/20 hover:bg-white/5 rounded-[12px] transition-all relative overflow-hidden"><div className="flex items-center justify-between w-full"><code className="text-[13px] font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-[6px] tracking-tight">{v.name}</code>{copiedVar === v.name ? <Check className="h-4 w-4 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 text-white/60 shrink-0 transition-opacity" />}</div><p className="text-[12px] text-white/50">{v.desc}</p></button>))}</div>
             </div>
           </motion.div>
         </TabsContent>
@@ -416,8 +416,8 @@ export default function WhatsAppSettings() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-white/80 font-medium text-[13px]">Telefone Destinatário</Label>
-                    <Input placeholder="Ex: 5511999999999" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} className="font-mono bg-black/20 border-white/10 text-white placeholder:text-white/20 h-[44px] rounded-[12px]" />
-                    <p className="text-[11px] text-muted-foreground">Formato sem máscara e caracteres: código do país + DDD + número.</p>
+                    <Input placeholder="Ex: 5511999999999" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} className="font-mono bg-black/20 border-white/10 text-white placeholder:text-white/60 h-[44px] rounded-[12px]" />
+                    <p className="text-[12px] text-muted-foreground">Formato sem máscara e caracteres: código do país + DDD + número.</p>
                   </div>
                   <div className="pt-2"><Button onClick={handleSendTest} disabled={isSending || !testPhone.trim() || !isConfigured} className="w-full h-[48px] rounded-[12px] font-bold">{isSending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}{isSending ? 'Processando envio...' : 'Disparar Teste'}</Button></div>
                 </div>
@@ -442,10 +442,10 @@ export default function WhatsAppSettings() {
             </div>
 
             <div className="p-6">
-              {logsLoading ? (<div className="flex items-center justify-center py-20"><RefreshCw className="h-6 w-6 animate-spin text-white/20" /></div>) : logs.length === 0 ? (
-                <div className="text-center py-20 bg-black/20 rounded-[12px] border border-white/5 border-dashed"><History className="h-8 w-8 mx-auto mb-3 text-white/20" /><p className="text-[15px] font-semibold text-white tracking-tight">Registro Vazio</p><p className="text-[13px] text-white/40 mt-1 max-w-[300px] mx-auto">Em breve seu histórico de disparos de mensageria ativa aparecerá aqui.</p></div>
+              {logsLoading ? (<div className="flex items-center justify-center py-20"><RefreshCw className="h-6 w-6 animate-spin text-white/60" /></div>) : logs.length === 0 ? (
+                <div className="text-center py-20 bg-black/20 rounded-[12px] border border-white/5 border-dashed"><History className="h-8 w-8 mx-auto mb-3 text-white/60" /><p className="text-[15px] font-semibold text-white tracking-tight">Registro Vazio</p><p className="text-[13px] text-white/60 mt-1 max-w-[300px] mx-auto">Em breve seu histórico de disparos de mensageria ativa aparecerá aqui.</p></div>
               ) : (
-                <ScrollArea className="h-[500px]"><div className="rounded-[12px] border border-white/5 overflow-hidden"><table className="w-full"><thead className="bg-black/40"><tr><th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Status</th><th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Telefone</th><th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Contexto (ID Template)</th><th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-white/40">Prévia do Conteúdo</th><th className="px-6 py-3 text-right text-[11px] font-bold uppercase tracking-widest text-white/40">Data/Hora</th></tr></thead><tbody className="divide-y divide-white/5">{logs.map((log) => (<tr key={log.id} className="border-b border-white/5 bg-black/20 hover:bg-white/5 transition-colors"><td className="px-6 py-3">{log.status === 'sent' ? (<Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-bold tracking-wider text-[10px] uppercase shadow-[0_0_10px_rgba(16,185,129,0.1)] gap-1"><CheckCircle2 className="h-3 w-3" /> Enviado</Badge>) : log.status === 'failed' ? (<Badge variant="outline" className="bg-red-500/10 border-red-500/20 text-red-400 font-bold tracking-wider text-[10px] uppercase shadow-[0_0_10px_rgba(239,68,68,0.1)] gap-1"><XCircle className="h-3 w-3" /> Falhou</Badge>) : (<Badge variant="outline" className="bg-amber-500/10 border-amber-500/20 text-amber-400 font-bold tracking-wider text-[10px] uppercase shadow-[0_0_10px_rgba(245,158,11,0.1)] gap-1"><Clock className="h-3 w-3" /> Abortado</Badge>)}</td><td className="font-mono text-[12px] text-white/80 py-3">{log.phone}</td><td className="py-3">{log.template_key ? (<Badge variant="outline" className="text-[10px] bg-white/5 border-white/10 text-white/60 font-mono py-0">{log.template_key}</Badge>) : (<span className="text-white/20">-</span>)}</td><td className="max-w-[250px] truncate text-[12px] py-3 text-white/60">{log.message_preview || '-'}</td><td className="text-white/40 text-[12px] text-right py-3 tabular-nums">{format(new Date(log.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</td></tr>))}</tbody></table></div></ScrollArea>
+                <ScrollArea className="h-[500px]"><div className="rounded-[12px] border border-white/5 overflow-hidden"><table className="w-full"><thead className="bg-black/40"><tr><th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Status</th><th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Telefone</th><th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Contexto (ID Template)</th><th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-white/60">Prévia do Conteúdo</th><th className="px-6 py-3 text-right text-[12px] font-bold uppercase tracking-widest text-white/60">Data/Hora</th></tr></thead><tbody className="divide-y divide-white/5">{logs.map((log) => (<tr key={log.id} className="border-b border-white/5 bg-black/20 hover:bg-white/5 transition-colors"><td className="px-6 py-3">{log.status === 'sent' ? (<Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-bold tracking-wider text-[12px] uppercase shadow-[0_0_10px_rgba(16,185,129,0.1)] gap-1"><CheckCircle2 className="h-3 w-3" /> Enviado</Badge>) : log.status === 'failed' ? (<Badge variant="outline" className="bg-red-500/10 border-red-500/20 text-red-400 font-bold tracking-wider text-[12px] uppercase shadow-[0_0_10px_rgba(239,68,68,0.1)] gap-1"><XCircle className="h-3 w-3" /> Falhou</Badge>) : (<Badge variant="outline" className="bg-amber-500/10 border-amber-500/20 text-amber-400 font-bold tracking-wider text-[12px] uppercase shadow-[0_0_10px_rgba(245,158,11,0.1)] gap-1"><Clock className="h-3 w-3" /> Abortado</Badge>)}</td><td className="font-mono text-[12px] text-white/80 py-3">{log.phone}</td><td className="py-3">{log.template_key ? (<Badge variant="outline" className="text-[12px] bg-white/5 border-white/10 text-white/60 font-mono py-0">{log.template_key}</Badge>) : (<span className="text-white/60">-</span>)}</td><td className="max-w-[250px] truncate text-[12px] py-3 text-white/60">{log.message_preview || '-'}</td><td className="text-white/60 text-[12px] text-right py-3 tabular-nums">{format(new Date(log.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</td></tr>))}</tbody></table></div></ScrollArea>
               )}
             </div>
           </motion.div>

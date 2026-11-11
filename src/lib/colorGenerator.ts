@@ -162,6 +162,25 @@ export function generatePalette(hexColor: string): ColorPalette {
 }
 
 /**
+ * Escolhe texto claro ou escuro para ficar sobre a cor informada,
+ * comparando a razão de contraste WCAG dos dois candidatos.
+ */
+function readableForeground(hsl: string): string {
+  const [h, s, l] = hsl.split(' ').map((v) => parseFloat(v));
+  // HSL -> luminância relativa
+  const sat = s / 100;
+  const light = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sat * Math.min(light, 1 - light);
+  const f = (n: number) => light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const lin = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  const lum = 0.2126 * lin(f(0)) + 0.7152 * lin(f(8)) + 0.0722 * lin(f(4));
+  const ratio = (x: number) => (Math.max(x, lum) + 0.05) / (Math.min(x, lum) + 0.05);
+  // luminância de branco = 1, de quase-preto (240 10% 10%) ≈ 0.01
+  return ratio(1) >= ratio(0.01) ? '0 0% 100%' : '240 10% 10%';
+}
+
+/**
  * Apply theme palette to CSS variables
  */
 export function applyThemeToCSSVariables(palette: ColorPalette): void {
@@ -171,6 +190,7 @@ export function applyThemeToCSSVariables(palette: ColorPalette): void {
   root.style.setProperty('--primary', palette[500]);
   root.style.setProperty('--accent', palette[500]);
   root.style.setProperty('--ring', palette[500]);
+  root.style.setProperty('--primary-foreground', readableForeground(palette[500]));
   
   // Apply all shades for potential future use
   Object.entries(palette).forEach(([shade, value]) => {
@@ -238,6 +258,7 @@ export function clearThemeCache(): void {
 export function resetThemeToDefault(): void {
   const root = document.documentElement;
   root.style.removeProperty('--primary');
+  root.style.removeProperty('--primary-foreground');
   root.style.removeProperty('--accent');
   root.style.removeProperty('--ring');
   root.style.removeProperty('--gradient-primary');

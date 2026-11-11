@@ -20,7 +20,7 @@ export const LevelBadge = ({ level, xpProgress }: LevelBadgeProps) => {
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-base sm:text-lg md:text-xl font-bold text-gradient">Nível {level}</span>
-          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+          <p className="text-[12px] sm:text-xs text-muted-foreground truncate">
             {xpProgress.current} / {xpProgress.required} XP
           </p>
         </div>

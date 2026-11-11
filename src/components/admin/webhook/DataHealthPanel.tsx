@@ -168,7 +168,7 @@ export function DataHealthPanel() {
         <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-black/20">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="relative w-full sm:w-[300px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
               <Input 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -181,7 +181,7 @@ export function DataHealthPanel() {
               size="icon"
               onClick={() => setActiveFilter("ALL_ISSUES")}
               className={`h-10 w-10 shrink-0 border-white/10 rounded-[10px] 
-                ${activeFilter === 'ALL_ISSUES' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}
+                ${activeFilter === 'ALL_ISSUES' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white/80'}
               `}
               title="Mostrar apenas Problemas"
             >
@@ -202,22 +202,22 @@ export function DataHealthPanel() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-black/40 border-b border-white/5">
-                <th className="px-6 py-4 text-[11px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">Aluno</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">Produto</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">Status Financeiro</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">Discrepância / KPI</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap text-right">Ação</th>
+                <th className="px-6 py-4 text-[12px] font-bold text-white/60 uppercase tracking-widest whitespace-nowrap">Aluno</th>
+                <th className="px-6 py-4 text-[12px] font-bold text-white/60 uppercase tracking-widest whitespace-nowrap">Produto</th>
+                <th className="px-6 py-4 text-[12px] font-bold text-white/60 uppercase tracking-widest whitespace-nowrap">Status Financeiro</th>
+                <th className="px-6 py-4 text-[12px] font-bold text-white/60 uppercase tracking-widest whitespace-nowrap">Discrepância / KPI</th>
+                <th className="px-6 py-4 text-[12px] font-bold text-white/60 uppercase tracking-widest whitespace-nowrap text-right">Ação</th>
               </tr>
             </thead>
             <tbody>
               <AnimatePresence>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-white/40 text-[13px]">Auditoria em andamento...</td>
+                    <td colSpan={5} className="py-12 text-center text-white/60 text-[13px]">Auditoria em andamento...</td>
                   </tr>
                 ) : filteredLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-white/40 text-[13px]">Nenhum registro encontrado para este filtro.</td>
+                    <td colSpan={5} className="py-12 text-center text-white/60 text-[13px]">Nenhum registro encontrado para este filtro.</td>
                   </tr>
                 ) : (
                   filteredLogs.map((log) => (
@@ -231,7 +231,7 @@ export function DataHealthPanel() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-[14px] font-semibold text-white/90">{log.customer_name || 'Desconhecido'}</span>
-                          <span className="text-[12px] text-white/50 flex items-center gap-1 mt-0.5">
+                          <span className="text-[12px] text-white/70 flex items-center gap-1 mt-0.5">
                             <Mail className="w-3 h-3" /> {log.customer_email || 'S/ Email'}
                           </span>
                         </div>
@@ -239,14 +239,14 @@ export function DataHealthPanel() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-[13px] text-white/80 font-medium">{log.course_name || 'Produto Não Mapeado'}</span>
-                          <span className="text-[11px] text-white/40 truncate max-w-[200px]">ID: {log.course_id}</span>
+                          <span className="text-[12px] text-white/60 truncate max-w-[200px]">ID: {log.course_id}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider rounded-full 
+                        <Badge variant="outline" className={`text-[12px] uppercase font-bold tracking-wider rounded-full 
                           ${log.transaction_status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
                             log.transaction_status === 'refunded' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                            'bg-white/5 text-white/40 border-white/10'}`}
+                            'bg-white/5 text-white/60 border-white/10'}`}
                         >
                           {log.transaction_status}
                         </Badge>
@@ -279,7 +279,7 @@ export function DataHealthPanel() {
                             size="sm"
                             disabled={fixAccessMutation.isPending}
                             onClick={() => fixAccessMutation.mutate({ action: 'grant', payload: log })}
-                            className="bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/50 rounded-[8px] h-8 text-[11px] font-bold"
+                            className="bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/50 rounded-[8px] h-8 text-[12px] font-bold"
                           >
                             Conceder Acesso
                           </Button>
@@ -289,16 +289,16 @@ export function DataHealthPanel() {
                             size="sm"
                             disabled={fixAccessMutation.isPending}
                             onClick={() => setRevokeTarget(log)}
-                            className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/50 rounded-[8px] h-8 text-[11px] font-bold"
+                            className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/50 rounded-[8px] h-8 text-[12px] font-bold"
                           >
                             Revogar Acesso
                           </Button>
                         )}
                         {log.health_status === 'HEALTHY' && (
-                          <span className="text-[12px] text-white/20 font-bold mr-4">-</span>
+                          <span className="text-[12px] text-white/60 font-bold mr-4">-</span>
                         )}
                          {log.health_status === 'MISSING_WHATSAPP' && (
-                          <span className="text-[11px] text-blue-400/60 font-bold bg-blue-500/10 px-2 py-1 rounded-[6px] border border-blue-500/20">Action na página do Aluno</span>
+                          <span className="text-[12px] text-blue-400 font-bold bg-blue-500/10 px-2 py-1 rounded-[6px] border border-blue-500/20">Action na página do Aluno</span>
                         )}
                       </td>
                     </motion.tr>

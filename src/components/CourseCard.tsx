@@ -52,7 +52,7 @@ export const CourseCard = ({ course, layout = "grid", hasAccess = true }: Course
           {/* Category Badge - Conditional */}
           {course.show_category_badge !== false && (
             <div className="absolute top-3 left-3 z-20">
-              <Badge variant="secondary" className="bg-primary hover:bg-primary text-white border-none shadow-lg">
+              <Badge variant="secondary" className="bg-primary hover:bg-primary text-primary-foreground border-none shadow-lg">
                 {course.category}
               </Badge>
             </div>
@@ -64,7 +64,7 @@ export const CourseCard = ({ course, layout = "grid", hasAccess = true }: Course
               <h3 className="font-bold text-base md:text-lg mb-1 line-clamp-2 text-white group-hover:text-primary transition-colors leading-tight">
                 {course.title}
               </h3>
-              <p className="text-[10px] md:text-xs text-white/60 font-medium">
+              <p className="text-[12px] md:text-xs text-white/60 font-medium">
                 por {course.instructor}
               </p>
             </div>
@@ -74,7 +74,7 @@ export const CourseCard = ({ course, layout = "grid", hasAccess = true }: Course
         {/* Bottom Stats & Progress */}
         <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
           {/* Stats */}
-          <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground/80 font-medium">
+          <div className="flex items-center justify-between text-[12px] sm:text-xs text-muted-foreground/80 font-medium">
             <div className="flex items-center gap-1.5">
               <BookOpen className="w-3 h-3 text-primary/70" />
               <span>{course.totalLessons} aulas</span>
@@ -88,8 +88,8 @@ export const CourseCard = ({ course, layout = "grid", hasAccess = true }: Course
           {/* Progress Bar */}
           <div className="space-y-2">
             <Progress value={course.progress} className="h-1.5 bg-white/[0.08]" />
-            <div className="flex items-center justify-between text-[10px] sm:text-xs">
-              <p className="text-muted-foreground/60">
+            <div className="flex items-center justify-between text-[12px] sm:text-xs">
+              <p className="text-muted-foreground">
                 <span className="text-foreground font-semibold">{course.completedLessons}</span>/{course.totalLessons} concluídas
               </p>
               <span className="font-bold text-primary italic">

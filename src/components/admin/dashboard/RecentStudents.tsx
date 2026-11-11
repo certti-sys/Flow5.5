@@ -37,10 +37,10 @@ export function RecentStudents({ students }: RecentStudentsProps) {
             </div>
             Novos Integrantes
           </h3>
-          <p className="text-[11px] text-muted-foreground/40 uppercase font-black tracking-widest pl-11">Alunos recém-chegados à plataforma</p>
+          <p className="text-[12px] text-muted-foreground/80 uppercase font-black tracking-widest pl-11">Alunos recém-chegados à plataforma</p>
         </div>
         <button className="h-8 w-8 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center hover:bg-white/10 hover:text-primary transition-all group/btn">
-          <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover/btn:translate-x-0.5 transition-transform" />
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover/btn:translate-x-0.5 transition-transform" />
         </button>
       </div>
 
@@ -52,7 +52,7 @@ export function RecentStudents({ students }: RecentStudentsProps) {
               className="flex items-center gap-4 p-4 rounded-[24px] bg-white/[0.02] border border-transparent hover:border-white/5 hover:bg-white/[0.04] transition-all duration-300 group/item cursor-pointer"
             >
               <Avatar className="h-12 w-12 rounded-2xl border border-white/5 ring-4 ring-transparent group-hover/item:ring-primary/10 transition-all">
-                <AvatarImage src={student.avatar_url || undefined} className="object-cover" />
+                <AvatarImage src={student.avatar_url || undefined} alt={student.name} className="object-cover" />
                 <AvatarFallback className="bg-primary/10 text-primary text-sm font-black rounded-2xl">
                   {getInitials(student.name)}
                 </AvatarFallback>
@@ -61,17 +61,17 @@ export function RecentStudents({ students }: RecentStudentsProps) {
                 <p className="text-sm font-bold text-white truncate group-hover/item:text-primary transition-colors mb-0.5">
                   {student.name}
                 </p>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 font-medium">
+                <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-medium">
                   <span className="truncate">{student.email}</span>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="flex items-center justify-end gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-[10px] font-black text-emerald-500 uppercase tracking-wider mb-1">
+                <div className="flex items-center justify-end gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-[12px] font-black text-emerald-500 uppercase tracking-wider mb-1">
                   <BookOpen className="w-3 h-3" />
                   <span>{student.completedLessons}</span>
                 </div>
                 {student.lastActivity && (
-                  <div className="flex items-center justify-end gap-1 text-[9px] text-muted-foreground/40 uppercase font-black tracking-tighter">
+                  <div className="flex items-center justify-end gap-1 text-[12px] text-muted-foreground/80 uppercase font-black tracking-tighter">
                     <Clock className="w-2.5 h-2.5 opacity-50" />
                     <span>
                       {formatDistanceToNow(new Date(student.lastActivity), {
@@ -88,7 +88,7 @@ export function RecentStudents({ students }: RecentStudentsProps) {
       ) : (
         <div className="py-12 flex flex-col items-center justify-center text-center gap-4 bg-white/[0.01] rounded-3xl border border-dashed border-white/10">
           <Users className="w-8 h-8 text-muted-foreground/20" />
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Silêncio no campus</p>
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Silêncio no campus</p>
         </div>
       )}
     </Card>

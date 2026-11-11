@@ -199,7 +199,7 @@ export const Navbar = ({ hideLogo = false, hideNavLinks = false, showMobileSideb
                     <DropdownMenuLabel>
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium text-white leading-none">{profile?.name || "Usuário"}</p>
-                        <p className="text-xs leading-none text-white/40">{profile?.email}</p>
+                        <p className="text-xs leading-none text-white/60">{profile?.email}</p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="border-white/[0.1]" />
@@ -227,14 +227,14 @@ export const Navbar = ({ hideLogo = false, hideNavLinks = false, showMobileSideb
                   <div className="p-3 mb-3 border-b border-white/[0.1] overflow-hidden">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 ring-2 ring-primary/10">
-                        <AvatarImage src={profile?.avatar_url || ""} />
+                        <AvatarImage src={profile?.avatar_url || ""} alt={profile?.name || "Usuário"} />
                         <AvatarFallback className="bg-primary/10 text-primary font-bold">
                           {profile?.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col min-w-0">
                         <span className="font-bold text-sm text-white truncate">{profile?.name}</span>
-                        <span className="text-[10px] text-white/40 uppercase font-semibold tracking-wider truncate">{badgeLabel}</span>
+                        <span className="text-[12px] text-white/60 uppercase font-semibold tracking-wider truncate">{badgeLabel}</span>
                       </div>
                     </div>
                   </div>

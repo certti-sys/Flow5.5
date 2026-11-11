@@ -231,13 +231,13 @@ const Profile = () => {
                           <p className="font-bold text-sm leading-tight group-hover:text-amber-500 transition-colors">
                             {cert.courses?.title}
                           </p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-1">
+                          <p className="text-[12px] text-muted-foreground uppercase font-black tracking-widest mt-1">
                             Concluído em: {new Date(cert.issued_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="hidden sm:flex bg-amber-500/5 text-amber-500 border-amber-500/20 text-[10px] uppercase font-black tracking-tighter">
+                        <Badge variant="outline" className="hidden sm:flex bg-amber-500/5 text-amber-500 border-amber-500/20 text-[12px] uppercase font-black tracking-tighter">
                           Verificado
                         </Badge>
                         <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
@@ -317,11 +317,11 @@ const Profile = () => {
                         </CardHeader>
                         <div className="px-4 pb-3 flex items-center justify-between border-t border-white/5 pt-2">
                           {isUnlocked ? (
-                            <span className="text-[9px] text-muted-foreground font-medium italic">
+                            <span className="text-[12px] text-muted-foreground font-medium italic">
                               Conquistado em {new Date(unlockedData!.unlocked_at).toLocaleDateString()}
                             </span>
                           ) : (
-                            <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                            <div className="flex items-center gap-1 text-[12px] font-bold text-muted-foreground uppercase tracking-widest">
                               <Lock className="w-2.5 h-2.5" />
                               Bloqueado
                             </div>

@@ -261,7 +261,7 @@ export default function OrderBumpsPage() {
                 <stat.icon className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">{stat.label}</p>
+                <p className="text-[12px] font-black uppercase tracking-widest text-muted-foreground">{stat.label}</p>
                 <h3 className="text-2xl font-black text-white mt-0.5 tracking-tight">{stat.value}</h3>
               </div>
             </div>
@@ -275,10 +275,10 @@ export default function OrderBumpsPage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="text-left px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">Oferta & Desconto</th>
-                <th className="text-left px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50 hidden md:table-cell">Gatilho (Alvo)</th>
-                <th className="text-center px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50 hidden sm:table-cell w-32">Prioridade</th>
-                <th className="text-right px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">Ações</th>
+                <th className="text-left px-6 py-5 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80">Oferta & Desconto</th>
+                <th className="text-left px-6 py-5 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80 hidden md:table-cell">Gatilho (Alvo)</th>
+                <th className="text-center px-6 py-5 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80 hidden sm:table-cell w-32">Prioridade</th>
+                <th className="text-right px-6 py-5 text-[12px] font-bold uppercase tracking-widest text-muted-foreground/80">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -317,7 +317,7 @@ export default function OrderBumpsPage() {
                                 <Package className="w-5 h-5 text-primary" />
                               </div>
                             )}
-                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-lg flex items-center justify-center text-[10px] font-black text-white shadow-glow-sm scale-90 group-hover/row:scale-100 transition-transform">
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-lg flex items-center justify-center text-[12px] font-black text-primary-foreground shadow-glow-sm scale-90 group-hover/row:scale-100 transition-transform">
                               {bump.discount_percent}%
                             </div>
                           </div>
@@ -329,7 +329,7 @@ export default function OrderBumpsPage() {
                               <span className="text-[12px] font-bold text-emerald-400">
                                 {formatPrice(getDiscountedPrice(bump.offer_product?.price || 0, bump.discount_percent))}
                               </span>
-                              <span className="text-[10px] text-muted-foreground/50 line-through">
+                              <span className="text-[12px] text-muted-foreground/80 line-through">
                                 {formatPrice(bump.offer_product?.price || 0)}
                               </span>
                             </div>
@@ -340,7 +340,7 @@ export default function OrderBumpsPage() {
                     <td className="px-6 py-5 hidden md:table-cell">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center scale-90">
-                          <Target className="w-3.5 h-3.5 text-muted-foreground/60" />
+                          <Target className="w-3.5 h-3.5 text-muted-foreground" />
                         </div>
                         <span className="text-xs font-bold text-muted-foreground/80">
                           {bump.trigger_product?.name || "Qualquer Produto (Global)"}
@@ -348,7 +348,7 @@ export default function OrderBumpsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center hidden sm:table-cell">
-                      <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-muted-foreground/40 uppercase">
+                      <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[12px] font-black text-muted-foreground/80 uppercase">
                         P{bump.priority}
                       </div>
                     </td>
@@ -409,7 +409,7 @@ export default function OrderBumpsPage() {
                 <div className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl">
                   <div className="space-y-0.5">
                     <Label className="text-white font-bold text-sm">Status da Oferta</Label>
-                    <p className="text-[11px] text-muted-foreground/60 uppercase font-black tracking-widest">Ativa no checkout agora</p>
+                    <p className="text-[12px] text-muted-foreground uppercase font-black tracking-widest">Ativa no checkout agora</p>
                   </div>
                   <Switch
                     checked={formData.is_active}
@@ -424,13 +424,13 @@ export default function OrderBumpsPage() {
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       placeholder="Ex: APROVEITE ESSA OFERTA EXCLUSIVA"
-                      className="bg-white/5 border-white/10 h-12 rounded-xl text-white placeholder:text-white/20 focus:ring-primary/20"
+                      className="bg-white/5 border-white/10 h-12 rounded-xl text-white placeholder:text-white/60 focus:ring-primary/20"
                     />
                     <Input
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Ex: Leve junto e economize muito mais!"
-                      className="bg-white/5 border-white/10 h-12 rounded-xl text-white placeholder:text-white/20 focus:ring-primary/20"
+                      className="bg-white/5 border-white/10 h-12 rounded-xl text-white placeholder:text-white/60 focus:ring-primary/20"
                     />
                   </div>
 
@@ -481,7 +481,7 @@ export default function OrderBumpsPage() {
                           onChange={(e) => setFormData({ ...formData, discount_percent: parseInt(e.target.value) || 0 })}
                           className="bg-white/5 border-white/10 h-12 rounded-xl text-white pr-10"
                         />
-                        <Percent className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+                        <Percent className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80" />
                       </div>
                     </div>
                     <div className="space-y-2.5">
@@ -493,7 +493,7 @@ export default function OrderBumpsPage() {
                           onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
                           className="bg-white/5 border-white/10 h-12 rounded-xl text-white pr-10"
                         />
-                        <ArrowUpRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+                        <ArrowUpRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80" />
                       </div>
                     </div>
                   </div>
@@ -505,10 +505,10 @@ export default function OrderBumpsPage() {
             <div className="lg:col-span-2 p-8 bg-gradient-to-br from-primary/5 to-transparent border-l border-white/5 flex flex-col items-center justify-center text-center">
               <div className="w-full max-w-[280px] space-y-6">
                 <div className="text-left space-y-1">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
+                  <Label className="text-[12px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
                     <Eye className="w-3 h-3" /> Live Preview
                   </Label>
-                  <p className="text-xs text-muted-foreground/50">Veja como aparecerá no checkout</p>
+                  <p className="text-xs text-muted-foreground/80">Veja como aparecerá no checkout</p>
                 </div>
 
                 {selectedOfferProduct ? (
@@ -523,11 +523,11 @@ export default function OrderBumpsPage() {
                     <div className="relative border-2 border-primary/30 rounded-3xl overflow-hidden bg-[#0f0f12] shadow-2xl flex flex-col">
                       {/* Header do Bump */}
                       <div className="bg-gradient-to-r from-primary to-orange-600 px-4 py-3 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-white font-black text-[10px] uppercase tracking-tighter">
+                        <div className="flex items-center gap-1.5 text-white font-black text-[12px] uppercase tracking-tighter">
                           <Zap className="w-3.5 h-3.5 fill-white" />
                           {formData.title || "OFERTA RELÂMPAGO"}
                         </div>
-                        <div className="bg-black/20 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">
+                        <div className="bg-black/20 text-white text-[12px] font-black px-1.5 py-0.5 rounded-md">
                           {formData.discount_percent}% OFF
                         </div>
                       </div>
@@ -546,26 +546,26 @@ export default function OrderBumpsPage() {
 
                         <div className="space-y-1">
                           <h4 className="text-sm font-bold text-white line-clamp-1">{selectedOfferProduct.name}</h4>
-                          <p className="text-[11px] text-muted-foreground/60 leading-tight h-8 line-clamp-2">
+                          <p className="text-[12px] text-muted-foreground leading-tight h-8 line-clamp-2">
                             {formData.description || "Descrição da oferta complementar..."}
                           </p>
                         </div>
 
                         <div className="w-full pt-2 flex items-center justify-center gap-3">
-                          <span className="text-muted-foreground/30 line-through text-xs">{formatPrice(selectedOfferProduct.price)}</span>
+                          <span className="text-muted-foreground/70 line-through text-xs">{formatPrice(selectedOfferProduct.price)}</span>
                           <span className="text-emerald-400 font-black text-xl">
                             {formatPrice(getDiscountedPrice(selectedOfferProduct.price, formData.discount_percent))}
                           </span>
                         </div>
 
-                        <Button disabled className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-2xl h-11 pointer-events-none font-black text-[10px] uppercase tracking-widest mt-2">
+                        <Button disabled className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-2xl h-11 pointer-events-none font-black text-[12px] uppercase tracking-widest mt-2">
                           Adicionar Agora
                         </Button>
                       </div>
                     </div>
                   </motion.div>
                 ) : (
-                  <div className="aspect-[3/4] rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center p-8 text-muted-foreground/30">
+                  <div className="aspect-[3/4] rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center p-8 text-muted-foreground/70">
                     <MousePointer2 className="w-8 h-8 mb-4 animate-pulse" />
                     <p className="text-xs font-bold uppercase tracking-widest">Aguardando Produto</p>
                   </div>
@@ -579,14 +579,14 @@ export default function OrderBumpsPage() {
             <Button
               variant="outline"
               onClick={() => setIsModalOpen(false)}
-              className="h-12 px-8 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold uppercase tracking-widest text-[10px]"
+              className="h-12 px-8 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold uppercase tracking-widest text-[12px]"
             >
               Cancelar
             </Button>
             <Button
               onClick={() => saveMutation.mutate(formData)}
               disabled={!formData.offer_product_id || saveMutation.isPending}
-              className="h-12 px-10 rounded-[12px] bg-primary hover:bg-primary/90 text-white font-bold uppercase tracking-widest text-[10px] shadow-glow"
+              className="h-12 px-10 rounded-[12px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-widest text-[12px] shadow-glow"
             >
               {saveMutation.isPending ? "Processando..." : editingBump ? "Atualizar Estratégia" : "Ativar Oferta"}
             </Button>

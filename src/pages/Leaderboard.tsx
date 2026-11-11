@@ -84,7 +84,7 @@ const Leaderboard = () => {
           <Avatar className={`${isFirst ? 'w-24 h-24' : 'w-20 h-20'} ring-4 ${
             isFirst ? 'ring-amber-500' : isSecond ? 'ring-zinc-300' : 'ring-amber-700'
           } shadow-xl`}>
-            <AvatarImage src={userRow.avatar_url || ""} />
+            <AvatarImage src={userRow.avatar_url || ""} alt={userRow.user_name || "Avatar"} />
             <AvatarFallback className="text-2xl font-bold bg-muted text-foreground">
               {getInitials(userRow.user_name)}
             </AvatarFallback>
@@ -223,12 +223,12 @@ const Leaderboard = () => {
                   
                   <div className="col-span-6 md:col-span-4 flex items-center gap-3 overflow-hidden">
                     <Avatar className="w-10 h-10 border border-white/10 shrink-0">
-                      <AvatarImage src={row.avatar_url || ""} />
+                      <AvatarImage src={row.avatar_url || ""} alt={row.user_name || "Avatar"} />
                       <AvatarFallback>{getInitials(row.user_name)}</AvatarFallback>
                     </Avatar>
                     <div className="truncate font-medium text-sm">
                       {row.user_name || "Membro Oculto"}
-                      {isCurrentUser && <span className="ml-2 text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full uppercase">Você</span>}
+                      {isCurrentUser && <span className="ml-2 text-[12px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full uppercase">Você</span>}
                     </div>
                   </div>
                   
@@ -242,7 +242,7 @@ const Leaderboard = () => {
                   </div>
                   
                   <div className="col-span-4 md:col-span-2 text-right pr-4 font-mono font-bold">
-                    {Number(row.total_xp || 0).toLocaleString()} <span className="text-[10px] text-muted-foreground font-normal">XP</span>
+                    {Number(row.total_xp || 0).toLocaleString()} <span className="text-[12px] text-muted-foreground font-normal">XP</span>
                   </div>
                 </div>
               );
@@ -270,7 +270,7 @@ const Leaderboard = () => {
             </div>
             <div className="flex flex-col items-end">
               <span className="font-mono font-bold text-primary">20+</span>
-              <span className="text-[10px] text-muted-foreground uppercase">Posição</span>
+              <span className="text-[12px] text-muted-foreground uppercase">Posição</span>
             </div>
           </div>
         )}

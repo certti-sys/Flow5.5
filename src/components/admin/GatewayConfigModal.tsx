@@ -161,13 +161,13 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         <TabsList className="bg-transparent h-auto p-0 gap-6 w-full justify-start rounded-none">
                             <TabsTrigger 
                                 value="test"
-                                className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-blue-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-blue-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
                             >
                                 Ambiente de Teste
                             </TabsTrigger>
                             <TabsTrigger 
                                 value="live"
-                                className="relative rounded-none px-0 py-3 text-white/50 data-[state=active]:text-red-400 data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-red-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-red-400 data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-red-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
                             >
                                 Produção (Live)
                             </TabsTrigger>
@@ -181,7 +181,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/40">
+                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
                                 {gateway.slug === 'stripe' ? 'Publishable Key' : 'Public Key'}
                             </Label>
                             <Input
@@ -191,7 +191,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
                             />
                             {gateway.slug === 'stripe' && (
-                                <p className="text-[11px] text-white/30">
+                                <p className="text-[12px] text-white/60">
                                     Formato: pk_test_... (teste) ou pk_live_... (produção)
                                 </p>
                             )}
@@ -199,7 +199,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label className="text-[12px] uppercase tracking-widest font-bold text-white/40">
+                                <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
                                     {gateway.slug === 'stripe' ? 'Secret Key' : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
@@ -209,7 +209,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     onClick={() => setShowSecrets(!showSecrets)}
                                     type="button"
                                 >
-                                    {showSecrets ? <EyeOff className="w-4 h-4 text-white/40" /> : <Eye className="w-4 h-4 text-white/40" />}
+                                    {showSecrets ? <EyeOff className="w-4 h-4 text-white/60" /> : <Eye className="w-4 h-4 text-white/60" />}
                                 </Button>
                             </div>
                             <Input
@@ -219,7 +219,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 onChange={(e) => setSecretKey(e.target.value)}
                                 className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
                             />
-                            <p className="text-[11px] text-white/30">
+                            <p className="text-[12px] text-white/60">
                                 {secretKey === "********"
                                     ? "Chave salva oculta. Digite para substituir."
                                     : gateway.slug === 'stripe'
@@ -229,7 +229,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/40">Webhook Secret (Opcional)</Label>
+                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">Webhook Secret (Opcional)</Label>
                             <Input
                                 type={showSecrets ? "text" : "password"}
                                 placeholder="whsec_..."
@@ -240,7 +240,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         </div>
 
                         <div className="space-y-4 p-5 rounded-[12px] bg-black/20 border border-white/5">
-                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/40">Métodos de Pagamento</Label>
+                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">Métodos de Pagamento</Label>
                             <div className="flex flex-col gap-3">
                                 {getAvailableMethods(gateway.slug).map((method) => (
                                     <div key={method.id} className="flex items-center space-x-3 bg-white/[0.02] p-3 rounded-lg border border-white/5">
@@ -264,7 +264,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         {/* Configuração de Parcelamento - Apenas Mercado Pago */}
                         {supportsInstallments(gateway.slug) && allowedMethods.includes("credit_card") && (
                             <div className="space-y-3 pt-4 border-t border-white/5">
-                                <Label className="text-[12px] uppercase tracking-widest font-bold text-white/40">Parcelamento (Cartão de Crédito)</Label>
+                                <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">Parcelamento (Cartão de Crédito)</Label>
                                 <select
                                     value={maxInstallments}
                                     onChange={(e) => setMaxInstallments(Number(e.target.value))}
@@ -278,7 +278,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     <option value={10} className="bg-[#0f0f11]">Até 10x</option>
                                     <option value={12} className="bg-[#0f0f11]">Até 12x</option>
                                 </select>
-                                <p className="text-[11px] text-white/30">
+                                <p className="text-[12px] text-white/60">
                                     Define o número máximo de parcelas oferecidas ao cliente.
                                 </p>
                             </div>

@@ -115,10 +115,10 @@ export function ModuleFormModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Introdução ao curso"
-                className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
               />
               {errors.title && (
-                <p className="text-sm text-destructive">{errors.title}</p>
+                <p role="alert" className="text-sm text-destructive">{errors.title}</p>
               )}
             </div>
           </div>
@@ -136,7 +136,7 @@ export function ModuleFormModal({
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-white w-full sm:w-auto min-w-[120px]"
+            className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto min-w-[120px]"
           >
             {saveMutation.isPending ? "Salvando..." : "Salvar Módulo"}
           </Button>

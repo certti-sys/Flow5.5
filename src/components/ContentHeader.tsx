@@ -173,7 +173,7 @@ export function ContentHeader({
               <BreadcrumbList className="flex-nowrap">
                 {breadcrumbs.map((crumb, index) => (
                   <Fragment key={index}>
-                    {index > 0 && <BreadcrumbSeparator className="text-white/20" />}
+                    {index > 0 && <BreadcrumbSeparator className="text-white/60" />}
                     <BreadcrumbItem>
                       {index === breadcrumbs.length - 1 ? (
                         <BreadcrumbPage className="text-white/60 font-medium text-xs truncate">
@@ -183,7 +183,7 @@ export function ContentHeader({
                         <BreadcrumbLink asChild>
                           <Link
                             to={crumb.href || "#"}
-                            className="text-white/40 hover:text-white font-medium text-xs transition-colors"
+                            className="text-white/60 hover:text-white font-medium text-xs transition-colors inline-flex items-center py-1.5"
                           >
                             {crumb.label}
                           </Link>
@@ -254,7 +254,7 @@ export function ContentHeader({
                         <p className="text-sm font-medium text-white leading-none line-clamp-1">
                           {profile.name || "Usuário"}
                         </p>
-                        <p className="text-xs leading-none text-white/40 truncate">{user?.email}</p>
+                        <p className="text-xs leading-none text-white/60 truncate">{user?.email}</p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="border-white/[0.1]" />

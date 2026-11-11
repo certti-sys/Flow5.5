@@ -39,11 +39,11 @@ export function CourseDistributionChart({ data }: CourseDistributionChartProps) 
             </div>
             Base de Alunos
           </h3>
-          <p className="text-[11px] text-muted-foreground/40 uppercase font-black tracking-widest pl-11">Por curso principal</p>
+          <p className="text-[12px] text-muted-foreground/80 uppercase font-black tracking-widest pl-11">Por curso principal</p>
         </div>
         <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-2">
-          <Users className="w-3 h-3 text-muted-foreground/60" />
-          <span className="text-[10px] font-black text-white uppercase tracking-wider">
+          <Users className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[12px] font-black text-white uppercase tracking-wider">
             {totalStudents} total
           </span>
         </div>
@@ -115,7 +115,7 @@ export function CourseDistributionChart({ data }: CourseDistributionChartProps) 
             </div>
           ))}
           {data.length === 0 && (
-            <p className="text-[10px] text-muted-foreground/40 text-center uppercase font-black tracking-[2px] py-4">
+            <p className="text-[12px] text-muted-foreground/80 text-center uppercase font-black tracking-[2px] py-4">
               Nenhuma métrica disponível
             </p>
           )}

@@ -292,7 +292,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                         <Input 
                           placeholder="Nome do curso" 
                           {...field} 
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -310,7 +310,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                       <FormControl>
                         <Textarea
                           placeholder="Breve descrição do curso"
-                          className="resize-none bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50"
+                          className="resize-none bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80"
                           rows={3}
                           {...field}
                         />
@@ -362,7 +362,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                             <Input
                               placeholder="Digite a nova categoria"
                               {...field}
-                              className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                              className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                             />
                           </FormControl>
                           <Button
@@ -395,7 +395,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                         <Input 
                           placeholder="Nome do instrutor" 
                           {...field} 
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -417,7 +417,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                         <Input 
                           placeholder="Ex: 8h, 12h, 3 dias" 
                           {...field} 
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -436,7 +436,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                         <Input
                           placeholder="https://pay.hotmart.com/..."
                           {...field}
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
@@ -589,7 +589,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                 type="submit"
                 form="course-form"
                 disabled={saveMutation.isPending || isUploading}
-                className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-white"
+                className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {saveMutation.isPending || isUploading ? (
                   <>

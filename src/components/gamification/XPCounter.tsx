@@ -35,7 +35,7 @@ export const XPCounter = ({ totalXp, className = "" }: XPCounterProps) => {
           <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">XP Total</p>
+          <p className="text-[12px] sm:text-xs text-muted-foreground mb-0.5">XP Total</p>
           <span className="text-lg sm:text-xl md:text-2xl font-bold text-gradient tabular-nums">
             {displayXp.toLocaleString()}
           </span>

@@ -288,7 +288,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
                 <div className="bg-black/20 border border-white/5 rounded-[12px] p-6 flex flex-col items-center gap-4">
                   <div className="relative group">
                     <Avatar className="w-24 h-24 ring-4 ring-primary/20 transition-all duration-300 group-hover:ring-primary/40">
-                      <AvatarImage src={currentAvatarUrl || ""} />
+                      <AvatarImage src={currentAvatarUrl || ""} alt="Avatar do usuário" />
                       <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
                         {profile?.name ? getInitials(profile.name) : "U"}
                       </AvatarFallback>
@@ -357,7 +357,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
                           <Input
                             placeholder="Seu nome"
                             {...field}
-                            className="bg-black/20 border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/30 h-[44px] rounded-[10px]"
+                            className="bg-black/20 border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/70 h-[44px] rounded-[10px]"
                           />
                         </FormControl>
                         <FormMessage />
@@ -377,7 +377,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
                             placeholder="seu@email.com"
                             {...field}
                             disabled
-                            className="bg-black/10 border-white/5 text-white/40 h-[44px] rounded-[10px] cursor-not-allowed"
+                            className="bg-black/10 border-white/5 text-white/60 h-[44px] rounded-[10px] cursor-not-allowed"
                           />
                         </FormControl>
                         <FormMessage />
@@ -395,7 +395,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
                           <Input
                             placeholder="+55 11 99999-9999"
                             {...field}
-                            className="bg-black/20 border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/30 h-[44px] rounded-[10px]"
+                            className="bg-black/20 border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/70 h-[44px] rounded-[10px]"
                           />
                         </FormControl>
                         <FormMessage />

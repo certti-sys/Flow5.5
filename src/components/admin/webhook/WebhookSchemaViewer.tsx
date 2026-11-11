@@ -113,7 +113,7 @@ export function WebhookSchemaViewer({
       {filteredSchemas.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+            <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground/80" />
             <p className="text-muted-foreground">
               Nenhum schema descoberto ainda. Envie webhooks para o endpoint e eles serão detectados automaticamente.
             </p>

@@ -238,7 +238,7 @@ export function CreateCarouselModal({ open, onClose, carousel }: CreateCarouselM
                         <Input
                           placeholder="Ex: Cursos em Destaque"
                           {...field}
-                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                          className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -334,7 +334,7 @@ export function CreateCarouselModal({ open, onClose, carousel }: CreateCarouselM
                             max={10}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                           />
                         </FormControl>
                         <FormMessage />
@@ -354,7 +354,7 @@ export function CreateCarouselModal({ open, onClose, carousel }: CreateCarouselM
                             max={8}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                           />
                         </FormControl>
                         <FormMessage />
@@ -374,7 +374,7 @@ export function CreateCarouselModal({ open, onClose, carousel }: CreateCarouselM
                             max={5}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                           />
                         </FormControl>
                         <FormMessage />
@@ -393,7 +393,7 @@ export function CreateCarouselModal({ open, onClose, carousel }: CreateCarouselM
                             min={0}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/50 h-[44px]"
+                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
                           />
                         </FormControl>
                         <p className="text-xs text-muted-foreground pt-1">
@@ -421,7 +421,7 @@ export function CreateCarouselModal({ open, onClose, carousel }: CreateCarouselM
                 type="submit"
                 form="carousel-form"
                 disabled={saveMutation.isPending}
-                className="w-full sm:w-auto h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-white"
+                className="w-full sm:w-auto h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {saveMutation.isPending ? (
                   <>
