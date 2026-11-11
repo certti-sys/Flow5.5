@@ -40,3 +40,11 @@ coverage/
 *.tsbuildinfo
 tmp/
 temp/
+
+# Scripts locais de auditoria (contem credenciais de teste)
+audit-*.mjs
+diag-*.mjs
+verify-*.mjs
+fix-*.ps1
+*-out.txt
+audit-result.json
