@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner"
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog"
 import { AdminHeader } from "@/components/admin/AdminHeader"
+import { OrderBumpCard, ORDER_BUMP_COLORS } from "@/components/checkout/OrderBumpCard"
 
 interface OrderBump {
   id: string
@@ -402,7 +403,7 @@ export default function OrderBumpsPage() {
             </div>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 h-[65vh]">
+          <div className="grid grid-cols-1 lg:grid-cols-5 h-[70vh]">
             {/* Formulário */}
             <div className="lg:col-span-3 p-8 overflow-y-auto scrollbar-styled space-y-8 bg-black/40">
               <div className="space-y-6">
@@ -497,77 +498,67 @@ export default function OrderBumpsPage() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-white/60 text-xs font-black uppercase tracking-widest">Cor de Destaque</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {(Object.keys(ORDER_BUMP_COLORS) as Array<keyof typeof ORDER_BUMP_COLORS>).map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, color: key })}
+                          aria-label={`Cor ${ORDER_BUMP_COLORS[key].label}`}
+                          aria-pressed={formData.color === key}
+                          title={ORDER_BUMP_COLORS[key].label}
+                          className={cn(
+                            "h-10 pl-3 pr-4 rounded-xl border flex items-center gap-2 text-[12px] font-bold transition-all",
+                            formData.color === key
+                              ? "border-white/30 bg-white/10 text-white"
+                              : "border-white/5 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05]"
+                          )}
+                        >
+                          <span className={cn("w-3.5 h-3.5 rounded-full", ORDER_BUMP_COLORS[key].dot)} />
+                          {ORDER_BUMP_COLORS[key].label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Super Preview Real-time */}
-            <div className="lg:col-span-2 p-8 bg-gradient-to-br from-primary/5 to-transparent border-l border-white/5 flex flex-col items-center justify-center text-center">
-              <div className="w-full max-w-[280px] space-y-6">
-                <div className="text-left space-y-1">
+            {/* Preview — usa o mesmo componente renderizado no checkout */}
+            <div className="lg:col-span-2 p-8 bg-gradient-to-br from-primary/5 to-transparent border-l border-white/5 flex flex-col justify-center overflow-y-auto scrollbar-styled">
+              <div className="w-full max-w-none space-y-4">
+                <div className="space-y-1">
                   <Label className="text-[12px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
                     <Eye className="w-3 h-3" /> Live Preview
                   </Label>
-                  <p className="text-xs text-muted-foreground/80">Veja como aparecerá no checkout</p>
+                  <p className="text-xs text-muted-foreground/80">Exatamente como aparece no checkout</p>
                 </div>
 
                 {selectedOfferProduct ? (
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="relative group/card"
-                  >
-                    {/* Glow Effect */}
-                    <div className="absolute inset-0 bg-primary/20 blur-3xl opacity-20" />
-
-                    <div className="relative border-2 border-primary/30 rounded-3xl overflow-hidden bg-[#0f0f12] shadow-2xl flex flex-col">
-                      {/* Header do Bump */}
-                      <div className="bg-gradient-to-r from-primary to-orange-600 px-4 py-3 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-white font-black text-[12px] uppercase tracking-tighter">
-                          <Zap className="w-3.5 h-3.5 fill-white" />
-                          {formData.title || "OFERTA RELÂMPAGO"}
-                        </div>
-                        <div className="bg-black/20 text-white text-[12px] font-black px-1.5 py-0.5 rounded-md">
-                          {formData.discount_percent}% OFF
-                        </div>
-                      </div>
-
-                      {/* Body do Bump */}
-                      <div className="p-5 flex flex-col items-center text-center gap-4">
-                        <div className="relative h-28 w-28 rounded-2xl overflow-hidden shadow-inner border border-white/5">
-                          {selectedOfferProduct.image_url ? (
-                            <img src={selectedOfferProduct.image_url} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                              <Package className="w-8 h-8 text-white/10" />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-white line-clamp-1">{selectedOfferProduct.name}</h4>
-                          <p className="text-[12px] text-muted-foreground leading-tight h-8 line-clamp-2">
-                            {formData.description || "Descrição da oferta complementar..."}
-                          </p>
-                        </div>
-
-                        <div className="w-full pt-2 flex items-center justify-center gap-3">
-                          <span className="text-muted-foreground/70 line-through text-xs">{formatPrice(selectedOfferProduct.price)}</span>
-                          <span className="text-emerald-400 font-black text-xl">
-                            {formatPrice(getDiscountedPrice(selectedOfferProduct.price, formData.discount_percent))}
-                          </span>
-                        </div>
-
-                        <Button disabled className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-2xl h-11 pointer-events-none font-black text-[12px] uppercase tracking-widest mt-2">
-                          Adicionar Agora
-                        </Button>
-                      </div>
-                    </div>
-                  </motion.div>
+                  <OrderBumpCard
+                    bump={{
+                      id: "preview",
+                      title: formData.title,
+                      description: formData.description,
+                      discount_percent: formData.discount_percent,
+                      color: formData.color,
+                      offer_product: {
+                        id: selectedOfferProduct.id,
+                        name: selectedOfferProduct.name,
+                        price: selectedOfferProduct.price,
+                        image_url: selectedOfferProduct.image_url,
+                      },
+                    }}
+                    selected={false}
+                    onToggle={() => setFormData((prev) => ({ ...prev, is_active: !prev.is_active }))}
+                  />
                 ) : (
-                  <div className="aspect-[3/4] rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center p-8 text-muted-foreground/70">
+                  <div className="rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center p-10 text-muted-foreground/70">
                     <MousePointer2 className="w-8 h-8 mb-4 animate-pulse" />
-                    <p className="text-xs font-bold uppercase tracking-widest">Aguardando Produto</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-center">Aguardando Produto</p>
                   </div>
                 )}
               </div>

@@ -76,6 +76,7 @@ export default function CheckoutPage() {
                     title,
                     description,
                     discount_percent,
+                    color,
                     offer_product:products!offer_product_id(id, name, price, image_url)
                 `)
                 .eq("is_active", true)
