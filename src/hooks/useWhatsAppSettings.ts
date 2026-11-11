@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface WhatsAppSettings {
   id: string;
@@ -58,7 +58,6 @@ const defaultSettings: Partial<WhatsAppSettings> = {
 
 export function useWhatsAppSettings() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['whatsapp-settings'],
@@ -99,16 +98,11 @@ export function useWhatsAppSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-settings'] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Configurações salvas com sucesso',
-      });
+      toast.success('Configurações salvas com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
+      toast.error('Erro ao salvar configurações', {
         description: error.message || 'Não foi possível salvar as configurações',
-        variant: 'destructive',
       });
     },
   });
@@ -130,10 +124,8 @@ export function useWhatsAppSettings() {
       return { success: true };
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro de conexão',
+      toast.error('Erro de conexão', {
         description: error.message || 'Não foi possível conectar à API',
-        variant: 'destructive',
       });
     },
   });
@@ -150,7 +142,6 @@ export function useWhatsAppSettings() {
 
 export function useMessageTemplates() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['message-templates'],
@@ -179,16 +170,11 @@ export function useMessageTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['message-templates'] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Template atualizado com sucesso',
-      });
+      toast.success('Template atualizado com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
+      toast.error('Erro ao atualizar template', {
         description: error.message || 'Não foi possível atualizar o template',
-        variant: 'destructive',
       });
     },
   });
@@ -205,16 +191,11 @@ export function useMessageTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['message-templates'] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Template criado com sucesso',
-      });
+      toast.success('Template criado com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
+      toast.error('Erro ao criar template', {
         description: error.message || 'Não foi possível criar o template',
-        variant: 'destructive',
       });
     },
   });
@@ -229,16 +210,11 @@ export function useMessageTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['message-templates'] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Template excluído com sucesso',
-      });
+      toast.success('Template excluído com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
+      toast.error('Erro ao excluir template', {
         description: error.message || 'Não foi possível excluir o template',
-        variant: 'destructive',
       });
     },
   });
@@ -277,7 +253,6 @@ export function useWhatsAppLogs(limit: number = 50) {
 }
 
 export function useSendWhatsApp() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const sendMutation = useMutation({
@@ -303,22 +278,16 @@ export function useSendWhatsApp() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-logs'] });
       if (data?.skipped) {
-        toast({
-          title: 'Mensagem não enviada',
+        toast.warning('Mensagem não enviada', {
           description: 'Template inativo',
         });
       } else {
-        toast({
-          title: 'Mensagem enviada!',
-          description: 'A mensagem foi enviada com sucesso',
-        });
+        toast.success('Mensagem enviada!');
       }
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro ao enviar',
+      toast.error('Erro ao enviar', {
         description: error.message || 'Não foi possível enviar a mensagem',
-        variant: 'destructive',
       });
     },
   });
