@@ -114,30 +114,21 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background - conditional based on settings */}
-      {settings.login_background_url ? (
-        <>
-          {/* Custom background image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url(${settings.login_background_url})`
-            }}
-          />
-          {/* Dark overlay for readability */}
-          <div
-            className="absolute inset-0 bg-black transition-opacity duration-300"
-            style={{
-              opacity: (settings.login_overlay_opacity ?? 50) / 100
-            }}
-          />
-        </>
-      ) : (
-        <>
-          {/* Default gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/10">
+      {/* Background */}
+      {/* Mesma quantidade de nós nos dois estados: o React reaproveitava os
+          <div> dos círculos (288x288) como overlay de tela cheia, gerando CLS 0,77. */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={settings.login_background_url ? { backgroundImage: `url(${settings.login_background_url})` } : undefined}
+      />
+      <div
+        className="absolute inset-0 bg-black"
+        style={{ opacity: settings.login_background_url ? (settings.login_overlay_opacity ?? 50) / 100 : 0 }}
+      />
 
+      {!settings.login_background_url && (
+        <>
           {/* Animated Circles */}
           <div className="absolute top-20 right-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />

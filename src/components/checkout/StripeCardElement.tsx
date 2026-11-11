@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js/pure';
+import type { Stripe, StripeElements } from '@stripe/stripe-js';
 import { Loader2, CreditCard, Lock } from 'lucide-react';
 
 interface StripeCardElementProps {

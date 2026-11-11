@@ -20,6 +20,7 @@ import { OrderBumpCard } from "@/components/checkout/OrderBumpCard";
 import { CouponInput } from "@/features/coupons/components/CouponInput";
 import { CouponValidationResult } from "@/features/coupons/types";
 import { StripeCardElement } from "@/components/checkout/StripeCardElement";
+import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
 
 // Declare window.MercadoPago for types
@@ -48,16 +49,18 @@ export default function CheckoutPage() {
     const [isCreatingPaymentIntent, setIsCreatingPaymentIntent] = useState(false);
 
     // 1. Fetch Product
-    const { data: product, isLoading: loadingProduct } = useQuery({
+    const { data: product, isLoading: loadingProduct, error: productError, refetch: refetchProduct } = useQuery({
         queryKey: ["checkoutProduct", productId],
         queryFn: async () => {
+            // maybeSingle(): id inexistente devolve null em vez de 406 (PGRST116),
+            // que aparecia como erro de rede no console para links inválidos.
             const { data, error } = await supabase
                 .from("products")
                 .select("*")
                 .eq("id", productId)
-                .single();
+                .maybeSingle();
             if (error) throw error;
-            return data as Product;
+            return data as Product | null;
         },
         enabled: !!productId
     });
@@ -607,7 +610,16 @@ export default function CheckoutPage() {
     };
 
     if (loadingProduct) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin w-10 h-10 text-primary" /></div>;
-    if (!product) return <div className="p-8 text-center">Produto não encontrado</div>;
+    if (productError) {
+        return (
+            <ErrorState
+                title="Não foi possível carregar o produto"
+                description="Verifique o link do checkout ou tente novamente em instantes."
+                onRetry={() => refetchProduct()}
+            />
+        );
+    }
+    if (!product) return <ErrorState title="Produto não encontrado" description="O link deste checkout pode estar incorreto ou o produto foi removido." />;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

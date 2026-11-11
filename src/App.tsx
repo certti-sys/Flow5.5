@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
@@ -10,41 +10,50 @@ import { PlatformSettingsProvider } from "@/components/PlatformSettingsProvider"
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Course from "./pages/Course";
-import CourseInfo from "./pages/CourseInfo";
-import Lesson from "./pages/Lesson";
-import Profile from "./pages/Profile";
-import Leaderboard from "./pages/Leaderboard";
-import CertificateView from "./pages/CertificateView";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { ClientLayout } from "./components/ClientLayout";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminCourses from "./pages/admin/Courses";
-import AdminStudents from "./pages/admin/Students";
-import AdminCarousels from "./pages/admin/Carousels";
-import AdminNotifications from "./pages/admin/Notifications";
-import CertificatesDashboard from "./pages/admin/CertificatesDashboard";
-import ThemeCustomization from "./pages/admin/ThemeCustomization";
-import WebhookHub from "./pages/admin/WebhookHub";
-import AdminComments from "./pages/admin/Comments";
-import EmailSettings from "./pages/admin/EmailSettings";
-import AdminWhatsAppSettings from "./pages/admin/WhatsAppSettings";
-import AdminMonitoringSettings from "./pages/admin/MonitoringSettings";
-import Placeholder from "./pages/admin/Placeholder"; // Mantendo para outros usos se houver
-import GatewaysPage from "./pages/admin/Gateways";
-import ProductsPage from "./pages/admin/Products";
-import OrdersPage from "./pages/admin/Orders";
-import SalesDashboard from "./pages/admin/SalesDashboard";
-import CustomersPage from "./pages/admin/Customers";
-import AdminDesignSandbox from "./pages/admin/DesignSandbox";
-import OrderBumpsPage from "./pages/admin/OrderBumps";
-import AdminCouponsPage from "./pages/admin/Coupons";
+import { ShoppingCart } from "lucide-react";
+
+// Rotas carregadas sob demanda: cada página só baixa seu bundle quando visitada.
+// Login, layouts e NotFound ficam estáticos porque aparecem na primeira dobra.
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Course = lazy(() => import("./pages/Course"));
+const CourseInfo = lazy(() => import("./pages/CourseInfo"));
+const Lesson = lazy(() => import("./pages/Lesson"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const CertificateView = lazy(() => import("./pages/CertificateView"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminCourses = lazy(() => import("./pages/admin/Courses"));
+const AdminStudents = lazy(() => import("./pages/admin/Students"));
+const AdminCarousels = lazy(() => import("./pages/admin/Carousels"));
+const AdminNotifications = lazy(() => import("./pages/admin/Notifications"));
+const CertificatesDashboard = lazy(() => import("./pages/admin/CertificatesDashboard"));
+const ThemeCustomization = lazy(() => import("./pages/admin/ThemeCustomization"));
+const WebhookHub = lazy(() => import("./pages/admin/WebhookHub"));
+const AdminComments = lazy(() => import("./pages/admin/Comments"));
+const EmailSettings = lazy(() => import("./pages/admin/EmailSettings"));
+const AdminWhatsAppSettings = lazy(() => import("./pages/admin/WhatsAppSettings"));
+const AdminMonitoringSettings = lazy(() => import("./pages/admin/MonitoringSettings"));
+const Placeholder = lazy(() => import("./pages/admin/Placeholder"));
+const GatewaysPage = lazy(() => import("./pages/admin/Gateways"));
+const ProductsPage = lazy(() => import("./pages/admin/Products"));
+const OrdersPage = lazy(() => import("./pages/admin/Orders"));
+const SalesDashboard = lazy(() => import("./pages/admin/SalesDashboard"));
+const CustomersPage = lazy(() => import("./pages/admin/Customers"));
+const AdminDesignSandbox = lazy(() => import("./pages/admin/DesignSandbox"));
+const OrderBumpsPage = lazy(() => import("./pages/admin/OrderBumps"));
+const AdminCouponsPage = lazy(() => import("./pages/admin/Coupons"));
 import { CheckoutLayout } from "./components/checkout/CheckoutLayout";
-import CheckoutPage from "./pages/checkout/Checkout";
-import ThankYouPage from "./pages/checkout/ThankYou";
-import { ShoppingCart, Package, Layers, CreditCard } from "lucide-react";
+const CheckoutPage = lazy(() => import("./pages/checkout/Checkout"));
+const ThankYouPage = lazy(() => import("./pages/checkout/ThankYou"));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Carregando página">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+  </div>
+);
 
 // Initialize React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -79,7 +88,8 @@ const App = () => (
           <TooltipProvider>
             <Sonner />
             <BrowserRouter>
-              <Routes>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<Login />} />
 
@@ -368,7 +378,8 @@ const App = () => (
                   }
                 />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </TooltipProvider>
         </PlatformSettingsProvider>

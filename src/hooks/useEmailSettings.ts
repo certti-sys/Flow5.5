@@ -45,17 +45,18 @@ export function useEmailSettings() {
   } = useQuery({
     queryKey: ["email-settings"],
     queryFn: async () => {
+      // limit(1) em vez de single(): sem registro o PostgREST devolvia 406
+      // (PGRST116) e com mais de uma linha ativa também — erro a cada load.
       const { data, error } = await supabase
         .from("email_settings")
         .select("*")
         .eq("is_active", true)
-        .single();
+        .order("updated_at", { ascending: false })
+        .limit(1);
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
+      if (error) throw error;
 
-      return data as EmailSettings | null;
+      return (data?.[0] as EmailSettings) ?? null;
     },
   });
 
