@@ -16,6 +16,7 @@ export interface PlatformSettings {
   banner_button_secondary_link: string;
   banner_background_url: string | null;
   banner_show_stats_card: boolean;
+  banner_title_size: 'sm' | 'md' | 'lg';
   logo_text: string;
   logo_image_url: string | null;
   logo_horizontal_url: string | null;
@@ -50,6 +51,7 @@ const defaultSettings: Partial<PlatformSettings> = {
   banner_button_secondary_text: 'Meu Progresso',
   banner_button_secondary_link: '/perfil',
   banner_show_stats_card: false,
+  banner_title_size: 'md',
   logo_text: 'EduStream',
   logo_display_mode: 'icon_text',
   page_title: 'EduStream',

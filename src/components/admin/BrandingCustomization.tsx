@@ -29,6 +29,7 @@ export const BrandingCustomization = () => {
     banner_button_secondary_link: settings.banner_button_secondary_link,
     banner_background_url: settings.banner_background_url,
     banner_show_stats_card: settings.banner_show_stats_card,
+    banner_title_size: settings.banner_title_size ?? 'md',
     logo_text: settings.logo_text,
     logo_image_url: settings.logo_image_url,
     logo_horizontal_url: settings.logo_horizontal_url,
@@ -56,6 +57,7 @@ export const BrandingCustomization = () => {
       banner_button_secondary_link: settings.banner_button_secondary_link,
       banner_background_url: settings.banner_background_url,
       banner_show_stats_card: settings.banner_show_stats_card,
+    banner_title_size: settings.banner_title_size ?? 'md',
       logo_text: settings.logo_text,
       logo_image_url: settings.logo_image_url,
       logo_horizontal_url: settings.logo_horizontal_url,
@@ -122,6 +124,7 @@ export const BrandingCustomization = () => {
       banner_button_secondary_link: '/perfil',
       banner_background_url: null,
       banner_show_stats_card: false,
+      banner_title_size: 'md',
       logo_text: 'EduStream',
       logo_image_url: null,
       logo_horizontal_url: null,
@@ -213,6 +216,32 @@ export const BrandingCustomization = () => {
                       className="glass-card border-primary/20 bg-primary/5 h-[44px] rounded-[12px] focus:border-primary/50 text-[14px] font-bold text-primary"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">Tamanho do Título</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { value: 'sm', label: 'Pequeno' },
+                      { value: 'md', label: 'Médio' },
+                      { value: 'lg', label: 'Grande' },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, banner_title_size: option.value })}
+                        aria-pressed={formData.banner_title_size === option.value}
+                        className={`h-[44px] rounded-[12px] border text-[13px] font-bold transition-all ${
+                          formData.banner_title_size === option.value
+                            ? 'border-primary bg-primary/10 text-primary shadow-glow-sm'
+                            : 'border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[12px] text-muted-foreground/80 mt-2">Reduza se o título estiver cortando em telas menores.</p>
                 </div>
 
                 <div>

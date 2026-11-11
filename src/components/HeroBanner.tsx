@@ -3,11 +3,18 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlatformSettingsContext } from "@/components/PlatformSettingsProvider";
 
+const TITLE_SIZE_CLASS: Record<string, string> = {
+  sm: "text-3xl md:text-4xl lg:text-5xl",
+  md: "text-4xl md:text-5xl lg:text-6xl",
+  lg: "text-5xl md:text-6xl lg:text-7xl",
+};
+
 export const HeroBanner = () => {
   const { settings } = usePlatformSettingsContext();
+  const titleSizeClass = TITLE_SIZE_CLASS[settings.banner_title_size ?? "md"] ?? TITLE_SIZE_CLASS.md;
 
   return (
-    <section className="relative w-full h-[42vh] min-h-[320px] md:min-h-[380px] overflow-hidden">
+    <section className="relative w-full min-h-[320px] md:min-h-[380px] flex items-end overflow-hidden pt-24 pb-16 md:pb-20">
       {/* Background with subtle overlay */}
       {settings.banner_background_url ? (
         <div className="absolute inset-0">
@@ -29,7 +36,7 @@ export const HeroBanner = () => {
       <div className="absolute bottom-0 left-0 right-0 h-32 md:h-40 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none z-10" />
 
       {/* Content container - Adjusted to items-end for Netflix Style */}
-      <div className="relative z-20 h-full w-full px-4 md:px-6 lg:px-8 flex items-end pb-16 md:pb-20">
+      <div className="relative z-20 w-full px-4 md:px-6 lg:px-8 flex items-end">
         <div className="w-full max-w-2xl animate-fade-in-up">
           {/* Badge - more refined */}
           {settings.banner_badge_text && (
@@ -47,7 +54,7 @@ export const HeroBanner = () => {
           {/* Title - more balanced sizes */}
           {(settings.banner_title_line1 || settings.banner_title_line2 || settings.banner_title_line3) && (
             <h2
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-4"
+              className={`${titleSizeClass} font-bold text-white leading-[1.1] tracking-tight mb-4`}
               aria-label={[settings.banner_title_line1, settings.banner_title_line2, settings.banner_title_line3]
                 .filter(Boolean)
                 .join(" ")}
