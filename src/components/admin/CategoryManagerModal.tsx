@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Pencil, Trash2, X, Check, Tags } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 interface Category {
     id: string;
@@ -28,6 +29,7 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
     const [originalName, setOriginalName] = useState("");
+    const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
     // Fetch categories
     const { data: categories = [], isLoading } = useQuery({
@@ -94,15 +96,6 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
         onError: (e: any) => toast.error(e.message),
     });
 
-    // ... (rest of code logic remains similar, skipping unchanged deleteMutation for brevity if replace handles blocks)
-    // Wait, replace_file_content needs exact context matching.
-    // I will replace the query block and the render block separately to be safe.
-    // Let's do Query Block first.
-
-    // Handle renaming propagation (optional but nice)
-    // Since we use text column in courses, renaming in manage categories doesn't affect courses.
-    // For now, I will keep it simple. Renaming affects available options.
-
     // Delete mutation
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
@@ -116,6 +109,13 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
         },
         onError: (e: any) => toast.error("Erro ao remover: pode estar em uso?"),
     });
+
+    const confirmDeleteCategory = () => {
+        if (!categoryToDelete) return;
+        deleteMutation.mutate(categoryToDelete.id, {
+            onSettled: () => setCategoryToDelete(null),
+        });
+    };
 
     const handleAdd = () => {
         if (!newCategory.trim()) return;
@@ -178,10 +178,10 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
                                             className="h-9 bg-black/40 border-white/10 text-white text-[14px]"
                                             autoFocus
                                         />
-                                        <Button size="sm" onClick={saveEdit} variant="ghost" className="h-9 w-9 p-0 hover:bg-emerald-500/20 rounded-[8px]">
+                                        <Button size="sm" onClick={saveEdit} variant="ghost" aria-label="Salvar categoria" className="h-9 w-9 p-0 hover:bg-emerald-500/20 rounded-[8px]">
                                             <Check className="w-4 h-4 text-emerald-500" />
                                         </Button>
-                                        <Button size="sm" onClick={() => setEditingId(null)} variant="ghost" className="h-9 w-9 p-0 hover:bg-red-500/20 rounded-[8px]">
+                                        <Button size="sm" onClick={() => setEditingId(null)} variant="ghost" aria-label="Cancelar edição" className="h-9 w-9 p-0 hover:bg-red-500/20 rounded-[8px]">
                                             <X className="w-4 h-4 text-red-500" />
                                         </Button>
                                     </div>
@@ -189,10 +189,10 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
                                     <>
                                         <span className="text-[14px] font-medium text-white/90 px-1">{cat.name}</span>
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button size="sm" variant="ghost" onClick={() => startEdit(cat)} className="h-8 w-8 p-0 hover:bg-white/10 rounded-[8px]">
+                                            <Button size="sm" variant="ghost" onClick={() => startEdit(cat)} aria-label={`Editar categoria ${cat.name}`} className="h-8 w-8 p-0 hover:bg-white/10 rounded-[8px]">
                                                 <Pencil className="w-4 h-4 text-white/70" />
                                             </Button>
-                                            <Button size="sm" variant="ghost" onClick={() => deleteMutation.mutate(cat.id)} className="h-8 w-8 p-0 hover:text-red-400 hover:bg-red-500/10 rounded-[8px]">
+                                            <Button size="sm" variant="ghost" onClick={() => setCategoryToDelete(cat)} aria-label={`Excluir categoria ${cat.name}`} className="h-8 w-8 p-0 hover:text-red-400 hover:bg-red-500/10 rounded-[8px]">
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
@@ -216,6 +216,15 @@ export const CategoryManagerModal = ({ open, onOpenChange }: CategoryManagerModa
                     </Button>
                 </div>
             </DialogContent>
+            <ConfirmDeleteDialog
+                open={!!categoryToDelete}
+                onOpenChange={(open) => !open && setCategoryToDelete(null)}
+                onConfirm={confirmDeleteCategory}
+                title="Excluir Categoria"
+                description={`Tem certeza que deseja excluir a categoria "${categoryToDelete?.name}"? Os cursos que a usam manterão o valor atual.`}
+                confirmLabel="Excluir Categoria"
+                isPending={deleteMutation.isPending}
+            />
         </Dialog >
     );
 };

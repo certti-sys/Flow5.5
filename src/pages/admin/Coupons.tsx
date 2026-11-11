@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { AdminCouponFormDialog } from "@/features/coupons/components/AdminCouponFormDialog";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 const container = {
   hidden: { opacity: 0 },
@@ -47,6 +48,7 @@ export default function AdminCouponsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
 
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ["admin-coupons"],
@@ -98,8 +100,11 @@ export default function AdminCouponsPage() {
     onError: (error: any) => toast.error(error.message || "Erro ao remover cupom")
   });
 
-  const handleDelete = (couponId: string) => {
-    deleteCouponMutation.mutate(couponId);
+  const confirmDeleteCoupon = () => {
+    if (!couponToDelete) return;
+    deleteCouponMutation.mutate(couponToDelete.id, {
+      onSettled: () => setCouponToDelete(null),
+    });
   };
 
   if (isLoading) {
@@ -214,10 +219,10 @@ export default function AdminCouponsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 z-20">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditingCoupon(coupon); setDialogOpen(true); }} className="w-10 h-10 rounded-xl hover:bg-primary/20 hover:text-primary border border-white/5 hover:border-primary/20 transition-all shadow-lg relative z-50 bg-white/5 text-white">
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingCoupon(coupon); setDialogOpen(true); }} aria-label={`Editar cupom ${coupon.code}`} className="w-10 h-10 rounded-xl hover:bg-primary/20 hover:text-primary border border-white/5 hover:border-primary/20 transition-all shadow-lg relative z-50 bg-white/5 text-white">
                           <Edit className="w-5 h-5" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(coupon.id)} className="w-10 h-10 rounded-xl hover:bg-red-500/20 text-red-500 hover:text-red-500 border border-white/5 transition-all shadow-lg relative z-50 bg-white/5 text-white">
+                        <Button variant="ghost" size="icon" onClick={() => setCouponToDelete(coupon)} aria-label={`Excluir cupom ${coupon.code}`} className="w-10 h-10 rounded-xl hover:bg-red-500/20 text-red-500 hover:text-red-500 border border-white/5 transition-all shadow-lg relative z-50 bg-white/5 text-white">
                           <Trash2 className="w-5 h-5" />
                         </Button>
                       </div>
@@ -238,6 +243,16 @@ export default function AdminCouponsPage() {
         }}
         coupon={editingCoupon}
         products={products as any}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!couponToDelete}
+        onOpenChange={(open) => !open && setCouponToDelete(null)}
+        onConfirm={confirmDeleteCoupon}
+        title="Excluir Cupom"
+        description={`Tem certeza que deseja excluir o cupom ${couponToDelete?.code}? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir Cupom"
+        isPending={deleteCouponMutation.isPending}
       />
     </motion.div>
   );
