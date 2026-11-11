@@ -209,6 +209,17 @@ Guideline: nunca abaixo de 12px para texto informativo.
 5. ✅ **P1-7/P1-8:** `Toaster` legado removido do `App.tsx`; `useWhatsAppSettings` migrado para sonner (12 toasts); `richColors` + `closeButton` ativados — toast de erro agora tem `data-type="error"` e fundo vermelho.
 6. ✅ Verificação final: **0 violações de CSP** (antes: `js.stripe.com` bloqueado em 100% das páginas), console com 1 erro de recurso em toda a sessão, `tsc --noEmit` sem erros.
 
+**Fase 2 — CONCLUÍDA** ✅ (verificada com E2E que **força falhas de rede** para provar que o erro aparece — antes a falha era silenciosa)
+
+1. ✅ **P0-1:** migration `20261110225000_create_certificates.sql` cria a tabela `certificates` com o schema exato que o front esperava (`user_id → profiles` — FK que habilita os embeds; `unique(user_id, course_id)` para o anti-duplicação de `Course.tsx`/`LessonSidebar.tsx`). RLS: aluno lê/emite só os próprios; admin gerencia tudo. Aplicada no banco remoto (antes: 404 silencioso em 5 telas).
+2. ✅ **P0-2 (query quebrada):** `SalesDashboard` — o embed `profiles!user_id` era **inválido** (`orders.user_id` referencia `auth.users`, não `profiles`), causando 400 do PostgREST e "Total de Vendas: 0" sem aviso. Agora usa `customer_name`/`customer_email` desnormalizados do pedido, e as **5 queries** da página tratam `error`.
+3. ✅ **P0-2 (estado visual) + P1-9:** componente `ErrorState` (ícone + título + botão "Tentar novamente", `role="alert"`) aplicado nas páginas do relatório: `CertificatesDashboard`, `Comments`, `Dashboard` (admin e aluno), `EmailSettings`, `Gateways`, `Notifications`, `SalesDashboard`, `WebhookHub`, `WhatsAppSettings`, `Profile`, `CourseInfo`, `CertificateView`, `ThankYou`. `ThemeCustomization` não faz query de rede (usa `localStorage`), então não tem falha a tratar. Hooks `useNotifications`/`useWhatsAppSettings` passaram a expor `isError`/`refetch`.
+4. ✅ **Interceptor global:** `QueryCache.onError` no `QueryClient` (`App.tsx`) → `toast.error("Não foi possível carregar alguns dados", { description })` para qualquer query que falhe, com filtro do `PGRST116` (estado vazio legítimo). *Teste:* bloqueando `/rest/v1/payments`, o toast de erro aparece **e** o `ErrorState` renderiza com o botão de retry.
+5. ✅ **Confirmações destrutivas (P1-1 completo):** `ConfirmDeleteDialog` adicionado em `FieldMappingEditor` (mapeamento de campo), `StatusMappingsEditor` (mapeamento de status), `PlatformConfigModal` (excluir plataforma), `DataHealthPanel` (revogar acesso), `AssignCoursesModal` e `ConfigureMappingsWizard` (sobrescrever atribuições/mapeamentos — substituição em massa). E2E validado: abre → cancelar não exclui nada → lista permanece intacta.
+6. ✅ **Bug de CSP descoberto no teste:** workers `blob:` eram bloqueados (`worker-src` não definido caía em `script-src`). Adicionado `worker-src 'self' blob:` nos três pontos de CSP.
+7. ✅ **Bug funcional descoberto:** `WebhookHub` habilitava a query de mapeamentos com `activeTab === 'mappings'`, mas os mapeamentos vivem dentro da aba `advanced` — a lista **nunca** carregava. Corrigido para `'advanced'` (verificado: 2 mapeamentos passaram a aparecer).
+8. ✅ Verificação final: **0 violações de CSP**, 0 erros relevantes de console, 0 falsos positivos de `ErrorState` em 10 rotas com dados reais, `tsc --noEmit` sem erros.
+
 ---
 
 ## 7. Apêndice — Evidências dos testes automatizados
