@@ -70,6 +70,7 @@ export function AdminHeader({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   onClick={() => onSearchChange?.("")}
+                  aria-label="Limpar busca"
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
                 >
                   <X className="w-3.5 h-3.5 text-muted-foreground" />

@@ -70,9 +70,10 @@ function SortableLesson({
       <div
         {...attributes}
         {...listeners}
+        aria-label={`Reordenar aula ${lesson.title}`}
         className="cursor-grab active:cursor-grabbing p-1 hover:bg-white/10 rounded"
       >
-        <GripVertical className="w-4 h-4 text-muted-foreground" />
+        <GripVertical className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
       </div>
 
       <div className="flex-1 min-w-0">
@@ -84,13 +85,14 @@ function SortableLesson({
       </div>
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="sm" onClick={onEdit}>
+        <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Editar aula ${lesson.title}`}>
           <Edit className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
           size="sm"
           onClick={onDelete}
+          aria-label={`Excluir aula ${lesson.title}`}
           className="hover:bg-destructive/10 text-destructive"
         >
           <Trash2 className="w-4 h-4" />

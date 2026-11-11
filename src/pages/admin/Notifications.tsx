@@ -320,7 +320,7 @@ export default function Notifications() {
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 bottom-4 z-20">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-red-500/10 hover:text-red-500 border border-white/5 hover:border-red-500/20 transition-all shadow-lg relative z-50 bg-white/5 text-white">
+                              <Button variant="ghost" size="icon" aria-label="Excluir notificação" className="w-9 h-9 rounded-xl hover:bg-red-500/10 hover:text-red-500 border border-white/5 hover:border-red-500/20 transition-all shadow-lg relative z-50 bg-white/5 text-white">
                                 <Trash2 className="w-5 h-5" />
                               </Button>
                             </AlertDialogTrigger>

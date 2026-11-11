@@ -40,6 +40,7 @@ export const SearchBar = ({ fullWidth = false }: SearchBarProps) => {
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Buscar cursos"
           className={cn(
             "rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors shrink-0",
             fullWidth ? "w-full justify-start px-3 h-11" : "w-10 h-10 md:w-9 md:h-9"

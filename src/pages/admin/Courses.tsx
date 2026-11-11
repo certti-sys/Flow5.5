@@ -362,6 +362,7 @@ export default function AdminCourses() {
                         <Button
                           variant="ghost" size="icon"
                           onClick={() => handleEditCourse(course)}
+                          aria-label={`Editar curso ${course.title}`}
                           className="w-11 h-11 rounded-[14px] hover:bg-primary/20 hover:text-primary border border-white/5 hover:border-primary/20 transition-all duration-300"
                         >
                           <Edit className="w-4.5 h-4.5" />
@@ -369,6 +370,7 @@ export default function AdminCourses() {
                         <Button
                           variant="ghost" size="icon"
                           onClick={() => handleDeleteCourse(course)}
+                          aria-label={`Excluir curso ${course.title}`}
                           className="w-11 h-11 rounded-[14px] hover:bg-red-500/20 text-muted-foreground hover:text-red-500 border border-white/5 transition-all duration-300"
                         >
                           <Trash2 className="w-4.5 h-4.5" />
@@ -376,6 +378,7 @@ export default function AdminCourses() {
                         <CollapsibleTrigger asChild>
                           <Button
                             variant="ghost" size="icon"
+                            aria-label="Expandir ou recolher estrutura do curso"
                             className="w-11 h-11 rounded-[14px] hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all data-[state=open]:rotate-180 duration-500"
                           >
                             <ChevronDown className="w-5 h-5" />

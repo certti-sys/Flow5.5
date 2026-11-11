@@ -66,6 +66,7 @@ export function CourseModuleItem({
                   e.stopPropagation();
                   handleEditModule();
                 }}
+                aria-label={`Editar módulo ${module.title}`}
                 className="w-9 h-9 rounded-xl hover:bg-primary/20 hover:text-primary transition-all"
               >
                 <Edit className="w-3.5 h-3.5" />
@@ -76,6 +77,7 @@ export function CourseModuleItem({
                   e.stopPropagation();
                   handleDeleteModule();
                 }}
+                aria-label={`Excluir módulo ${module.title}`}
                 className="w-9 h-9 rounded-xl hover:bg-red-500/20 hover:text-red-500 transition-all"
               >
                 <Trash2 className="w-3.5 h-3.5" />

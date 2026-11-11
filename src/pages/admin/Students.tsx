@@ -136,7 +136,7 @@ const StudentCard = ({ student, onEdit, onAssignCourses, onResetPassword, onSusp
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all bg-white/5 text-white shadow-lg relative z-50">
+                <Button variant="ghost" size="icon" aria-label={`Mais ações de ${student.name}`} className="w-10 h-10 rounded-xl hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all bg-white/5 text-white shadow-lg relative z-50">
                   <Edit className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>

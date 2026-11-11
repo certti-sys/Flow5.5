@@ -68,7 +68,12 @@ export const NotificationBell = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={unreadCount > 0 ? `Notificações: ${unreadCount} não lidas` : "Notificações"}
+          className="relative rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full text-[10px] font-bold text-primary-foreground flex items-center justify-center">
