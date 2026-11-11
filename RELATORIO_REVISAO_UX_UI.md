@@ -198,6 +198,17 @@ Guideline: nunca abaixo de 12px para texto informativo.
 2. `width`/`height` nas imagens (CLS).
 3. Auditar duplicatas em `email_settings` (P2-13).
 
+### Status de implementação
+
+**Fase 1 — CONCLUÍDA** ✅ (verificada com teste automatizado E2E: login real, cliques, toasts e leitura de DOM)
+
+1. ✅ **CSP unificado nos três pontos de definição** (P0-3 ampliado): `index.html` (meta), `vite.config.ts` (header do dev server) e `vercel.json` (header de produção). *Causa raiz descoberta na correção:* o dev server enviava um **header** CSP antigo e o browser aplica a interseção header+meta — editar só o meta não bastava. Adicionados `https://js.stripe.com` (script/frame), `https://api.stripe.com` e `https://*.stripe.com` (connect), além de hosts do MercadoPago que faltavam no meta. O `vercel.json` também bloqueava `sdk.mercadopago.com` (script) e imagens Bunny/`mediadelivery` (img) **em produção** — corrigido.
+2. ✅ **P0-4:** `<meta http-equiv="X-Frame-Options">` removido (é ignorado pelo browser). Proteção de framing real garantida via headers HTTP: `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'` adicionado ao CSP de dev e produção. `frame-ancestors` saiu do meta (ignorado por spec; gerava warning no console).
+3. ✅ **P1-2:** `aria-label` em todos os botões de ícone das áreas testadas (cursos/módulos/aulas/cupons/alunos/notificações, sino, lupa, limpar busca, mostrar/ocultar senha). Botões sem nome acessível: **0** (antes: 2 por página admin + 1 no login).
+4. ✅ **P1-1 (maior risco):** `ConfirmDeleteDialog` em Cupons e Categorias. Teste E2E: diálogo abre → **cancelar** não dispara toast nem exclui → **confirmar** dispara toast de sucesso e remove o registro.
+5. ✅ **P1-7/P1-8:** `Toaster` legado removido do `App.tsx`; `useWhatsAppSettings` migrado para sonner (12 toasts); `richColors` + `closeButton` ativados — toast de erro agora tem `data-type="error"` e fundo vermelho.
+6. ✅ Verificação final: **0 violações de CSP** (antes: `js.stripe.com` bloqueado em 100% das páginas), console com 1 erro de recurso em toda a sessão, `tsc --noEmit` sem erros.
+
 ---
 
 ## 7. Apêndice — Evidências dos testes automatizados
