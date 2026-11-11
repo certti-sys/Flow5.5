@@ -230,18 +230,33 @@ Guideline: nunca abaixo de 12px para texto informativo.
 6. ✅ **P2-10 (`aria-live`/hierarquia):** validações inline (`LessonFormModal`, `ModuleFormModal`, `VideoPreview`, `Login`) e `FormMessage` receberam `role="alert"`. Hierarquia corrigida: o hero virou `h2` (o `h1` é o do `AdminHeader`), o nome em `ProfileHero` virou `h2`, o título do curso em `Lesson` virou `h2` e o logo do certificado virou `<span>`. **1 `h1` por página em todas as rotas testadas.**
 7. ✅ Verificação final: **0 falhas de contraste**, **0 fontes < 12px**, **0 alvos < 24px**, `tsc --noEmit` sem erros.
 
+**Fase 4 — CONCLUÍDA** ✅ (medida no build de produção com `vite preview`, não no dev server)
+
+1. ✅ **P1-6 (code-splitting):** todas as 29 páginas passaram a `React.lazy` + `<Suspense>` com fallback acessível (`role="status"`). O chunk de entrada `App` caiu de **1.928 KB → 562 KB** (−71%). Só `Login`, `NotFound` e os três layouts continuam estáticos, porque aparecem na primeira dobra. `tsc` limpo e as **25 rotas** verificadas individualmente: 0 falhas, 0 spinners presos, 0 páginas vazias.
+2. ✅ **Stripe `/pure`:** `import { loadStripe } from '@stripe/stripe-js/pure'` — o Stripe.js não é mais baixado no import do módulo, só quando o checkout realmente pede a chave.
+3. ✅ **P2-1 (CLS):** medido antes de mexer, e o problema não estava nas imagens — era o `/login`. O React reaproveitava os `<div>` dos círculos decorativos (288×288) como os overlays de tela cheia quando as settings chegavam, gerando **CLS 0,7711**. Os dois estados agora têm a mesma estrutura de nós. **CLS: 0,7711 → 0,0011** (bom: < 0,1). LCP 428ms. As demais rotas já estavam em 0,0002 — por isso `width`/`height` nas imagens ficou de fora: não há shift para corrigir.
+4. ✅ **P2-13 (duplicatas em `email_settings`):** `.single()` virou `.limit(1)` com `order by updated_at desc`. Resolve os dois casos que geravam 406: tabela vazia (PGRST116) e mais de uma linha ativa. O 406 desapareceu das rotas testadas.
+5. ✅ **Bug crítico de produção — checkout público quebrado:** a RPC `get_gateway_public_key` chamada em `Checkout.tsx:150` **nunca existiu no banco**; o checkout recebia 404 e nenhuma chave pública era carregada. Criada em `20261111090000_create_get_gateway_public_key.sql` como `SECURITY DEFINER`, expondo só `gateway_id`, `public_key` e `allowed_methods` (nunca `secret_key`/`webhook_secret`), com `EXECUTE` para `anon`.
+6. ✅ **Bug crítico de produção — checkout exigia login na prática:** `products` e `order_bumps` só tinham `SELECT` para `authenticated`, mas `/checkout/:productId` é rota pública. Visitante anônimo recebia `[]` e via "Produto não encontrado". Criadas policies de leitura para `anon` restritas a `active = true` / `is_active = true` (`20261111091000_public_checkout_read_access.sql`). `payments` e `gateway_credentials` continuam fechados para anon.
+7. ✅ **Checkout agora tem `ErrorState`** em vez de `<div>Produto não encontrado</div>`, e `.single()` virou `.maybeSingle()` (id inválido não gera mais 406).
+8. ✅ Verificação final: **0 respostas HTTP ≥ 400** e **0 erros de console** em 25 rotas no dev server; checkout com produto real renderiza o formulário, com id inválido mostra o erro tratado.
+
 ---
 
 ## 7. Apêndice — Evidências dos testes automatizados
 
 - **Usuários de teste:** `aluno-teste@edustream.app` (aluno) e `admin-teste@edustream.app` (admin), confirmados no Supabase.
 - **TESTE login com senha errada:** toast exibido ("Email ou senha incorretos"), URL permanece em `/login`. ✔
-- **Erros HTTP capturados em produção do ambiente dev:**
+- **Erros HTTP capturados em produção do ambiente dev (antes das correções):**
   - `404 /rest/v1/certificates` (6x) — tabela inexistente (P0-1)
   - `400 /rest/v1/payments?select=...order:orders(...)` — query inválida (P0-2)
   - `406 /rest/v1/email_settings` — PGRST116, tratado no código (P2-13)
+  - `404 /rest/v1/rpc/get_gateway_public_key` — RPC inexistente, checkout sem chave pública (Fase 4)
+  - `406 /rest/v1/products` — `.single()` em id inexistente e RLS sem leitura anônima (Fase 4)
   - `400 /auth/v1/token` — teste de senha errada (esperado)
 - **Console:** `X-Frame-Options` em meta + CSP bloqueando `js.stripe.com/dahlia/stripe.js` repetindo em todas as 26 rotas.
 - **CSS:** 16 regras `:focus-visible`, 1 `prefers-reduced-motion` (biblioteca), 2 `transition-all`.
-- **Contraste real medido:** fundo `rgb(23,23,28)`; únicos elementos abaixo de 4,5:1 legítimos = estados ativos dourados (2,80:1) e cauda do gradiente do hero.
+- **Contraste real medido:** fundo `rgb(23,23,28)`; após a Fase 3, **0 elementos abaixo de 4,5:1** em 16 rotas (auditor com auto-teste de sanidade).
+- **Performance medida no build de produção:** carga inicial `/login` = 5 arquivos JS (1.119 KB sem gzip), CLS 0,0011, LCP 428ms. Chunk `App` 1.928 KB → 562 KB com `React.lazy`.
+- **CORS do `vite preview`:** `:4173` não está na allowlist de `supabase/functions/_shared/cors.ts`, então a verificação de performance/rotas foi feita em `:4173` (onde o erro de CORS é esperado e não reflete produção) e a de console em `:5173`, origem permitida — esta última com **0 erros**.
 - **Mobile 375px:** 0px de overflow horizontal em todas as rotas testadas; sidebar admin via Sheet com botão acessível (`ContentHeader.tsx:142`).
