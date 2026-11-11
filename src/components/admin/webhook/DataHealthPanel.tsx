@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { 
   ActivitySquare, ShieldAlert, ShieldCheck, UserX, 
   RefreshCw, CheckCircle2, XCircle, Search, Mail, Key
@@ -17,6 +18,7 @@ type ViewHealthAuditRow = Database['public']['Views']['view_data_health_audit'][
 export function DataHealthPanel() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("ALL_ISSUES");
+  const [revokeTarget, setRevokeTarget] = useState<ViewHealthAuditRow | null>(null);
   const queryClient = useQueryClient();
 
   const { data: auditLogs, isLoading, refetch } = useQuery({
@@ -286,7 +288,7 @@ export function DataHealthPanel() {
                           <Button 
                             size="sm"
                             disabled={fixAccessMutation.isPending}
-                            onClick={() => fixAccessMutation.mutate({ action: 'revoke', payload: log })}
+                            onClick={() => setRevokeTarget(log)}
                             className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/50 rounded-[8px] h-8 text-[11px] font-bold"
                           >
                             Revogar Acesso
@@ -307,6 +309,19 @@ export function DataHealthPanel() {
           </table>
         </div>
       </div>
+
+      <ConfirmDeleteDialog
+        open={!!revokeTarget}
+        onOpenChange={(open) => !open && setRevokeTarget(null)}
+        onConfirm={() => {
+          if (revokeTarget) fixAccessMutation.mutate({ action: 'revoke', payload: revokeTarget });
+          setRevokeTarget(null);
+        }}
+        title="Revogar acesso"
+        description="Tem certeza que deseja revogar o acesso deste aluno? Ele perderá a permissão ao produto imediatamente."
+        confirmLabel="Revogar acesso"
+        isPending={fixAccessMutation.isPending}
+      />
     </div>
   );
 }

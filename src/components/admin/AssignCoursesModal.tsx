@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
   const queryClient = useQueryClient();
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
 
   // Fetch all courses
   const { data: courses = [] } = useQuery({
@@ -184,6 +186,11 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
   };
 
   const handleSave = () => {
+    setConfirmSaveOpen(true);
+  };
+
+  const confirmSave = () => {
+    setConfirmSaveOpen(false);
     assignCoursesMutation.mutate({
       courseIds: selectedCourses,
       categoryIds: selectedCategories,
@@ -191,6 +198,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-3xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
         <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
@@ -349,5 +357,16 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
         </div>
       </DialogContent>
     </Dialog>
+
+    <ConfirmDeleteDialog
+      open={confirmSaveOpen}
+      onOpenChange={setConfirmSaveOpen}
+      onConfirm={confirmSave}
+      title="Salvar atribuições"
+      description="Isso substituirá todas as atribuições atuais deste aluno. Deseja continuar?"
+      confirmLabel="Salvar Atribuições"
+      isPending={assignCoursesMutation.isPending}
+    />
+    </>
   );
 }

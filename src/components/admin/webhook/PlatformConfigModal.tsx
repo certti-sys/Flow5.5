@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { Save, Trash2 } from "lucide-react";
 
 interface Platform {
@@ -38,6 +39,7 @@ export function PlatformConfigModal({
     webhook_secret: '',
     is_active: true
   });
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export function PlatformConfigModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
@@ -187,7 +190,7 @@ export function PlatformConfigModal({
             {platform && (
               <Button
                 variant="destructive"
-                onClick={() => deleteMutation.mutate()}
+                onClick={() => setConfirmDeleteOpen(true)}
                 disabled={deleteMutation.isPending}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -205,5 +208,16 @@ export function PlatformConfigModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ConfirmDeleteDialog
+      open={confirmDeleteOpen}
+      onOpenChange={setConfirmDeleteOpen}
+      onConfirm={() => deleteMutation.mutate()}
+      title="Excluir plataforma"
+      description="Tem certeza que deseja excluir esta plataforma? A configuração de webhook, mapeamentos e estatísticas serão perdidos."
+      confirmLabel="Excluir plataforma"
+      isPending={deleteMutation.isPending}
+    />
+    </>
   );
 }

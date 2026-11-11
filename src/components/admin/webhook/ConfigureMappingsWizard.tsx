@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { ArrowRight, Save, Wand2, Mail, User, Package, CreditCard, Hash, DollarSign, Phone } from "lucide-react";
 
 // Campos internos do sistema com ícones
@@ -51,6 +52,7 @@ export function ConfigureMappingsWizard({
 }: ConfigureMappingsWizardProps) {
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Extrair campos descobertos do payload
@@ -148,6 +150,7 @@ export function ConfigureMappingsWizard({
   });
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[920px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="shrink-0">
@@ -284,7 +287,7 @@ export function ConfigureMappingsWizard({
             Cancelar
           </Button>
           <Button 
-            onClick={() => saveMutation.mutate()} 
+            onClick={() => setConfirmSaveOpen(true)} 
             disabled={saveMutation.isPending || !selectedPlatform || !mappings['user_email']}
           >
             <Save className="w-4 h-4 mr-2" />
@@ -293,6 +296,20 @@ export function ConfigureMappingsWizard({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ConfirmDeleteDialog
+      open={confirmSaveOpen}
+      onOpenChange={setConfirmSaveOpen}
+      onConfirm={() => {
+        setConfirmSaveOpen(false);
+        saveMutation.mutate();
+      }}
+      title="Salvar mapeamentos"
+      description="Isso substituirá todos os mapeamentos de campos atuais desta plataforma. Deseja continuar?"
+      confirmLabel="Salvar Mapeamentos"
+      isPending={saveMutation.isPending}
+    />
+    </>
   );
 }
 

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,6 +67,7 @@ const COMMON_STATUS_SUGGESTIONS: Record<string, { external: string; internal: st
 export function StatusMappingsEditor({ platforms, selectedPlatform, onSelectPlatform }: StatusMappingsEditorProps) {
   const queryClient = useQueryClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [mappingToDelete, setMappingToDelete] = useState<{ id: string; label: string } | null>(null);
   const [newExternalValue, setNewExternalValue] = useState("");
   const [newInternalStatus, setNewInternalStatus] = useState("approved");
 
@@ -247,7 +249,8 @@ export function StatusMappingsEditor({ platforms, selectedPlatform, onSelectPlat
                               variant="ghost"
                               size="icon"
                               className="h-4 w-4 ml-1 hover:bg-destructive/20"
-                              onClick={() => deleteMutation.mutate(mapping.id)}
+                              aria-label={`Excluir mapeamento ${mapping.external_value}`}
+                              onClick={() => setMappingToDelete({ id: mapping.id, label: mapping.external_value })}
                               disabled={deleteMutation.isPending}
                             >
                               <Trash2 className="w-3 h-3" />
@@ -333,6 +336,19 @@ export function StatusMappingsEditor({ platforms, selectedPlatform, onSelectPlat
           </Card>
         </>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!mappingToDelete}
+        onOpenChange={(open) => !open && setMappingToDelete(null)}
+        onConfirm={() => {
+          if (mappingToDelete) deleteMutation.mutate(mappingToDelete.id);
+          setMappingToDelete(null);
+        }}
+        title="Excluir mapeamento de status"
+        description={`Tem certeza que deseja excluir o mapeamento de "${mappingToDelete?.label}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        isPending={deleteMutation.isPending}
+      />
 
       {/* Modal de Adicionar */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>

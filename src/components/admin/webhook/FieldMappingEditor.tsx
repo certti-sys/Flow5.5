@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,6 +80,7 @@ export function FieldMappingEditor({
   onSelectPlatform
 }: FieldMappingEditorProps) {
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [mappingToDelete, setMappingToDelete] = useState<{ id: string; label: string } | null>(null);
   const [newMapping, setNewMapping] = useState({
     platform_id: '',
     event_type: '',
@@ -232,7 +234,8 @@ export function FieldMappingEditor({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteMutation.mutate(mapping.id)}
+                    onClick={() => setMappingToDelete({ id: mapping.id, label: mapping.source_path })}
+                    aria-label={`Excluir mapeamento ${mapping.source_path}`}
                     disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="w-4 h-4 text-destructive" />
@@ -243,6 +246,19 @@ export function FieldMappingEditor({
           ))}
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!mappingToDelete}
+        onOpenChange={(open) => !open && setMappingToDelete(null)}
+        onConfirm={() => {
+          if (mappingToDelete) deleteMutation.mutate(mappingToDelete.id);
+          setMappingToDelete(null);
+        }}
+        title="Excluir mapeamento"
+        description={`Tem certeza que deseja excluir o mapeamento "${mappingToDelete?.label}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        isPending={deleteMutation.isPending}
+      />
 
       {/* Modal de Adicionar */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
