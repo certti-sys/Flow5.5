@@ -140,7 +140,8 @@ export default function SalesDashboard() {
         query = query.gte("order.created_at", periodStart);
       }
 
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) throw error;
 
       const productSales: Record<string, { name: string; total: number; qty: number }> = {};
       data?.forEach((item: any) => {
@@ -162,7 +163,9 @@ export default function SalesDashboard() {
   const { data: recentSales } = useQuery({
     queryKey: ["recent-sales"],
     queryFn: async () => {
-      const { data } = await supabase
+      // orders.user_id referencia auth.users (não profiles) — usar campos
+      // desnormalizados customer_name/customer_email do próprio pedido
+      const { data, error } = await supabase
         .from("payments")
         .select(`
           id,
@@ -171,7 +174,8 @@ export default function SalesDashboard() {
           created_at,
           order:orders(
             id,
-            profile:profiles!user_id(name, email),
+            customer_name,
+            customer_email,
             order_items(product:products(name))
           )
         `)
@@ -179,6 +183,7 @@ export default function SalesDashboard() {
         .order("created_at", { ascending: false })
         .limit(10);
 
+      if (error) throw error;
       return data;
     }
   });
@@ -439,7 +444,7 @@ export default function SalesDashboard() {
                     </div>
                     <div>
                       <p className="font-bold text-white text-sm leading-tight group-hover:text-primary transition-colors">
-                        {sale.order?.profile?.name || sale.order?.profile?.email || "Cliente"}
+                        {sale.order?.customer_name || sale.order?.customer_email || "Cliente"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {sale.order?.order_items?.map((i: any) => i.product?.name).join(", ") || "Produto"}
