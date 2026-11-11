@@ -213,9 +213,16 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
         if (error) throw error;
       } else {
         // Create
+        const { data: maxOrder } = await supabase
+          .from("courses")
+          .select("order_index")
+          .order("order_index", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         const { data: createdData, error } = await supabase
           .from("courses")
-          .insert([courseData])
+          .insert([{ ...courseData, order_index: (maxOrder?.order_index ?? -1) + 1 }])
           .select();
 
         if (error) throw error;

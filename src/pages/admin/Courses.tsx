@@ -1,9 +1,26 @@
-import { useState } from "react";
+import { useState, forwardRef, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, ChevronDown, Settings, BookOpen, User, Layers, PlayCircle, Search } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronDown, Settings, BookOpen, User, Layers, PlayCircle, Search, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { CourseFormModal } from "@/components/admin/CourseFormModal";
 import { LessonFormModal } from "@/components/admin/LessonFormModal";
 import { ModuleFormModal } from "@/components/admin/ModuleFormModal";
@@ -45,6 +62,47 @@ const item = {
   show: { y: 0, opacity: 1 }
 };
 
+/** Envolve o card do curso com o comportamento de arrastar. */
+const SortableCourseCard = forwardRef<
+  HTMLDivElement,
+  {
+    id: string;
+    children: (dragHandle: ReactNode) => ReactNode;
+  }
+>(function SortableCourseCard({ id, children }, ref) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const setRefs = (node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    if (typeof ref === "function") ref(node);
+    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  };
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  const dragHandle = (
+    <button
+      type="button"
+      {...attributes}
+      {...listeners}
+      aria-label="Reordenar curso"
+      className="w-11 h-11 rounded-[14px] cursor-grab active:cursor-grabbing hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all touch-none"
+    >
+      <GripVertical className="w-4.5 h-4.5 mx-auto text-muted-foreground" aria-hidden="true" />
+    </button>
+  );
+
+  return (
+    <div ref={setRefs} style={style}>
+      {children(dragHandle)}
+    </div>
+  );
+});
+
 export default function AdminCourses() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,7 +127,7 @@ export default function AdminCourses() {
       const { data, error } = await supabase
         .from("courses")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("order_index");
 
       if (error) throw error;
       return data;
@@ -113,6 +171,46 @@ export default function AdminCourses() {
       }, {});
 
       return grouped;
+    },
+  });
+
+  const reorderCoursesMutation = useMutation({
+    mutationFn: async (reordered: any[]) => {
+      const results = await Promise.all(
+        reordered.map((course, index) =>
+          supabase.from("courses").update({ order_index: index }).eq("id", course.id),
+        ),
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
+      toast.success("Ordem dos cursos atualizada!");
+    },
+    onError: () => {
+      toast.error("Erro ao reordenar cursos");
+      queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
+    },
+  });
+
+  const reorderModulesMutation = useMutation({
+    mutationFn: async (reordered: any[]) => {
+      const results = await Promise.all(
+        reordered.map((module, index) =>
+          supabase.from("modules").update({ order_index: index }).eq("id", module.id),
+        ),
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["courseModules"] });
+      toast.success("Ordem dos módulos atualizada!");
+    },
+    onError: () => {
+      toast.error("Erro ao reordenar módulos");
+      queryClient.invalidateQueries({ queryKey: ["courseModules"] });
     },
   });
 
@@ -209,6 +307,30 @@ export default function AdminCourses() {
     }
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEndCourse = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    // Opera sobre a lista completa: a visível é um subconjunto na mesma ordem,
+    // então mover para a posição de `over` mantém o resultado correto mesmo
+    // com busca ou filtro de categoria ativos.
+    const from = courses.findIndex((c: any) => c.id === active.id);
+    const to = courses.findIndex((c: any) => c.id === over.id);
+    if (from < 0 || to < 0) return;
+    reorderCoursesMutation.mutate(arrayMove(courses, from, to));
+  };
+
+  const handleReorderModules = (courseId: string) => (active: any, over: any) => {
+    const current: any[] = coursesWithModules[courseId] || [];
+    const from = current.findIndex((m) => m.id === active.id);
+    const to = current.findIndex((m) => m.id === over.id);
+    if (from < 0 || to < 0) return;
+    reorderModulesMutation.mutate(arrayMove(current, from, to));
+  };
+
   const filteredCourses = courses?.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.instructor.toLowerCase().includes(searchTerm.toLowerCase());
@@ -293,7 +415,16 @@ export default function AdminCourses() {
       />
 
       <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEndCourse}
+        >
+          <SortableContext
+            items={filteredCourses.map((c: any) => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <AnimatePresence mode="popLayout">
           {filteredCourses.map((course: any) => {
             const moduleCount = coursesWithModules[course.id]?.length || 0;
             const lessonCount = coursesWithModules[course.id]?.reduce(
@@ -301,10 +432,10 @@ export default function AdminCourses() {
             ) || 0;
 
             return (
+              <SortableCourseCard key={course.id} id={course.id}>
+                {(dragHandle) => (
               <motion.div
-                key={course.id}
                 variants={item}
-                layout
                 className="glass-card rounded-[24px] border-white/10 overflow-hidden hover:border-white/10 transition-all duration-500 group/course bg-white/[0.02]"
               >
                 <Collapsible>
@@ -359,6 +490,7 @@ export default function AdminCourses() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                        {dragHandle}
                         <Button
                           variant="ghost" size="icon"
                           onClick={() => handleEditCourse(course)}
@@ -415,14 +547,19 @@ export default function AdminCourses() {
                         onEditModule={handleEditModule}
                         onDeleteModule={handleDeleteModule}
                         onEditLesson={handleEditLesson}
+                        onReorder={handleReorderModules(course.id)}
                       />
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
               </motion.div>
+                )}
+              </SortableCourseCard>
             );
           })}
-        </AnimatePresence>
+            </AnimatePresence>
+          </SortableContext>
+        </DndContext>
 
         {filteredCourses.length === 0 && !isLoading && (
           <div className="glass-card py-32 rounded-[32px] border-dashed border-white/10 flex flex-col items-center justify-center text-center px-6">

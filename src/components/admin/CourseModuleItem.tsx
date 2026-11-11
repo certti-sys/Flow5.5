@@ -1,15 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical } from "lucide-react";
 import {
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
 import { LessonList } from "@/components/admin/LessonList";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
 interface CourseModuleItemProps {
   module: any;
+  index: number;
   courseId: string;
   onAddLesson: (courseId: string, moduleId: string) => void;
   onEditModule: (module: any) => void;
@@ -19,12 +22,21 @@ interface CourseModuleItemProps {
 
 export function CourseModuleItem({
   module,
+  index,
   courseId,
   onAddLesson,
   onEditModule,
   onDeleteModule,
   onEditLesson,
 }: CourseModuleItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: module.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
   const handleEditModule = () => {
     onEditModule(module);
   };
@@ -41,14 +53,23 @@ export function CourseModuleItem({
     <AccordionItem
       key={module.id}
       value={module.id}
+      ref={setNodeRef}
+      style={style}
       className="border border-white/5 rounded-[20px] bg-white/[0.02] overflow-hidden px-5 hover:border-white/10 transition-colors"
     >
       <AccordionTrigger className="py-5 hover:no-underline group/module transition-all">
         <div className="flex items-center justify-between flex-1 mr-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-[14px] text-white/60 border border-white/5 group-hover/module:border-primary/30 group-hover/module:text-primary transition-all">
-              {module.order_index + 1}
-            </div>
+            <span
+              {...attributes}
+              {...listeners}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Reordenar módulo ${module.title}`}
+              title="Arraste para reordenar"
+              className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-[14px] text-white/60 border border-white/5 group-hover/module:border-primary/30 group-hover/module:text-primary transition-all cursor-grab active:cursor-grabbing touch-none select-none"
+            >
+              {index + 1}
+            </span>
             <div className="text-left">
               <span className="font-bold text-[15px] text-white group-hover/module:text-primary transition-colors">
                 {module.title}

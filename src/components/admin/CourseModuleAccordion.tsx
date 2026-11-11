@@ -5,6 +5,20 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { CourseModuleItem } from "@/components/admin/CourseModuleItem";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 
 interface CourseModuleAccordionProps {
@@ -15,6 +29,7 @@ interface CourseModuleAccordionProps {
   onEditModule: (module: any, courseId: string) => void;
   onDeleteModule: (module: any) => void;
   onEditLesson: (lesson: any, courseId: string) => void;
+  onReorder: (active: { id: string }, over: { id: string }) => void;
 }
 
 export function CourseModuleAccordion({
@@ -25,7 +40,18 @@ export function CourseModuleAccordion({
   onEditModule,
   onDeleteModule,
   onEditLesson,
+  onReorder,
 }: CourseModuleAccordionProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    onReorder(active, over);
+  };
+
   const handleEditModule = (module: any) => {
     onEditModule(module, courseId);
   };
@@ -41,19 +67,24 @@ export function CourseModuleAccordion({
   return (
     <>
       {modules.length > 0 ? (
-        <Accordion type="multiple" className="space-y-4">
-          {modules.map((module) => (
-            <CourseModuleItem
-              key={module.id}
-              module={module}
-              courseId={courseId}
-              onAddLesson={onAddLesson}
-              onEditModule={handleEditModule}
-              onDeleteModule={handleDeleteModule}
-              onEditLesson={handleEditLesson}
-            />
-          ))}
-        </Accordion>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={modules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+            <Accordion type="multiple" className="space-y-4">
+              {modules.map((module, index) => (
+                <CourseModuleItem
+                  key={module.id}
+                  index={index}
+                  module={module}
+                  courseId={courseId}
+                  onAddLesson={onAddLesson}
+                  onEditModule={handleEditModule}
+                  onDeleteModule={handleDeleteModule}
+                  onEditLesson={handleEditLesson}
+                />
+              ))}
+            </Accordion>
+          </SortableContext>
+        </DndContext>
       ) : (
         <div className="text-center py-16 bg-white/[0.01] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
