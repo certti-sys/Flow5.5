@@ -14,7 +14,8 @@ export const HeroBanner = () => {
   const titleSizeClass = TITLE_SIZE_CLASS[settings.banner_title_size ?? "md"] ?? TITLE_SIZE_CLASS.md;
 
   return (
-    <section className="relative w-full min-h-[320px] md:min-h-[380px] flex items-end overflow-hidden pt-24 pb-16 md:pb-20">
+    <section className="relative w-full min-h-[320px] md:min-h-[380px] flex items-end overflow-hidden pt-6 md:pt-10 pb-16 md:pb-20">
+      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
       {/* Background with subtle overlay */}
       {settings.banner_background_url ? (
         <div className="absolute inset-0">
