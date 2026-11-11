@@ -12,6 +12,7 @@ import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ErrorState";
+import { IssueCertificateModal } from "@/components/admin/IssueCertificateModal";
 
 interface CertificateData {
   id: string;
@@ -75,6 +76,7 @@ const CertificateCard = ({ cert }: { cert: CertificateData }) => {
 
 export default function CertificatesDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const { settings } = usePlatformSettings();
 
   const [formData, setFormData] = useState<{
@@ -148,6 +150,7 @@ export default function CertificatesDashboard() {
           </Button>
           <Button
             className="bg-primary hover:bg-primary/90 text-primary-foreground h-[44px] px-6 rounded-[12px] font-bold"
+            onClick={() => setCreateOpen(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
             Novo Certificado
@@ -201,6 +204,8 @@ export default function CertificatesDashboard() {
           </>
         )}
       </div>
+
+      <IssueCertificateModal open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }

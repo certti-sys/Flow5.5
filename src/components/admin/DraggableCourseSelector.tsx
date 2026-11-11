@@ -177,15 +177,15 @@ export function DraggableCourseSelector({
               Adicionar Cursos
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Adicionar Cursos ao Carrossel</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="p-0 max-w-2xl">
+            <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+              <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Adicionar Cursos ao Carrossel</DialogTitle>
+              <DialogDescription className="text-[14px] text-muted-foreground m-0">
                 Selecione os cursos que deseja adicionar. Você poderá reordenar depois.
               </DialogDescription>
             </DialogHeader>
             
-            <ScrollArea className="h-[400px] pr-4">
+            <ScrollArea className="h-[400px] px-6 py-5">
               <div className="space-y-3">
                 {availableCourses.map((course) => (
                   <div key={course.id} className="flex items-start space-x-3">
@@ -217,8 +217,12 @@ export function DraggableCourseSelector({
               </div>
             </ScrollArea>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+            <div className="flex justify-end gap-3 px-6 py-5 border-t border-white/5 bg-black/40 rounded-b-[20px]">
+              <Button
+                variant="outline"
+                onClick={() => setAddDialogOpen(false)}
+                className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
+              >
                 Fechar
               </Button>
             </div>

@@ -253,7 +253,7 @@ export default function OrderBumpsPage() {
           <motion.div
             key={i}
             variants={itemVars}
-            className="glass-card p-6 rounded-[24px] border-white/5 bg-white/[0.01] relative overflow-hidden group"
+            className="glass-card p-6 rounded-[20px] border-white/5 bg-white/[0.01] relative overflow-hidden group"
           >
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-500" />
             <div className="relative z-10 flex items-center gap-4">
@@ -270,7 +270,7 @@ export default function OrderBumpsPage() {
       </div>
 
       {/* Order Bumps Table */}
-      <div className="glass-card rounded-[24px] border-white/5 overflow-hidden bg-white/[0.01]">
+      <div className="glass-card rounded-[20px] border-white/5 overflow-hidden bg-white/[0.01]">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -387,8 +387,8 @@ export default function OrderBumpsPage() {
 
       {/* Modal de Criação / Edição — Design Premium 2.0 */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="glass-card border-white/10 rounded-[32px] max-w-3xl p-0 overflow-hidden bg-black/90 backdrop-blur-3xl shadow-2xl">
-          <DialogHeader className="p-8 border-b border-white/5 bg-white/[0.02] flex-row items-center gap-5 space-y-0">
+        <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-3xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl shadow-2xl">
+          <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02] flex-row items-center gap-5 space-y-0">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-glow-sm">
               <Zap className="h-6 w-6 text-primary" />
             </div>
@@ -575,7 +575,7 @@ export default function OrderBumpsPage() {
           </div>
 
           {/* Footer */}
-          <div className="p-8 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[32px]">
+          <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px]">
             <Button
               variant="outline"
               onClick={() => setIsModalOpen(false)}

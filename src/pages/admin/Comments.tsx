@@ -393,7 +393,7 @@ const Comments = () => {
                 </div>
               </div>
             </DialogHeader>
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="px-6 py-5 space-y-6 max-h-[70vh] overflow-y-auto">
               <div className="p-4 glass-card border-white/10 rounded-[16px] bg-white/[0.02]">
                 <div className="flex items-center gap-2 mb-2">
                   <UserCircle className="w-4 h-4 text-primary opacity-50" />
@@ -415,7 +415,7 @@ const Comments = () => {
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
+            <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
               <Button variant="outline" className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold" onClick={() => setReplyOpen(false)}>
                 Cancelar
               </Button>
@@ -430,7 +430,7 @@ const Comments = () => {
       {selectedComment && deleteOpen && (
         <AlertDialog open={true} onOpenChange={(open) => { if (!open) setDeleteOpen(false); }}>
           <AlertDialogContent className="glass-card border-white/10 rounded-[20px] max-w-[440px] p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
-            <div className="p-8">
+            <div className="px-6 py-8">
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]">
                   <Trash2 className="h-7 w-7 text-red-500" />
@@ -441,7 +441,7 @@ const Comments = () => {
                 </AlertDialogDescription>
               </div>
             </div>
-            <div className="p-6 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
+            <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
               <AlertDialogCancel className="flex-1 h-[44px] glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold mt-0">Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={() => setDeleteOpen(false)} className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold">Excluir Agora</AlertDialogAction>
             </div>

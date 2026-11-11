@@ -266,7 +266,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-xl p-0 overflow-hidden bg-black/95 backdrop-blur-xl shadow-2xl">
+        <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
           <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
@@ -283,7 +283,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
-              <div className="p-6 space-y-6">
+              <div className="px-6 py-5 space-y-6">
                 {/* Avatar Section */}
                 <div className="bg-black/20 border border-white/5 rounded-[12px] p-6 flex flex-col items-center gap-4">
                   <div className="relative group">
@@ -417,7 +417,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
                 </div>
               </div>
 
-              <div className="p-6 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3">
+              <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
                 <Button
                   type="button"
                   variant="outline"

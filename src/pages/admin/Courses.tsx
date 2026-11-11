@@ -471,38 +471,38 @@ export default function AdminCourses() {
       />
 
       <AlertDialog open={!!deletingCourse} onOpenChange={() => setDeletingCourse(null)}>
-        <AlertDialogContent className="glass-card border-white/10 rounded-[28px] max-w-[440px] p-8 overflow-hidden">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-              <Trash2 className="h-7 w-7 text-red-500" />
-            </div>
-            <AlertDialogHeader>
+        <AlertDialogContent className="glass-card border-white/10 rounded-[20px] max-w-[440px] p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
+          <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                <Trash2 className="h-7 w-7 text-red-500" />
+              </div>
               <div className="space-y-2">
-                <AlertDialogTitle className="text-[20px] font-bold text-white tracking-tight uppercase">Excluir Curso</AlertDialogTitle>
+                <AlertDialogTitle className="text-[20px] font-bold text-white tracking-tight">Excluir Curso</AlertDialogTitle>
                 <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed">
                   Tem certeza que deseja excluir permanentemente <strong className="text-white">"{deletingCourse?.title}"</strong>? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </div>
-            </AlertDialogHeader>
-          <AlertDialogFooter className="mt-10 flex flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="flex-1 h-[44px] glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 font-bold uppercase tracking-widest text-[12px]">
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row gap-3 rounded-b-[20px] sm:justify-end">
+            <AlertDialogCancel className="h-[44px] flex-1 sm:flex-none px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 font-bold text-white bg-transparent">
               Manter Curso
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); confirmDelete(); }}
               disabled={deleteMutation.isPending}
-              className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold uppercase tracking-widest text-[12px]"
+              className="h-[44px] flex-1 sm:flex-none px-6 bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold"
             >
               Excluir Agora
             </AlertDialogAction>
           </AlertDialogFooter>
-        </div>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={!!deletingModule} onOpenChange={() => setDeletingModule(null)}>
-        <AlertDialogContent className="glass-card border-white/10 rounded-[28px] max-w-[440px] p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
-          <AlertDialogHeader className="px-8 py-5 border-b border-white/5 bg-white/[0.02]">
+        <AlertDialogContent className="glass-card border-white/10 rounded-[20px] max-w-[440px] p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
+          <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                 <Trash2 className="h-7 w-7 text-red-500" />
@@ -515,15 +515,15 @@ export default function AdminCourses() {
               </div>
             </div>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-10 flex flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="h-[44px] flex-1 glass-card border-white/10 hover:bg-white/5 rounded-[16px] font-bold uppercase tracking-widest text-[12px] mt-0">
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row gap-3 rounded-b-[20px]">
+            <AlertDialogCancel className="h-[44px] flex-1 glass-card border-white/10 hover:bg-white/5 rounded-[12px] font-bold mt-0 text-white bg-transparent">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteModule}
-              className="h-[44px] flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-[16px] font-bold uppercase tracking-widest text-[12px] shadow-glow-red"
+              className="h-[44px] flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold shadow-glow-red"
             >
-              EXCLUIR AGORA
+              Excluir Agora
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

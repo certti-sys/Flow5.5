@@ -107,16 +107,16 @@ export const ChangePasswordModal = ({ open, onOpenChange }: ChangePasswordModalP
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-gradient">Redefinir Senha</DialogTitle>
-                    <DialogDescription>
+            <DialogContent className="p-0 sm:max-w-md">
+                <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+                    <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Redefinir Senha</DialogTitle>
+                    <DialogDescription className="text-[14px] text-muted-foreground m-0">
                         Digite sua senha atual e escolha uma nova senha
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 pt-5">
                         <FormField
                             control={form.control}
                             name="currentPassword"
@@ -216,7 +216,7 @@ export const ChangePasswordModal = ({ open, onOpenChange }: ChangePasswordModalP
                             )}
                         />
 
-                        <div className="flex gap-3 pt-4">
+                        <div className="flex gap-3 pt-4 -mx-6 px-6 py-5 border-t border-white/5 bg-black/40 rounded-b-[20px]">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -224,14 +224,14 @@ export const ChangePasswordModal = ({ open, onOpenChange }: ChangePasswordModalP
                                     form.reset();
                                     onOpenChange(false);
                                 }}
-                                className="flex-1"
+                                className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
                                 disabled={isLoading}
                             >
                                 Cancelar
                             </Button>
                             <Button
                                 type="submit"
-                                className="flex-1 gradient-primary text-white"
+                                className="h-[44px] px-6 rounded-[12px] font-bold"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (

@@ -471,10 +471,10 @@ export default function Orders() {
 
       {/* Modal de Detalhes */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="glass-card border-white/10 rounded-[24px] max-w-2xl p-0 overflow-hidden bg-black/95 backdrop-blur-2xl">
+        <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-2xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
           {selectedOrder && (
             <>
-              <DialogHeader className="px-8 py-6 border-b border-white/5 bg-white/[0.01]">
+              <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
                 <div className="flex items-center gap-5">
                   <Avatar className="w-16 h-16 rounded-[16px] border border-white/10 shadow-2xl">
                     <AvatarImage src={selectedOrder.profile?.avatar_url} alt={selectedOrder.customer_name || selectedOrder.profile?.name || "Avatar do cliente"} />
@@ -495,7 +495,7 @@ export default function Orders() {
                 </div>
               </DialogHeader>
 
-              <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto scrollbar-styled">
+              <div className="px-6 py-5 space-y-8 max-h-[60vh] overflow-y-auto scrollbar-styled">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-5 rounded-[16px] bg-white/[0.02] border border-white/5">
                     <span className="text-[12px] text-muted-foreground uppercase font-black tracking-widest block mb-2">Status do Pedido</span>
@@ -565,8 +565,8 @@ export default function Orders() {
                 </div>
               </div>
 
-              <DialogFooter className="p-8 border-t border-white/5 bg-white/[0.01]">
-                <Button onClick={() => setSelectedOrder(null)} className="h-[48px] px-8 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white font-black uppercase tracking-widest bg-transparent flex-1 sm:flex-none">
+              <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40">
+                <Button onClick={() => setSelectedOrder(null)} className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white font-bold bg-transparent">
                   Fechar Detalhes
                 </Button>
               </DialogFooter>

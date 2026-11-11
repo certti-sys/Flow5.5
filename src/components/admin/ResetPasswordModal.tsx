@@ -105,7 +105,7 @@ export function ResetPasswordModal({ open, onOpenChange, student }: ResetPasswor
               Uma nova senha temporária será gerada e você deverá compartilhá-la com o aluno.
             </p>
           </div>
-          <AlertDialogFooter className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px] sm:justify-end py-4">
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px] sm:justify-end">
             <AlertDialogCancel 
               disabled={resetPasswordMutation.isPending}
               className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] bg-transparent text-white mt-0"
@@ -136,8 +136,8 @@ export function ResetPasswordModal({ open, onOpenChange, student }: ResetPasswor
       <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-md p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
         <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shrink-0">
-              <Check className="h-5 w-5 text-emerald-500" />
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
+              <Check className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left space-y-1">
               <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Senha Gerada</DialogTitle>

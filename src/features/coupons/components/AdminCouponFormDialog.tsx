@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Ticket } from "lucide-react";
 import { Coupon } from "@/features/coupons/types";
 import { couponFormSchema, CouponFormValues } from "@/features/coupons/schemas/couponFormSchema";
 
@@ -190,15 +191,25 @@ export function AdminCouponFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-[20px] font-black uppercase tracking-tight">
-            {isEditing ? "Editar Cupom" : "Novo Cupom"}
-          </DialogTitle>
+      <DialogContent className="p-0 sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0" aria-hidden="true">
+              <Ticket className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-left space-y-1">
+              <DialogTitle className="text-[20px] font-bold text-white tracking-tight">
+                {isEditing ? "Editar Cupom" : "Novo Cupom"}
+              </DialogTitle>
+              <DialogDescription className="text-[14px] text-muted-foreground m-0">
+                Configure o desconto, a validade e os produtos elegíveis
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 py-2">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 p-6">
             {/* Linha 1: Código e Status */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -401,11 +412,16 @@ export function AdminCouponFormDialog({
               />
             )}
 
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <DialogFooter className="-mx-6 -mb-6 mt-6 px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 rounded-b-[20px]">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={saveMutation.isPending} className="gap-2">
+              <Button type="submit" disabled={saveMutation.isPending} className="h-[44px] px-6 rounded-[12px] font-bold gap-2">
                 {saveMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />

@@ -203,8 +203,8 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
       <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-3xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
         <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shrink-0">
-              <BookOpen className="h-5 w-5 text-emerald-500" />
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left space-y-1">
               <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Atribuir Cursos</DialogTitle>
@@ -220,13 +220,13 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
             <TabsList className="bg-transparent h-auto p-0 gap-6 w-full justify-start rounded-none">
               <TabsTrigger 
                 value="individual"
-                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-emerald-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
               >
                 Cursos Individuais
               </TabsTrigger>
               <TabsTrigger 
                 value="category"
-                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-emerald-500 after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
+                className="relative rounded-none px-0 py-3 text-white/70 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100 transition-all font-medium"
               >
                 Por Categoria
               </TabsTrigger>
@@ -272,7 +272,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
                         id={course.id}
                         checked={selectedCourses.includes(course.id)}
                         onCheckedChange={() => handleToggleCourse(course.id)}
-                        className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                       <label
                         htmlFor={course.id}
@@ -309,7 +309,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
                           id={`category-${category}`}
                           checked={selectedCategories.includes(category)}
                           onCheckedChange={() => handleToggleCategory(category)}
-                          className="mt-1 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                          className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         />
                         <label
                           htmlFor={`category-${category}`}
@@ -317,7 +317,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
                         >
                           <div className="flex justify-between items-center mb-1">
                             <h4 className="text-[14px] font-medium text-white/90 leading-none">{category}</h4>
-                            <span className="text-[12px] font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                            <span className="text-[12px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                               {categoryCourses.length} curso(s)
                             </span>
                           </div>
@@ -347,7 +347,7 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
           <Button
             onClick={handleSave}
             disabled={assignCoursesMutation.isPending}
-            className="h-[44px] px-6 rounded-[12px] bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+            className="h-[44px] px-6 rounded-[12px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
           >
             {assignCoursesMutation.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

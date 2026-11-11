@@ -41,7 +41,9 @@ const AlertDialogContent = React.forwardRef<
         zIndex: 10000
       }}
       className={cn(
-        "w-full max-w-lg gap-4 border border-white/[0.08] bg-background p-6 shadow-2xl sm:rounded-xl max-h-[90vh] overflow-y-auto",
+        // Mesmo chrome do DialogContent: todo alert-dialog herda o vidro.
+        "w-full max-w-lg gap-4 p-6 max-h-[90vh] overflow-y-auto shadow-lg",
+        "glass-card rounded-[20px] border-white/10 bg-black/90 backdrop-blur-xl",
         className
       )}
       {...props}

@@ -347,8 +347,8 @@ export default function AdminStudents() {
       <ViewStudentProgressModal open={progressModalOpen} onOpenChange={setProgressModalOpen} student={selectedStudent} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="glass-card border-white/10 rounded-[20px] max-w-[440px]">
-          <AlertDialogHeader>
+        <AlertDialogContent className="p-0 max-w-[440px]">
+          <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                 <Trash2 className="h-7 w-7 text-red-500" />
@@ -359,8 +359,8 @@ export default function AdminStudents() {
               </AlertDialogDescription>
             </div>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-8 flex justify-center items-center gap-3 w-full sm:justify-center">
-            <AlertDialogCancel className="flex-1 h-[44px] glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0">Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row gap-3 rounded-b-[20px] sm:justify-end">
+            <AlertDialogCancel className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 text-white bg-transparent font-bold">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => setDeleteDialogOpen(false)} className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

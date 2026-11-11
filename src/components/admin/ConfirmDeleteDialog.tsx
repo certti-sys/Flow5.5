@@ -45,7 +45,7 @@ export function ConfirmDeleteDialog({
             </div>
           </div>
         </AlertDialogHeader>
-        <AlertDialogFooter className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px] sm:justify-end">
+        <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px] sm:justify-end">
           <AlertDialogCancel 
             disabled={isPending}
             className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] bg-transparent text-white mt-0"

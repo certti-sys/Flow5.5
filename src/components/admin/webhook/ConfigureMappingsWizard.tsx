@@ -152,8 +152,8 @@ export function ConfigureMappingsWizard({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[920px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="shrink-0">
+      <DialogContent className="p-0 max-w-[920px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-2">
             <Wand2 className="w-5 h-5 text-primary" />
             <DialogTitle>Configurar Mapeamentos</DialogTitle>
@@ -163,7 +163,7 @@ export function ConfigureMappingsWizard({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto space-y-6 px-6 py-5">
           {/* Seletor de Plataforma */}
           <div className="space-y-2">
             <Label>Plataforma *</Label>
@@ -282,7 +282,7 @@ export function ConfigureMappingsWizard({
           </Card>
         </div>
 
-        <DialogFooter className="shrink-0 pt-4 border-t">
+        <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>

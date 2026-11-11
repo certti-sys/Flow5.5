@@ -77,43 +77,53 @@ export const ImageCropper = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Ajustar Foto</DialogTitle>
+      <DialogContent className="p-0 sm:max-w-md">
+        <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+          <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Ajustar Foto</DialogTitle>
+          <DialogDescription className="text-[14px] text-muted-foreground m-0">
+            Ajuste o enquadramento da sua foto de perfil
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full h-64 bg-muted rounded-lg overflow-hidden">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            aspect={aspectRatio}
-            cropShape={cropShape}
-            showGrid={false}
-            onCropChange={onCropChange}
-            onZoomChange={onZoomChange}
-            onCropComplete={onCropAreaComplete}
-          />
+        <div className="px-6 py-5 space-y-4">
+          <div className="relative w-full h-64 bg-muted rounded-lg overflow-hidden">
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={aspectRatio}
+              cropShape={cropShape}
+              showGrid={false}
+              onCropChange={onCropChange}
+              onZoomChange={onZoomChange}
+              onCropComplete={onCropAreaComplete}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 px-2">
+            <ZoomOut className="h-4 w-4 text-muted-foreground" />
+            <Slider
+              value={[zoom]}
+              min={1}
+              max={3}
+              step={0.1}
+              onValueChange={(value) => setZoom(value[0])}
+              className="flex-1"
+            />
+            <ZoomIn className="h-4 w-4 text-muted-foreground" />
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 px-2">
-          <ZoomOut className="h-4 w-4 text-muted-foreground" />
-          <Slider
-            value={[zoom]}
-            min={1}
-            max={3}
-            step={0.1}
-            onValueChange={(value) => setZoom(value[0])}
-            className="flex-1"
-          />
-          <ZoomIn className="h-4 w-4 text-muted-foreground" />
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleCancel} disabled={isProcessing}>
+        <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={isProcessing}
+            className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isProcessing}>
+          <Button onClick={handleSave} disabled={isProcessing} className="h-[44px] px-6 rounded-[12px] font-bold">
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

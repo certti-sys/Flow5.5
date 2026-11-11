@@ -161,7 +161,7 @@ export function FieldMappingEditor({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-6 py-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -262,8 +262,8 @@ export function FieldMappingEditor({
 
       {/* Modal de Adicionar */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="p-0 max-w-lg">
+          <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <DialogTitle>Novo Mapeamento de Campo</DialogTitle>
             <DialogDescription>
               Conecte um campo do webhook a um campo interno do sistema
@@ -382,7 +382,7 @@ export function FieldMappingEditor({
             </div>
           </div>
 
-          <DialogFooter className="mt-6 pt-4 border-t border-white/5">
+          <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
             <Button variant="outline" onClick={() => setAddModalOpen(false)}>
               Cancelar
             </Button>

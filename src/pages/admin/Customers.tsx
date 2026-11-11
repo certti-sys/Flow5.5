@@ -215,7 +215,7 @@ export default function Customers() {
           <motion.div
             key={i}
             variants={item}
-            className="glass-card p-6 rounded-[24px] border-white/5 bg-white/[0.01] relative overflow-hidden group"
+            className="glass-card p-6 rounded-[20px] border-white/5 bg-white/[0.01] relative overflow-hidden group"
           >
             <div className={cn(
               "absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-10 transition-opacity group-hover:opacity-20",
@@ -238,7 +238,7 @@ export default function Customers() {
       </div>
 
       {/* Customers List */}
-      <div className="glass-card rounded-[24px] border-white/5 overflow-hidden bg-white/[0.01]">
+      <div className="glass-card rounded-[20px] border-white/5 overflow-hidden bg-white/[0.01]">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -329,10 +329,10 @@ export default function Customers() {
 
       {/* Detail Dialog */}
       <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>
-        <DialogContent className="glass-card border-white/10 rounded-[32px] max-w-2xl p-0 overflow-hidden bg-black/90 backdrop-blur-3xl">
+        <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-2xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
           {selectedCustomer && (
             <>
-              <DialogHeader className="p-8 border-b border-white/5 bg-white/[0.02]">
+              <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
                 <div className="flex items-center gap-6">
                   <div className="relative group">
                     <div className="absolute inset-0 bg-primary rounded-3xl blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
@@ -366,7 +366,7 @@ export default function Customers() {
                 </div>
               </DialogHeader>
 
-              <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto scrollbar-styled">
+              <div className="px-6 py-5 space-y-8 max-h-[60vh] overflow-y-auto scrollbar-styled">
                 {/* Secondary Info Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 group hover:bg-white/[0.05] transition-colors">
@@ -449,10 +449,10 @@ export default function Customers() {
                 </div>
               </div>
 
-              <div className="p-8 border-t border-white/5 bg-black/40 flex items-center justify-end rounded-b-[32px]">
+              <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex items-center justify-end rounded-b-[20px]">
                 <Button
                   onClick={() => setSelectedCustomer(null)}
-                  className="h-12 px-10 glass-card border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase tracking-widest text-[12px] text-white bg-transparent"
+                  className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] font-bold text-white bg-transparent"
                 >
                   Fechar Registro
                 </Button>
@@ -464,28 +464,28 @@ export default function Customers() {
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!customerToDelete} onOpenChange={() => setCustomerToDelete(null)}>
-        <AlertDialogContent className="glass-card border-white/10 rounded-[28px] max-w-[460px] p-8 overflow-hidden bg-black/90 backdrop-blur-3xl">
+        <AlertDialogContent className="glass-card border-white/10 rounded-[20px] max-w-[460px] p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
           <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
-          <AlertDialogHeader>
+          <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <div className="flex flex-col items-center text-center space-y-5">
               <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-red-500/10 border border-red-500/20 shadow-glow-red">
                 <Trash2 className="h-8 w-8 text-red-500" />
               </div>
               <div className="space-y-2">
-                <AlertDialogTitle className="text-2xl font-black text-white tracking-tighter uppercase">Excluir Cliente?</AlertDialogTitle>
+                <AlertDialogTitle className="text-[20px] font-bold text-white tracking-tight">Excluir Cliente?</AlertDialogTitle>
                 <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
                   Isso apagará permanentemente o histórico de compras de <strong className="text-white">{customerToDelete?.email}</strong>. Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </div>
             </div>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-10 flex flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="h-12 flex-1 glass-card border-white/10 hover:bg-white/5 rounded-xl font-bold uppercase tracking-widest text-[12px] mt-0 text-white bg-transparent">
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col sm:flex-row gap-3">
+            <AlertDialogCancel className="h-[44px] flex-1 glass-card border-white/10 hover:bg-white/5 rounded-[12px] font-bold mt-0 text-white bg-transparent">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => customerToDelete && deleteMutation.mutate(customerToDelete.email)}
-              className="h-12 flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-xl font-black uppercase tracking-widest text-[12px] shadow-glow-red"
+              className="h-[44px] flex-1 bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold shadow-glow-red"
             >
               Confirmar Exclusão
             </AlertDialogAction>

@@ -233,8 +233,8 @@ export function EventReceiversList({ onCreateNew }: EventReceiversListProps) {
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
+                                                <AlertDialogContent className="p-0">
+                                                    <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20">
                                                                 <Trash2 className="h-5 w-5 text-red-500" />
@@ -247,11 +247,13 @@ export function EventReceiversList({ onCreateNew }: EventReceiversListProps) {
                                                             </div>
                                                         </div>
                                                     </AlertDialogHeader>
-                                                    <AlertDialogFooter className="mt-4 pt-4 border-t border-white/5">
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px]">
+                                                        <AlertDialogCancel className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 text-white bg-transparent">
+                                                            Cancelar
+                                                        </AlertDialogCancel>
                                                         <AlertDialogAction
                                                             onClick={() => deleteMutation.mutate(receiver.id)}
-                                                            className="bg-red-500 hover:bg-red-600 text-white border-0"
+                                                            className="h-[44px] px-6 rounded-[12px] bg-red-500 hover:bg-red-600 text-white border-0 font-bold"
                                                         >
                                                             Remover
                                                         </AlertDialogAction>

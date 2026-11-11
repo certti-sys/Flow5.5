@@ -127,8 +127,8 @@ export function PlatformConfigModal({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
+      <DialogContent className="p-0 max-w-xl">
+        <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
           <DialogTitle>
             {platform ? 'Editar Plataforma' : 'Nova Plataforma'}
           </DialogTitle>
@@ -137,7 +137,7 @@ export function PlatformConfigModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 px-6 py-5">
           <div className="space-y-2">
             <Label>Nome (slug) *</Label>
             <Input
@@ -174,7 +174,7 @@ export function PlatformConfigModal({
         </div>
 
         {/* Footer separado com toggle e ações */}
-        <DialogFooter className="flex-col sm:flex-row gap-4 pt-4 border-t border-white/5 mt-4">
+        <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
           {/* Linha 1: Toggle à esquerda */}
           <div className="flex items-center gap-2 sm:mr-auto">
             <Switch

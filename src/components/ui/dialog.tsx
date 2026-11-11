@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80",
+      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
       className
     )}
     {...props}
@@ -43,7 +43,10 @@ const DialogContent = React.forwardRef<
         zIndex: 10000
       }}
       className={cn(
-        "w-full max-w-lg gap-4 border bg-background p-6 shadow-lg sm:rounded-lg max-h-[90vh] overflow-y-auto",
+        // Chrome do design system. Todo modal herda daqui; quem precisa de corpo
+        // full-bleed sobrescreve com p-0 (twMerge resolve o conflito).
+        "w-full max-w-lg gap-4 p-6 max-h-[90vh] overflow-y-auto shadow-lg",
+        "glass-card rounded-[20px] border-white/10 bg-black/90 backdrop-blur-xl",
         className
       )}
       {...props}

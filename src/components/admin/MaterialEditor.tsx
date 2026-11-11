@@ -114,17 +114,17 @@ export function MaterialEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="p-0 sm:max-w-[500px]">
+        <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+          <DialogTitle className="text-[20px] font-bold text-white tracking-tight">
             {material ? "Editar Material" : "Adicionar Material"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[14px] text-muted-foreground m-0">
             Adicione materiais complementares para enriquecer a aula
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 px-6 py-5">
           <div className="space-y-2">
             <Label>Tipo de Material</Label>
             <Select value={type} onValueChange={(v) => setType(v as MaterialType)}>
@@ -203,14 +203,18 @@ export function MaterialEditor({
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
             disabled={!title.trim() || !content.trim()}
-            className="gradient-primary"
+            className="h-[44px] px-6 rounded-[12px] font-bold"
           >
             {material ? "Atualizar" : "Adicionar"}
           </Button>

@@ -279,15 +279,15 @@ const Login = () => {
 
       {/* Modal de Recuperação de Senha */}
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Recuperar Senha</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="p-0 sm:max-w-md">
+          <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+            <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Recuperar Senha</DialogTitle>
+            <DialogDescription className="text-[14px] text-muted-foreground m-0">
               Digite seu email para receber um link de recuperação de senha.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-6 py-5">
             <div className="space-y-2">
               <Label htmlFor="reset-email">E-mail</Label>
               <div className="relative flex items-center">
@@ -311,17 +311,19 @@ const Login = () => {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
             <Button
               variant="outline"
               onClick={() => setShowForgotPassword(false)}
               disabled={resetLoading}
+              className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleResetPassword}
               disabled={resetLoading || !resetEmail}
+              className="h-[44px] px-6 rounded-[12px] font-bold"
             >
               {resetLoading ? "Enviando..." : "Enviar Link"}
             </Button>

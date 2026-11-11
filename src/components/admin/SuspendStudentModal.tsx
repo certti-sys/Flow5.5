@@ -122,8 +122,8 @@ export function SuspendStudentModal({ open, onOpenChange, student }: SuspendStud
         <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-md p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
           <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shrink-0">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
               </div>
               <div className="text-left space-y-1">
                 <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Reativar Conta</DialogTitle>
@@ -147,7 +147,7 @@ export function SuspendStudentModal({ open, onOpenChange, student }: SuspendStud
             <Button
               onClick={handleReactivate}
               disabled={suspendMutation.isPending}
-              className="h-[44px] px-6 rounded-[12px] bg-emerald-500 hover:bg-emerald-600 text-white font-bold border-0 mt-0"
+              className="h-[44px] px-6 rounded-[12px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold border-0 mt-0"
             >
               {suspendMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

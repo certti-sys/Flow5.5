@@ -558,8 +558,8 @@ export function WebhookTransactionsList({
 
       {/* Modal de Detalhes */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-[920px] max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader className="shrink-0">
+        <DialogContent className="p-0 max-w-[920px] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <DialogTitle>Detalhes da Transação</DialogTitle>
             <DialogDescription>
               {selectedTransaction?.external_transaction_id}
@@ -567,7 +567,7 @@ export function WebhookTransactionsList({
           </DialogHeader>
 
           {selectedTransaction && (
-            <div className="flex-1 overflow-y-auto pr-2">
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               <Tabs defaultValue="info">
                 <TabsList className="mb-4">
                   <TabsTrigger value="info">Informações</TabsTrigger>
@@ -668,18 +668,20 @@ export function WebhookTransactionsList({
 
       {/* Confirmação de Deleção Individual */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="p-0">
+          <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <AlertDialogTitle>Remover Transação</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja remover esta transação? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px]">
+            <AlertDialogCancel className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 text-white bg-transparent">
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="h-[44px] px-6 rounded-[12px] bg-red-500 hover:bg-red-600 text-white border-0 font-bold"
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -691,19 +693,21 @@ export function WebhookTransactionsList({
 
       {/* Confirmação de Deleção em Lote */}
       <AlertDialog open={deleteAllConfirmOpen} onOpenChange={setDeleteAllConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="p-0">
+          <AlertDialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <AlertDialogTitle>Limpar Transações</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja remover todas as transações {statusFilter !== 'all' ? 'com este filtro' : ''}?
               Esta ação não pode ser desfeita e removerá {filteredTransactions?.length || 0} transações.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px]">
+            <AlertDialogCancel className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] mt-0 text-white bg-transparent">
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteAll}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="h-[44px] px-6 rounded-[12px] bg-red-500 hover:bg-red-600 text-white border-0 font-bold"
               disabled={deleteAllMutation.isPending}
             >
               {deleteAllMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

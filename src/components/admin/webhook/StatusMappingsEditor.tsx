@@ -352,12 +352,12 @@ export function StatusMappingsEditor({ platforms, selectedPlatform, onSelectPlat
 
       {/* Modal de Adicionar */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="p-0 max-w-md">
+          <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <DialogTitle>Adicionar Mapeamento de Status</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-6 py-5">
             <div>
               <Label className="mb-2 block">Valor Externo (da plataforma)</Label>
               <Input
@@ -396,7 +396,7 @@ export function StatusMappingsEditor({ platforms, selectedPlatform, onSelectPlat
             </div>
           </div>
 
-          <DialogFooter className="mt-6 pt-4 border-t border-white/5">
+          <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
               Cancelar
             </Button>

@@ -236,7 +236,7 @@ export function ProductMappingsEditor({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-6 py-5">
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Select value={selectedPlatform || "__all__"} onValueChange={(v) => onSelectPlatform(v === "__all__" ? null : v)}>
@@ -359,8 +359,8 @@ export function ProductMappingsEditor({
 
       {/* Modal de Criação/Edição */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="p-0 max-w-lg">
+          <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
             <DialogTitle>
               {editingMapping ? "Editar Mapeamento" : "Novo Mapeamento de Produto"}
             </DialogTitle>
@@ -501,7 +501,7 @@ export function ProductMappingsEditor({
               />
             </div>
 
-            <DialogFooter className="mt-6 pt-4 border-t border-white/5">
+            <DialogFooter className="px-6 py-5 border-t border-white/5 bg-black/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
               <Button type="button" variant="outline" onClick={closeModal}>
                 Cancelar
               </Button>
