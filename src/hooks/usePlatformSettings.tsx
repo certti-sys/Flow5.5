@@ -81,12 +81,11 @@ export const usePlatformSettings = () => {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['platform-settings'],
     queryFn: async () => {
+      // Lê da view pública (sem segredos) para que a tela de login também
+      // consiga carregar logo/fundo antes da autenticação (role anon).
       const { data, error } = await supabase
-        .from('platform_settings')
+        .from('platform_settings_public')
         .select('*')
-        .eq('is_active', true)
-        // Defesa extra: se houver mais de um registro ativo, usa o mais antigo
-        // (canônico, com os dados de branding/banner) em vez de falhar.
         .order('created_at', { ascending: true })
         .limit(1)
         .maybeSingle();

@@ -18,9 +18,11 @@ async function fetchConfig() {
   // Using try-catch to avoid breaking the app if table doesn't exist yet or network fails
   try {
     const { data, error } = await supabase
-      .from('platform_settings')
+      .from('platform_settings_public')
       .select('monitoring_sentry_dsn, monitoring_sentry_active, monitoring_internal_logs_active')
-      .single();
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
       
     if (error || !data) return null;
     
