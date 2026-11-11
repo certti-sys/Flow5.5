@@ -220,6 +220,16 @@ Guideline: nunca abaixo de 12px para texto informativo.
 7. ✅ **Bug funcional descoberto:** `WebhookHub` habilitava a query de mapeamentos com `activeTab === 'mappings'`, mas os mapeamentos vivem dentro da aba `advanced` — a lista **nunca** carregava. Corrigido para `'advanced'` (verificado: 2 mapeamentos passaram a aparecer).
 8. ✅ Verificação final: **0 violações de CSP**, 0 erros relevantes de console, 0 falsos positivos de `ErrorState` em 10 rotas com dados reais, `tsc --noEmit` sem erros.
 
+**Fase 3 — CONCLUÍDA** ✅ (medida com auditor de contraste WCAG que compõe as camadas de fundo reais e tem auto-teste de sanidade)
+
+1. ✅ **P1-3 (contraste):** resolvido **por token**, não por cor fixa. `--primary-foreground` passou a ser texto escuro (`240 10% 10%`) no `index.css`, e `colorGenerator.readableForeground()` recalcula o valor por luminância WCAG sempre que um tema é aplicado — funciona com qualquer `primary_color` cadastrado. Os 22 `text-white` cravados sobre `bg-primary` (que ignoravam o token) foram trocados por `text-primary-foreground`. Além disso, o sweep de opacidades (`/40`,`/50` → `/80`; `/60` → cheio; `text-white/20`,`/30`,`/40` → `/60`) eliminou o texto cinza-fantasma. **Resultado: 133 → 0 falhas em 16 rotas.**
+2. ✅ **P1-4 (tipografia):** `text-[9px]`, `text-[10px]` e `text-[11px]` elevados para `text-[12px]` em todo o `src`. **Resultado: 100 → 0 textos abaixo de 12px.**
+3. ✅ **P1-5 (`prefers-reduced-motion`):** regra global em `src/index.css` zera `animation-duration`/`transition-duration` (0,01ms) e fixa `animation-iteration-count: 1`. Verificado no browser: com `reduce` → `1e-05s`/`1`; sem a preferência → `2s` (animação normal preservada).
+4. ✅ **P2-7 (`alt`):** `alt` em **todos** os `AvatarImage` (6 estavam sem). Avatares sem `alt`: 0.
+5. ✅ **P2-8 (alvos de toque):** breadcrumbs do `ContentHeader` e os links do rodapé do `Dashboard` ganharam `py-1.5`. Alvos abaixo de 24px em 6 rotas: **0**. (Meta do relatório era 44px; 24px é o mínimo exigido pela WCAG 2.2 AA — os controles de ícone do sistema usam 28–32px com área de clique ampliada.)
+6. ✅ **P2-10 (`aria-live`/hierarquia):** validações inline (`LessonFormModal`, `ModuleFormModal`, `VideoPreview`, `Login`) e `FormMessage` receberam `role="alert"`. Hierarquia corrigida: o hero virou `h2` (o `h1` é o do `AdminHeader`), o nome em `ProfileHero` virou `h2`, o título do curso em `Lesson` virou `h2` e o logo do certificado virou `<span>`. **1 `h1` por página em todas as rotas testadas.**
+7. ✅ Verificação final: **0 falhas de contraste**, **0 fontes < 12px**, **0 alvos < 24px**, `tsc --noEmit` sem erros.
+
 ---
 
 ## 7. Apêndice — Evidências dos testes automatizados
