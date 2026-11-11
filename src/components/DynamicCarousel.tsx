@@ -59,7 +59,11 @@ export const DynamicCarousel = ({ carousel, className = "mb-10" }: DynamicCarous
           .order("order_index", { ascending: true });
 
         if (error) throw error;
-        return data.map((item: any) => item.courses).filter(Boolean);
+        // A ordem global dos cursos (/admin/cursos) manda, mesmo em carrossel manual.
+        return data
+          .map((item: any) => item.courses)
+          .filter(Boolean)
+          .sort((a: any, b: any) => a.order_index - b.order_index);
       } else {
         // Fetch courses by category (automatic)
         let query = supabase
@@ -71,7 +75,7 @@ export const DynamicCarousel = ({ carousel, className = "mb-10" }: DynamicCarous
               lessons (id)
             )
           `)
-          .order("created_at", { ascending: false });
+          .order("order_index", { ascending: true });
 
         if (carousel.category) {
           query = query.eq("category", carousel.category);

@@ -56,7 +56,7 @@ export default function AdminDashboard() {
           ),
           user_course_access (id)
         `)
-        .order("created_at", { ascending: false });
+        .order("order_index", { ascending: true });
 
       if (error) throw error;
       return courses.map((course: any) => ({
