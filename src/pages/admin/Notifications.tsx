@@ -10,6 +10,7 @@ import { Trash2, Send, Bell, BellRing, BellDot } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
+import { ErrorState } from "@/components/ErrorState";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -25,7 +26,7 @@ import {
 import { AdminHeader } from "@/components/admin/AdminHeader";
 
 export default function Notifications() {
-  const { notifications, createNotification, deleteNotification, isCreating } = useNotifications();
+  const { notifications, createNotification, deleteNotification, isCreating, isError, refetch } = useNotifications();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [type, setType] = useState<"info" | "warning" | "success" | "error">("info");
@@ -263,7 +264,12 @@ export default function Notifications() {
 
           <div className="p-6">
             <div className="space-y-3 max-h-[520px] overflow-y-auto scrollbar-none pr-2">
-              {notifications.length === 0 ? (
+              {isError ? (
+                <ErrorState
+                  title="Não foi possível carregar as notificações"
+                  onRetry={() => refetch()}
+                />
+              ) : notifications.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                     <Bell className="w-8 h-8 opacity-40 text-white" />

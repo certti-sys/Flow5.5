@@ -18,6 +18,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/ErrorState";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +45,7 @@ const notificationTypes = [
 ];
 
 export default function EmailSettings() {
-  const { settings, isLoading, updateSettings, isUpdating, testConnection, isTesting } = useEmailSettings();
+  const { settings, isLoading, error, updateSettings, isUpdating, testConnection, isTesting } = useEmailSettings();
   const { data: logs, isLoading: isLoadingLogs } = useEmailLogs({ limit: 50 });
 
   const [provider, setProvider] = useState<"smtp" | "brevo">("brevo");
@@ -156,6 +157,18 @@ export default function EmailSettings() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <ErrorState
+          title="Não foi possível carregar as configurações de e-mail"
+          description="Verifique sua conexão e tente novamente."
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }

@@ -17,6 +17,7 @@ import { WebhookStats } from "@/components/admin/dashboard/WebhookStats";
 import { EngagementCard } from "@/components/admin/dashboard/EngagementCard";
 import { ContentCard } from "@/components/admin/dashboard/ContentCard";
 import { motion } from "framer-motion";
+import { ErrorState } from "@/components/ErrorState";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Sparkles } from "lucide-react";
 
@@ -41,7 +42,7 @@ export default function AdminDashboard() {
   const userName = user?.email ? user.email.split('@')[0] : 'Administrador';
 
   // Fetch courses with modules and lessons count
-  const { data: coursesData = [] } = useQuery({
+  const { data: coursesData = [], isError, refetch } = useQuery({
     queryKey: ["adminDashboardCourses"],
     queryFn: async () => {
       const { data: courses, error } = await supabase
@@ -102,6 +103,8 @@ export default function AdminDashboard() {
         supabase.from("lessons").select("*", { count: "exact", head: true }),
         supabase.from("modules").select("*", { count: "exact", head: true })
       ]);
+      if (lessonsRes.error) throw lessonsRes.error;
+      if (modulesRes.error) throw modulesRes.error;
       return {
         lessons: lessonsRes.count || 0,
         modules: modulesRes.count || 0
@@ -304,6 +307,16 @@ export default function AdminDashboard() {
       />
 
       {/* Stats Overview */}
+      {isError ? (
+        <motion.div variants={itemAnim}>
+          <ErrorState
+            title="Não foi possível carregar o dashboard"
+            description="Ocorreu um erro ao buscar os dados da plataforma. Verifique sua conexão e tente novamente."
+            onRetry={() => refetch()}
+          />
+        </motion.div>
+      ) : (
+        <>
       <motion.div variants={itemAnim}>
         <StatsOverview
           totalCourses={coursesData.length}
@@ -322,6 +335,8 @@ export default function AdminDashboard() {
           <CourseDistributionChart data={courseDistribution} />
         </motion.div>
       </div>
+        </>
+      )}
 
       {/* Courses Details Table */}
       <motion.div variants={itemAnim}>

@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { motion } from "framer-motion";
+import { ErrorState } from "@/components/ErrorState";
 
 const Dashboard = () => {
   const continueCarouselRef = useRef<HTMLDivElement>(null);
@@ -30,7 +31,7 @@ const Dashboard = () => {
   }, []);
 
   // Fetch active carousels
-  const { data: carousels = [], isLoading: carouselsLoading } = useQuery({
+  const { data: carousels = [], isLoading: carouselsLoading, isError: carouselsError, refetch: refetchCarousels } = useQuery({
     queryKey: ["activeCarousels"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -163,6 +164,18 @@ const Dashboard = () => {
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (carouselsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorState
+          title="Não foi possível carregar o dashboard"
+          description="Ocorreu um erro ao buscar os dados. Verifique sua conexão e tente novamente."
+          onRetry={() => refetchCarousels()}
+        />
       </div>
     );
   }

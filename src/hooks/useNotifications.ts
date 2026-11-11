@@ -25,7 +25,7 @@ export const useNotifications = () => {
   const queryClient = useQueryClient();
 
   // Fetch all notifications
-  const { data: notifications = [], isLoading: isLoadingNotifications } = useQuery({
+  const { data: notifications = [], isLoading: isLoadingNotifications, isError: notificationsError, refetch: refetchNotifications } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -160,6 +160,8 @@ export const useNotifications = () => {
     readNotifications,
     unreadCount,
     isLoading: isLoadingNotifications || isLoadingReads,
+    isError: notificationsError,
+    refetch: refetchNotifications,
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
     createNotification: createNotificationMutation.mutate,

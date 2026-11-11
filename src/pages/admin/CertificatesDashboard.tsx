@@ -11,6 +11,7 @@ import { Calendar, User } from "lucide-react";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ErrorState";
 
 interface CertificateData {
   id: string;
@@ -99,7 +100,7 @@ export default function CertificatesDashboard() {
     }
   }, [settings]);
 
-  const { data: certificates = [], isLoading } = useQuery({
+  const { data: certificates = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["admin_certificates"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -169,7 +170,11 @@ export default function CertificatesDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredCertificates.length === 0 ? (
+        {isError ? (
+          <div className="col-span-full">
+            <ErrorState title="Não foi possível carregar os certificados" onRetry={() => refetch()} />
+          </div>
+        ) : filteredCertificates.length === 0 ? (
           <div className="col-span-full glass-card py-32 rounded-[32px] border-dashed border-white/10 flex flex-col items-center justify-center text-center px-6">
             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
               <Search className="w-10 h-10 text-white/10" />

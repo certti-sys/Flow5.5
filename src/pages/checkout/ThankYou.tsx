@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Clock, Copy, Check, ArrowRight, Home, BookOpen } from "lucide-react";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/ErrorState";
 
 export default function ThankYouPage() {
     const { orderId } = useParams();
@@ -18,11 +19,12 @@ export default function ThankYouPage() {
     const [copied, setCopied] = useState(false);
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchOrder = async () => {
             if (!orderId) return;
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from("orders")
                 .select(`
                     *,
@@ -35,6 +37,12 @@ export default function ThankYouPage() {
                 `)
                 .eq("id", orderId)
                 .single();
+            if (error) {
+                setLoadError(error.message);
+                toast.error("Não foi possível carregar os detalhes do pedido", {
+                    description: error.message.slice(0, 160),
+                });
+            }
             setOrder(data);
             setLoading(false);
         };
@@ -56,6 +64,18 @@ export default function ThankYouPage() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-pulse text-muted-foreground">Carregando...</div>
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4">
+                <ErrorState
+                    title="Não foi possível carregar o pedido"
+                    description="Ocorreu um erro ao buscar os detalhes da sua compra."
+                    onRetry={() => window.location.reload()}
+                />
             </div>
         );
     }

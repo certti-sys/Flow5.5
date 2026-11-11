@@ -22,6 +22,7 @@ import {
   Cell
 } from "recharts";
 import { motion } from "framer-motion";
+import { ErrorState } from "@/components/ErrorState";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 
 type PeriodFilter = "today" | "week" | "month" | "year" | "all";
@@ -40,7 +41,7 @@ export default function SalesDashboard() {
     }
   };
 
-  const { data: metrics, isLoading, refetch } = useQuery({
+  const { data: metrics, isLoading, isError, refetch } = useQuery({
     queryKey: ["sales-dashboard-metrics", period],
     queryFn: async () => {
       const periodStart = getPeriodStart(period);
@@ -54,7 +55,8 @@ export default function SalesDashboard() {
         paymentsQuery = paymentsQuery.gte("created_at", periodStart);
       }
 
-      const { data: payments } = await paymentsQuery;
+      const { data: payments, error: paymentsError } = await paymentsQuery;
+      if (paymentsError) throw paymentsError;
 
       const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
       const totalSales = payments?.length || 0;
@@ -74,23 +76,27 @@ export default function SalesDashboard() {
         ordersQuery = ordersQuery.gte("created_at", periodStart);
       }
 
-      const { count: totalOrders } = await ordersQuery;
+      const { count: totalOrders, error: ordersError } = await ordersQuery;
+      if (ordersError) throw ordersError;
 
-      const { count: paidOrders } = await supabase
+      const { count: paidOrders, error: paidError } = await supabase
         .from("orders")
         .select("*", { count: "exact", head: true })
         .eq("status", "paid")
         .gte("created_at", periodStart || "1900-01-01");
+      if (paidError) throw paidError;
 
-      const { count: pendingOrders } = await supabase
+      const { count: pendingOrders, error: pendingError } = await supabase
         .from("orders")
         .select("*", { count: "exact", head: true })
         .eq("status", "pending")
         .gte("created_at", periodStart || "1900-01-01");
+      if (pendingError) throw pendingError;
 
-      const { count: totalCustomers } = await supabase
+      const { count: totalCustomers, error: customersError } = await supabase
         .from("customers")
         .select("*", { count: "exact", head: true });
+      if (customersError) throw customersError;
 
       const chartData = [
         { name: "Seg", total: 450 },
@@ -246,6 +252,15 @@ export default function SalesDashboard() {
       </motion.div>
 
       {/* Métricas Principais */}
+      {isError ? (
+        <motion.div variants={itemAnim}>
+          <ErrorState
+            title="Não foi possível carregar as métricas de vendas"
+            description="Ocorreu um erro ao buscar os dados de vendas. Verifique sua conexão e tente novamente."
+            onRetry={() => refetch()}
+          />
+        </motion.div>
+      ) : (
       <motion.div variants={itemAnim}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="glass-card p-6 rounded-[20px] border-white/10 overflow-hidden relative group h-[160px] bg-gradient-to-tr from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
@@ -310,6 +325,7 @@ export default function SalesDashboard() {
           </div>
         </div>
       </motion.div>
+      )}
 
       {/* Gráfico de Vendas */}
       <motion.div variants={itemAnim} className="glass-card rounded-[20px] border-white/10 overflow-hidden shadow-2xl bg-white/[0.01]">

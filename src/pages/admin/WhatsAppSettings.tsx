@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
+import { ErrorState } from '@/components/ErrorState';
 import { cn } from '@/lib/utils';
 import {
   useWhatsAppSettings, useMessageTemplates, useWhatsAppLogs, useSendWhatsApp,
@@ -61,7 +62,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 export default function WhatsAppSettings() {
-  const { settings, isLoading: settingsLoading, updateSettings, isSaving } = useWhatsAppSettings();
+  const { settings, isLoading: settingsLoading, isError: settingsError, refetch: refetchSettings, updateSettings, isSaving } = useWhatsAppSettings();
   const { templates, isLoading: templatesLoading, updateTemplate, isUpdating } = useMessageTemplates();
   const { logs, isLoading: logsLoading, refetch: refetchLogs } = useWhatsAppLogs();
   const { sendMessage, isSending } = useSendWhatsApp();
@@ -126,6 +127,18 @@ export default function WhatsAppSettings() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (settingsError) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <ErrorState
+          title="Não foi possível carregar as configurações de WhatsApp"
+          description="Verifique sua conexão e tente novamente."
+          onRetry={() => refetchSettings()}
+        />
       </div>
     );
   }

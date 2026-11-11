@@ -5,6 +5,7 @@ import { Lock, ChevronLeft, BookOpen, Clock, ShoppingCart, Star, ShieldCheck, Ch
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ErrorState";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   Accordion,
@@ -25,7 +26,7 @@ const CourseInfo = () => {
   }, [courseId]);
 
   // Fetch course with modules and lessons
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, isError, refetch } = useQuery({
     queryKey: ["course-info", courseId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,6 +58,18 @@ const CourseInfo = () => {
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorState
+          title="Não foi possível carregar o curso"
+          description="Ocorreu um erro ao buscar as informações do curso."
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

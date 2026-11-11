@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/ErrorState";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -21,7 +22,7 @@ export default function GatewaysPage() {
     const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const { data: gateways, isLoading, refetch } = useQuery({
+    const { data: gateways, isLoading, isError, refetch } = useQuery({
         queryKey: ["gateways"],
         queryFn: async () => {
             const { data, error } = await supabase
@@ -141,6 +142,12 @@ export default function GatewaysPage() {
                         <div key={i} className="h-[200px] w-full animate-pulse bg-white/5 rounded-[20px]" />
                     ))}
                 </div>
+            ) : isError ? (
+                <ErrorState
+                    title="Não foi possível carregar os gateways"
+                    description="Verifique sua conexão e tente novamente."
+                    onRetry={() => refetch()}
+                />
             ) : gateways && gateways.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <AnimatePresence mode="popLayout">

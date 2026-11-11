@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ErrorState";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, FileDown, ArrowLeft, Award, ShieldCheck } from "lucide-react";
@@ -399,7 +400,19 @@ export default function CertificateView() {
   }
 
   // ── Error ──
-  if (error || !cert) {
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <ErrorState
+          title="Não foi possível carregar o certificado"
+          description="Ocorreu um erro ao buscar os dados do certificado. Verifique sua conexão e tente novamente."
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+
+  if (!cert) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <ShieldCheck className="w-16 h-16 text-destructive opacity-50" />

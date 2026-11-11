@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { motion } from "framer-motion";
+import { ErrorState } from "@/components/ErrorState";
 
 const Profile = () => {
   // Scroll to top when page loads
@@ -32,7 +33,7 @@ const Profile = () => {
   } = useGamification();
 
   // Fetch user profile
-  const { data: profile } = useQuery({
+  const { data: profile, isError: profileError, refetch: refetchProfile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -168,6 +169,18 @@ const Profile = () => {
   const studyHours = Math.round(totalLessonsWatched * 0.5);
 
   const xpProgress = getXpProgress();
+
+  if (profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorState
+          title="Não foi possível carregar o perfil"
+          description="Ocorreu um erro ao buscar seus dados. Verifique sua conexão e tente novamente."
+          onRetry={() => refetchProfile()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">

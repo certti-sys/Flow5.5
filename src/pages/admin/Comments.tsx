@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ErrorState } from "@/components/ErrorState";
 import { motion } from "framer-motion";
 import {
   Select,
@@ -85,7 +86,7 @@ const Comments = () => {
   const [replyOpen, setReplyOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const { data: comments = [], isLoading } = useQuery({
+  const { data: comments = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["adminComments"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -171,6 +172,17 @@ const Comments = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           <p className="text-sm text-white/60 mt-3">Carregando comentários...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center py-24">
+        <ErrorState
+          title="Não foi possível carregar os comentários"
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

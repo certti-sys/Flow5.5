@@ -59,7 +59,7 @@ const defaultSettings: Partial<WhatsAppSettings> = {
 export function useWhatsAppSettings() {
   const queryClient = useQueryClient();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading, isError, refetch } = useQuery({
     queryKey: ['whatsapp-settings'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -133,6 +133,8 @@ export function useWhatsAppSettings() {
   return {
     settings: settings || (defaultSettings as WhatsAppSettings),
     isLoading,
+    isError,
+    refetch,
     updateSettings: updateMutation.mutateAsync,
     isSaving: updateMutation.isPending,
     testConnection: testConnectionMutation.mutateAsync,
@@ -143,7 +145,7 @@ export function useWhatsAppSettings() {
 export function useMessageTemplates() {
   const queryClient = useQueryClient();
 
-  const { data: templates, isLoading } = useQuery({
+  const { data: templates, isLoading, isError, refetch } = useQuery({
     queryKey: ['message-templates'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -222,6 +224,8 @@ export function useMessageTemplates() {
   return {
     templates: templates || [],
     isLoading,
+    isError,
+    refetch,
     updateTemplate: updateMutation.mutateAsync,
     createTemplate: createMutation.mutateAsync,
     deleteTemplate: deleteMutation.mutateAsync,
@@ -231,7 +235,7 @@ export function useMessageTemplates() {
 }
 
 export function useWhatsAppLogs(limit: number = 50) {
-  const { data: logs, isLoading, refetch } = useQuery({
+  const { data: logs, isLoading, isError, refetch } = useQuery({
     queryKey: ['whatsapp-logs', limit],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -248,6 +252,7 @@ export function useWhatsAppLogs(limit: number = 50) {
   return {
     logs: logs || [],
     isLoading,
+    isError,
     refetch,
   };
 }

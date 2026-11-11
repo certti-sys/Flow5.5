@@ -1,7 +1,8 @@
 import React from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -47,6 +48,19 @@ import { ShoppingCart, Package, Layers, CreditCard } from "lucide-react";
 
 // Initialize React Query client with optimized defaults
 const queryClient = new QueryClient({
+  // P0-2/P1-9: qualquer query que falhe avisa o usuário — falha de
+  // carregamento nunca mais fica só no console.
+  // PGRST116 = "nenhuma linha encontrada" do PostgREST: é estado vazio
+  // legítimo (ex.: .single() em tabela sem registros), não um erro real.
+  queryCache: new QueryCache({
+    onError: (error) => {
+      const msg = error?.message || String(error);
+      if (msg.includes("PGRST116")) return;
+      toast.error("Não foi possível carregar alguns dados", {
+        description: msg.slice(0, 160),
+      });
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60, // 1 minuto - dados ficam "frescos" por mais tempo

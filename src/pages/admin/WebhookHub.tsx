@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/ErrorState";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -42,7 +43,7 @@ export default function WebhookHub() {
   const [showReceiverWizard, setShowReceiverWizard] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: platforms, isLoading: loadingPlatforms, refetch } = useQuery({
+  const { data: platforms, isLoading: loadingPlatforms, isError: platformsError, refetch } = useQuery({
     queryKey: ['webhook-platforms'],
     queryFn: async () => {
       const { data, error } = await supabase.from('webhook_platforms').select('*').order('display_name');
@@ -69,7 +70,7 @@ export default function WebhookHub() {
       if (error) throw error;
       return data;
     },
-    enabled: activeTab === 'mappings'
+    enabled: activeTab === 'advanced'
   });
 
   const copyWebhookUrl = () => {
@@ -178,6 +179,12 @@ export default function WebhookHub() {
         <TabsContent value="platforms" className="space-y-6">
           {loadingPlatforms ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map(i => (<div key={i} className="h-[160px] w-full animate-pulse bg-white/5 rounded-[16px]" />))}</div>
+          ) : platformsError ? (
+            <ErrorState
+              title="Não foi possível carregar as plataformas"
+              description="Ocorreu um erro ao buscar as plataformas de webhook."
+              onRetry={() => refetch()}
+            />
           ) : platforms && platforms.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence mode="popLayout">
