@@ -68,6 +68,29 @@ async function sendViaBrevo(
   }
 }
 
+async function isBrevoBlocked(apiKey: string, email: string): Promise<string | null> {
+  try {
+    // O Brevo não expõe consulta por e-mail; a listagem aceita no máximo 100.
+    const response = await fetch('https://api.brevo.com/v3/smtp/blockedContacts?limit=100', {
+      headers: { accept: 'application/json', 'api-key': apiKey },
+    });
+    if (!response.ok) return null;
+
+    const data = await response.json().catch(() => null);
+    const hit = (data?.contacts ?? []).find(
+      (c: any) => String(c?.email ?? '').toLowerCase() === email.toLowerCase(),
+    );
+    if (!hit) return null;
+
+    const reason = hit?.reason?.message || hit?.reason?.code || 'sem motivo informado';
+    // O Brevo aceita o POST e bloqueia depois, na fila: sem esta checagem o
+    // painel mostra "enviado" e o e-mail nunca chega.
+    return `Destinatário bloqueado no Brevo (${reason})`;
+  } catch {
+    return null;
+  }
+}
+
 function replaceVariables(template: string, variables: Record<string, string>): string {
   let result = template
   for (const [key, value] of Object.entries(variables)) {
@@ -219,6 +242,20 @@ Deno.serve(async (req) => {
 
     if (!eSettings.brevo_api_key) {
       return new Response(JSON.stringify({ success: false, error: 'brevo_api_key não configurada em email_settings' }), { status: 503, headers: corsHeaders })
+    }
+
+    const blocked = await isBrevoBlocked(eSettings.brevo_api_key, to)
+    if (blocked) {
+      await supabase.from('email_logs').insert({
+        recipient_email: to,
+        recipient_name: toName,
+        subject: fSubject || 'Bem-vindo!',
+        email_type: type,
+        provider: eSettings.provider,
+        status: 'failed',
+        error_message: blocked,
+      })
+      return new Response(JSON.stringify({ success: false, error: blocked }), { status: 422, headers: corsHeaders })
     }
 
     let result = await sendViaBrevo(eSettings.brevo_api_key!, eSettings.from_email, eSettings.from_name, to, toName, fSubject, fHtml)
