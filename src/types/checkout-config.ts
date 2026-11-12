@@ -30,6 +30,16 @@ export interface CheckoutTextBlock {
 
 export type CheckoutContentBlock = CheckoutImageBlock | CheckoutTextBlock;
 
+/** Método no vocabulário do gateway (como no Getfy). */
+export type CheckoutPaymentMethodKey = 'card' | 'pix' | 'boleto';
+
+export interface CheckoutPaymentGateways {
+    /** Slug do gateway, '' (segue o padrão do sistema) ou '__default__'. */
+    card: string;
+    pix: string;
+    boleto: string;
+}
+
 export interface CheckoutReview {
     photo: string;
     author: string;
@@ -72,6 +82,13 @@ export interface CheckoutConfig {
     };
 
     reviews: CheckoutReview[];
+
+    /**
+     * Gateway por método de pagamento (como no Getfy). Cada chave aceita um
+     * slug de gateway, vazio (usa o padrão) ou `__default__` (usa a ordem
+     * global). `*_redundancy` é a fila de reserva caso o principal não sirva.
+     */
+    payment_gateways: CheckoutPaymentGateways;
 
     timer: {
         enabled: boolean;
@@ -152,6 +169,11 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         coupon: true,
     },
     reviews: [],
+    payment_gateways: {
+        card: '',
+        pix: '',
+        boleto: '',
+    },
     timer: {
         enabled: false,
         text: 'Oferta expira em',
@@ -294,6 +316,10 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
 
     config.appearance.content_blocks = normalizeBlocks(config.appearance.content_blocks);
     config.reviews = normalizeReviews(config.reviews);
+
+    for (const key of ['card', 'pix', 'boleto'] as const) {
+        config.payment_gateways[key] = asString(config.payment_gateways?.[key]).trim();
+    }
 
     config.youtube_url = asString(config.youtube_url);
     config.youtube_position = config.youtube_position === 'bottom' ? 'bottom' : 'top';

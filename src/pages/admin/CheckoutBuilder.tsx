@@ -22,6 +22,7 @@ import {
     type CheckoutReview,
 } from "@/types/checkout-config";
 import { cn } from "@/lib/utils";
+import { fetchCheckoutGateways, type CheckoutGatewayOption } from "@/lib/checkout-gateways";
 import { toast } from "sonner";
 import {
     Copy, ExternalLink, Eye, Image as ImageIcon, Loader2, Plus,
@@ -74,6 +75,11 @@ export default function CheckoutBuilder() {
             if (error) throw error;
             return (data ?? []) as BuilderProduct[];
         },
+    });
+
+    const { data: gateways } = useQuery<CheckoutGatewayOption[]>({
+        queryKey: ["checkout-gateways"],
+        queryFn: () => fetchCheckoutGateways(),
     });
 
     const product = useMemo(
@@ -332,9 +338,10 @@ export default function CheckoutBuilder() {
                 </div>
 
                 <Tabs defaultValue="geral" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-7">
                         <TabsTrigger value="geral">Geral</TabsTrigger>
                         <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
+                        <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                         <TabsTrigger value="campos">Campos</TabsTrigger>
                         <TabsTrigger value="social">Social</TabsTrigger>
                         <TabsTrigger value="contato">Contato</TabsTrigger>
@@ -808,6 +815,78 @@ export default function CheckoutBuilder() {
                                 </SectionCard>
                             );
                         })}
+                    </TabsContent>
+
+                    {/* PAGAMENTO */}
+                    <TabsContent value="pagamento" className="space-y-4">
+                        <SectionCard
+                            title="Gateway por método de pagamento"
+                            description="Escolha qual gateway processa cada método. Deixe em 'Padrão do sistema' para usar o gateway principal."
+                        >
+                            {gateways && gateways.length === 0 && (
+                                <p className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-200">
+                                    Nenhum gateway ativo com credencial. Ative e configure em <strong>Admin → Gateways</strong>.
+                                </p>
+                            )}
+
+                            <div className="space-y-3">
+                                {([
+                                    { key: "card" as const, label: "Cartão de crédito", method: "credit_card" as const },
+                                    { key: "pix" as const, label: "PIX", method: "pix" as const },
+                                    { key: "boleto" as const, label: "Boleto", method: "bolbradesco" as const },
+                                ]).map(({ key, label, method }) => {
+                                    const supported = (gateways ?? []).filter((gateway) =>
+                                        gateway.methods.includes(method)
+                                    );
+                                    const selected = config.payment_gateways[key];
+
+                                    return (
+                                        <div key={key} className="space-y-1.5 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-[13px] font-medium text-white/80">{label}</Label>
+                                                {supported.length === 0 && (
+                                                    <span className="text-[11px] text-muted-foreground">Nenhum gateway suporta</span>
+                                                )}
+                                            </div>
+                                            <Select
+                                                value={selected || "__default__"}
+                                                onValueChange={(value) =>
+                                                    patch((current) => ({
+                                                        ...current,
+                                                        payment_gateways: {
+                                                            ...current.payment_gateways,
+                                                            [key]: value === "__default__" ? "" : value,
+                                                        },
+                                                    }))
+                                                }
+                                            >
+                                                <SelectTrigger className={inputClass}>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="__default__">Padrão do sistema</SelectItem>
+                                                    {supported.map((gateway) => (
+                                                        <SelectItem key={gateway.slug} value={gateway.slug}>
+                                                            {gateway.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {selected && !supported.some((gateway) => gateway.slug === selected) && (
+                                                <p className="text-[11px] text-amber-300">
+                                                    {selected} está configurado mas não suporta {label.toLowerCase()} — será ignorado no checkout.
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <p className="text-[11px] text-muted-foreground">
+                                Gateways diferentes podem coexistir: um processa o cartão, outro o PIX. Métodos sem
+                                gateway configurado seguem o gateway padrão do sistema.
+                            </p>
+                        </SectionCard>
                     </TabsContent>
 
                     {/* CAMPOS */}

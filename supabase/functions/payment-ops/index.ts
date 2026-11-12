@@ -2339,11 +2339,31 @@ Deno.serve(async (req) => {
 
             const { data: product } = await supabaseAdmin
                 .from('products')
-                .select('id, name, price, course_id')
+                .select('id, name, price, course_id, checkout_config')
                 .eq('id', productId)
                 .single();
 
             if (!product) throw new Error("Produto não encontrado");
+
+            // O produto escolhe qual gateway atende cada método. Sem isso, um
+            // cliente poderia enviar outro gatewayId e furar a configuração.
+            const configuredGateways = (product.checkout_config as any)?.payment_gateways ?? {};
+            const requestedMethod = String(
+                payload.payment_method_id
+                || (cred.gateway.slug === 'stripe' || cred.gateway.slug === 'paypal' ? 'credit_card' : 'pix')
+            ).toLowerCase();
+            const methodKey = requestedMethod === 'pix'
+                ? 'pix'
+                : (requestedMethod === 'bolbradesco' || requestedMethod === 'boleto')
+                    ? 'boleto'
+                    : 'card';
+            const allowedSlug = String(configuredGateways[methodKey] ?? '').trim();
+
+            if (allowedSlug && allowedSlug !== '__default__' && allowedSlug !== cred.gateway.slug) {
+                throw new Error(
+                    `Este produto não aceita ${methodKey} pelo gateway ${cred.gateway.slug}.`
+                );
+            }
 
             // Cálculo server-side do valor esperado (protege contra manipulação de preço no cliente)
             let baseTotal = product.price || 0;

@@ -24,6 +24,11 @@ import { StripeCardElement } from "@/components/checkout/StripeCardElement";
 import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
 import { normalizeCheckoutConfig } from "@/types/checkout-config";
+import {
+    fetchCheckoutGateways,
+    resolveCheckoutGateways,
+    type CheckoutMethod,
+} from "@/lib/checkout-gateways";
 import { CheckoutContentBlocks, CheckoutYoutube } from "@/components/checkout/CheckoutContentBlocks";
 import { CheckoutTimer } from "@/components/checkout/CheckoutTimer";
 import { CheckoutReviews } from "@/components/checkout/CheckoutReviews";
@@ -36,6 +41,8 @@ declare global {
         MercadoPago: any;
     }
 }
+
+type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal' | 'efi' | 'cajupay';
 
 export default function CheckoutPage() {
     const { productId, slug } = useParams<{ productId?: string; slug?: string }>();
@@ -50,7 +57,9 @@ export default function CheckoutPage() {
 
     // Stripe state
     const [currency, setCurrency] = useState<string>('BRL');
-    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal' | 'efi' | 'cajupay'>('mercadopago');
+    const [selectedGateway, setSelectedGateway] = useState<GatewaySlug>('mercadopago');
+    // Gateway escolhido para cada método no produto (checkout_config.payment_gateways).
+    const [methodGateways, setMethodGateways] = useState<Partial<Record<CheckoutMethod, GatewaySlug>>>({});
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
@@ -183,50 +192,35 @@ export default function CheckoutPage() {
 
     // Detect currency and gateway on mount
     useEffect(() => {
-        const fetchActiveGateways = async () => {
-            // Buscar gateways ativos
-            const { data: activeGateways, error } = await supabase
-                .from('gateways')
-                .select('slug, is_default')
-                .eq('is_active', true);
+        const load = async () => {
+            try {
+                const active = await fetchCheckoutGateways();
 
-            if (error) {
+                if (active.length === 0) {
+                    console.error('❌ No active gateways found');
+                    toast.error('Nenhum gateway de pagamento ativo');
+                    return;
+                }
+
+                const detectedCurrency = detectUserCurrency();
+                const currencySlug = selectGatewayByCurrency(detectedCurrency);
+                const resolved = resolveCheckoutGateways(config, active, currencySlug);
+
+                setMethodGateways(resolved.byMethod as Partial<Record<CheckoutMethod, GatewaySlug>>);
+                setAllowedMethods(resolved.methods);
+
+                if (resolved.fallback) setSelectedGateway(resolved.fallback as GatewaySlug);
+            } catch (error) {
                 console.error('Error fetching active gateways:', error);
-                return;
             }
-
-            console.log('🔌 Active gateways:', activeGateways);
-
-            if (!activeGateways || activeGateways.length === 0) {
-                console.error('❌ No active gateways found');
-                toast.error('Nenhum gateway de pagamento ativo');
-                return;
-            }
-
-            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal' | 'efi' | 'cajupay';
-            const slugs = activeGateways.map(g => g.slug as GatewaySlug);
-
-            // 1) Gateway marcado como padrão no admin vence sempre.
-            // 2) Depois, tenta casar a moeda detectada com o gateway conhecido.
-            // 3) Por último, usa o primeiro gateway ativo.
-            const defaultSlug = activeGateways.find(g => g.is_default)?.slug as GatewaySlug | undefined;
-            const detectedCurrency = detectUserCurrency();
-            const currencySlug = selectGatewayByCurrency(detectedCurrency) as GatewaySlug;
-
-            const gateway: GatewaySlug = defaultSlug
-                ?? (slugs.includes(currencySlug) ? currencySlug : slugs[0]);
-
-            console.log('✅ Gateway selecionado:', gateway, { defaultSlug, detectedCurrency });
-            setSelectedGateway(gateway);
-            setCurrency(gateway === 'stripe' || gateway === 'paypal' ? 'USD' : 'BRL');
         };
 
-        fetchActiveGateways();
-    }, []);
+        load();
+        // config muda quando o produto carrega; os gateways só são lidos uma vez.
+    }, [config.payment_gateways.card, config.payment_gateways.pix, config.payment_gateways.boleto]);
 
     useEffect(() => {
         const fetchKeyAndLoadSdk = async () => {
-            // Fetch gateway based on selected gateway
             const gatewaySlug = selectedGateway;
             console.log('🔍 Fetching gateway config for:', gatewaySlug);
 
@@ -242,9 +236,6 @@ export default function CheckoutPage() {
 
                 if (gatewaySlug === 'mercadopago') {
                     setMpPublicKey(gatewayConfig.public_key);
-                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
-                        setAllowedMethods(gatewayConfig.allowed_methods);
-                    }
 
                     // Carregar SDK do Mercado Pago via script tag
                     if (!window.MercadoPago) {
@@ -263,60 +254,36 @@ export default function CheckoutPage() {
                     }
                 } else if (gatewaySlug === 'stripe') {
                     setStripePublicKey(gatewayConfig.public_key);
-                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
-                        console.log('🔵 Stripe allowed_methods:', gatewayConfig.allowed_methods);
-                        setAllowedMethods(gatewayConfig.allowed_methods);
-                    } else {
-                        console.warn('⚠️ Stripe sem allowed_methods, usando padrão');
-                        setAllowedMethods(['card']);
-                    }
-                    // Payment Intent will be created by useEffect when product is ready
-                } else if (gatewaySlug === 'asaas') {
-                    // Asaas não usa chave pública no navegador: PIX/boleto são
-                    // gerados no servidor e o cartão vai para a página hospedada.
-                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
-                        setAllowedMethods(gatewayConfig.allowed_methods);
-                    } else {
-                        setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
-                    }
-                } else if (gatewaySlug === 'pushinpay') {
-                    // PushinPay é PIX-only e não usa chave pública no navegador.
-                    setAllowedMethods(['pix']);
-                } else if (gatewaySlug === 'pagarme') {
-                    // Pagar.me não usa chave pública no navegador: PIX e boleto
-                    // são gerados no servidor e o cartão vai para o checkout
-                    // hospedado (PCI).
-                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
-                        setAllowedMethods(gatewayConfig.allowed_methods);
-                    } else {
-                        setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
-                    }
-                } else if (gatewaySlug === 'paypal') {
-                    // PayPal usa checkout hospedado (Orders API). O cliente
-                    // aprova no site do PayPal e volta para a página de obrigado.
-                    setAllowedMethods(['credit_card']);
-                } else if (gatewaySlug === 'efi') {
-                    // Efí: PIX e boleto são gerados no servidor; o cartão vai
-                    // para o link de pagamento hospedado da Efí (PCI).
-                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
-                        setAllowedMethods(gatewayConfig.allowed_methods);
-                    } else {
-                        setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
-                    }
-                } else if (gatewaySlug === 'cajupay') {
-                    // CajuPay: PIX é gerado no servidor (QR na nossa página) e
-                    // o cartão é concluído na página hospedada da CajuPay (PCI).
-                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
-                        setAllowedMethods(gatewayConfig.allowed_methods);
-                    } else {
-                        setAllowedMethods(['credit_card', 'pix']);
-                    }
                 }
             }
         };
         if (selectedGateway) {
             fetchKeyAndLoadSdk();
         }
+    }, [selectedGateway]);
+
+    // O gateway segue o método escolhido (mapa `payment_gateways` do produto).
+    useEffect(() => {
+        const slug = methodGateways[selectedMethod as CheckoutMethod];
+        // Trocar de gateway invalida o Payment Intent em andamento.
+        setStripeClientSecret(null);
+        if (slug && slug !== selectedGateway) {
+            setSelectedGateway(slug);
+            return;
+        }
+        // Sem mapa para o método, usa o gateway padrão. Nunca deixa o gateway
+        // atual sem suportar o método selecionado.
+        if (!slug && allowedMethods.length > 0 && !allowedMethods.includes(selectedMethod)) {
+            const next = allowedMethods[0] as CheckoutMethod;
+            const nextSlug = methodGateways[next];
+            setSelectedMethod(next);
+            if (nextSlug) setSelectedGateway(nextSlug);
+        }
+    }, [selectedMethod, methodGateways, allowedMethods, selectedGateway]);
+
+    // PayPal e Stripe cobram em USD; os demais em BRL.
+    useEffect(() => {
+        setCurrency(selectedGateway === 'stripe' || selectedGateway === 'paypal' ? 'USD' : 'BRL');
     }, [selectedGateway]);
 
     // O Payment Intent do Stripe é criado só no submit (handleStripePayment).
@@ -836,8 +803,8 @@ export default function CheckoutPage() {
                                 />
                             )}
 
-                            {/* Mercado Pago / Asaas / PushinPay / Pagar.me / PayPal / Efí / CajuPay Payment Methods */}
-                            {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && allowedMethods.length > 0 && (
+                            {/* Seletor de método — um gateway por método (mapa do produto). */}
+                            {allowedMethods.length > 0 && (
                                 <>
                                     <PaymentMethods
                                         form={form}
@@ -850,15 +817,15 @@ export default function CheckoutPage() {
                                         allowedMethods={allowedMethods}
                                     />
 
-                                    {/* No Asaas, Pagar.me, PayPal, Efí e CajuPay o cartão é digitado no ambiente do gateway (PCI). */}
-                                    {(selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && selectedMethod === 'credit_card' && (
+                                    {/* Gateways com página hospedada: o cartão é digitado no ambiente do gateway (PCI). */}
+                                    {selectedMethod === 'credit_card' && (selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && (
                                         <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
                                             O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : selectedGateway === 'pagarme' ? 'Pagar.me' : selectedGateway === 'paypal' ? 'PayPal' : selectedGateway === 'efi' ? 'Efí' : 'CajuPay'}. Ao confirmar,
                                             você será redirecionado para concluir o pagamento{selectedGateway === 'paypal' ? ' (valor em dólar)' : ''}.
                                         </div>
                                     )}
 
-                                    {/* Renderiza Formulário Customizado APENAS para Cartão no Mercado Pago. */}
+                                    {/* Formulário de cartão customizado apenas no Mercado Pago. */}
                                     {selectedMethod === 'credit_card' && selectedGateway === 'mercadopago' && (
                                         <CustomCardForm
                                             form={form}
@@ -889,16 +856,9 @@ export default function CheckoutPage() {
                                 </div>
                             )}
 
-                            {/* Submit Button — MP/Asaas pagam; Stripe usa este botão só
-                                para gerar o Payment Intent e então mostra o Element. */}
-                            {(selectedGateway === 'mercadopago'
-                                || selectedGateway === 'asaas'
-                                || selectedGateway === 'pushinpay'
-                                || selectedGateway === 'pagarme'
-                                || selectedGateway === 'paypal'
-                                || selectedGateway === 'efi'
-                                || selectedGateway === 'cajupay'
-                                || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
+                            {/* Submit Button - Stripe usa este botão só para gerar o
+                                Payment Intent e então mostra o Element. */}
+                            {allowedMethods.length > 0 && !(selectedGateway === 'stripe' && stripeClientSecret) && (
                                 <>
                                     <Button
                                         type="submit"
