@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -36,6 +37,8 @@ export interface EmailLog {
 
 export function useEmailSettings() {
   const queryClient = useQueryClient();
+  // Evita o toast "Configurações salvas" durante o teste de conexão.
+  const silentSaveRef = useRef(false);
 
   // Buscar configurações ativas
   const {
@@ -94,7 +97,8 @@ export function useEmailSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-settings"] });
-      toast.success("Configurações salvas com sucesso!");
+      // O teste de conexão também salva; ali quem responde é o toast do teste.
+      if (!silentSaveRef.current) toast.success("Configurações salvas com sucesso!");
     },
     onError: (error: any) => {
       toast.error(`Erro ao salvar: ${error.message}`);
@@ -106,7 +110,13 @@ export function useEmailSettings() {
     mutationFn: async (testSettings: Partial<EmailSettings> & { testRecipient?: string }) => {
       // Primeiro salvar as configurações (sem testRecipient)
       const { testRecipient, ...settingsToSave } = testSettings;
-      await updateMutation.mutateAsync(settingsToSave);
+      silentSaveRef.current = true;
+      try {
+        await updateMutation.mutateAsync(settingsToSave);
+      } finally {
+        silentSaveRef.current = false;
+      }
+      queryClient.invalidateQueries({ queryKey: ["email-logs"] });
 
       // Depois enviar email de teste para o destinatário especificado
       const recipientEmail = testRecipient || testSettings.from_email;
@@ -129,10 +139,26 @@ export function useEmailSettings() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // functions.invoke só devolve "non-2xx status code"; o motivo real
+        // (blocklist do Brevo, chave inválida) vem no corpo da resposta.
+        let detail: string | null = null;
+        const ctx: any = (error as any)?.context;
+        try {
+          if (typeof ctx?.json === "function") detail = (await ctx.json())?.error ?? null;
+          else if (typeof ctx?.text === "function") detail = JSON.parse(await ctx.text())?.error ?? null;
+        } catch {
+          detail = null;
+        }
+        throw new Error(detail || (error as any)?.message || "Falha ao enviar o e-mail de teste");
+      }
+      if (data?.success === false) {
+        throw new Error(data?.error || "Falha ao enviar o e-mail de teste");
+      }
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-logs"] });
       toast.success("Email de teste enviado! Verifique a caixa de entrada do destinatário.");
     },
     onError: (error: any) => {
