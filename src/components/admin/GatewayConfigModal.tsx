@@ -44,7 +44,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pushinpay-webhook`
                     : gateway?.slug === 'pagarme'
                         ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pagarme-webhook`
-                        : null;
+                        : gateway?.slug === 'paypal'
+                            ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/paypal-webhook`
+                            : null;
 
     const handleTestConnection = async () => {
         if (!gateway) return;
@@ -81,6 +83,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             return ["card"]; // Stripe uses 'card' not 'credit_card'
         } else if (gatewaySlug === 'pushinpay') {
             return ["pix"];
+        } else if (gatewaySlug === 'paypal') {
+            return ["credit_card"];
         }
         return ["credit_card"];
     };
@@ -95,6 +99,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             ];
         } else if (gatewaySlug === 'pushinpay') {
             return [{ id: "pix", label: "Pix" }];
+        } else if (gatewaySlug === 'paypal') {
+            return [{ id: "credit_card", label: "Cartão / Conta PayPal" }];
         } else if (gatewaySlug === 'stripe') {
             return [
                 { id: "card", label: "Cartão de Crédito" },
@@ -227,10 +233,20 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         {gateway.slug !== 'asaas' && gateway.slug !== 'pushinpay' && gateway.slug !== 'pagarme' && (
                             <div className="space-y-2">
                                 <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
-                                    {gateway.slug === 'stripe' ? 'Publishable Key' : 'Public Key'}
+                                    {gateway.slug === 'stripe'
+                                        ? 'Publishable Key'
+                                        : gateway.slug === 'paypal'
+                                            ? 'Client ID'
+                                            : 'Public Key'}
                                 </Label>
                                 <Input
-                                    placeholder={gateway.slug === 'stripe' ? 'pk_test_...' : 'pk_...'}
+                                    placeholder={
+                                        gateway.slug === 'stripe'
+                                            ? 'pk_test_...'
+                                            : gateway.slug === 'paypal'
+                                                ? 'Client ID do app PayPal'
+                                                : 'pk_...'
+                                    }
                                     value={publicKey}
                                     onChange={(e) => setPublicKey(e.target.value)}
                                     className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
@@ -238,6 +254,11 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 {gateway.slug === 'stripe' && (
                                     <p className="text-[12px] text-white/60">
                                         Formato: pk_test_... (teste) ou pk_live_... (produção)
+                                    </p>
+                                )}
+                                {gateway.slug === 'paypal' && (
+                                    <p className="text-[12px] text-white/60">
+                                        Client ID do app REST no painel do PayPal Developers.
                                     </p>
                                 )}
                             </div>
@@ -254,7 +275,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                 ? 'API Token'
                                                 : gateway.slug === 'pagarme'
                                                     ? 'Secret Key'
-                                                    : 'Access Token / Secret Key'}
+                                                    : gateway.slug === 'paypal'
+                                                        ? 'Client Secret'
+                                                        : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
                                     variant="ghost"
@@ -277,7 +300,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                 ? 'token de API do PushinPay'
                                                 : gateway.slug === 'pagarme'
                                                     ? 'sk_test_... ou sk_live_...'
-                                                    : 'sk_...'
+                                                    : gateway.slug === 'paypal'
+                                                        ? 'Client Secret do app PayPal'
+                                                        : 'sk_...'
                                 }
                                 value={secretKey}
                                 onChange={(e) => setSecretKey(e.target.value)}
@@ -294,13 +319,19 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? "Token de API do PushinPay. No ambiente de teste use o token do sandbox."
                                     : gateway.slug === 'pagarme'
                                     ? "Secret key do Pagar.me. No ambiente de teste use uma chave sk_test_... (sdx-api)."
+                                    : gateway.slug === 'paypal'
+                                    ? "Client Secret do app REST. Use as credenciais de sandbox no ambiente de teste."
                                     : "Token de acesso privado."}
                             </p>
                         </div>
 
                         <div className="space-y-2">
                             <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
-                                {gateway.slug === 'asaas' ? 'Token do Webhook (Opcional)' : 'Webhook Secret (Opcional)'}
+                                {gateway.slug === 'asaas'
+                                    ? 'Token do Webhook (Opcional)'
+                                    : gateway.slug === 'paypal'
+                                        ? 'Webhook ID (Obrigatório)'
+                                        : 'Webhook Secret (Opcional)'}
                             </Label>
                             <Input
                                 type={showSecrets ? "text" : "password"}
@@ -309,7 +340,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         ? 'token definido no painel do Asaas'
                                         : gateway.slug === 'pushinpay'
                                             ? 'segredo enviado em X-Webhook-Signature'
-                                            : 'whsec_...'
+                                            : gateway.slug === 'paypal'
+                                                ? 'ID do webhook criado no painel do PayPal'
+                                                : 'whsec_...'
                                 }
                                 value={webhookSecret}
                                 onChange={(e) => setWebhookSecret(e.target.value)}
@@ -325,6 +358,12 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 <p className="text-[12px] text-white/60">
                                     Se preenchido, o webhook exige o header <code className="font-mono">X-Webhook-Signature</code>
                                     {" "}com <code className="font-mono">sha256=HMAC(body)</code>. Deixe vazio para não validar.
+                                </p>
+                            )}
+                            {gateway.slug === 'paypal' && (
+                                <p className="text-[12px] text-white/60">
+                                    O ID do webhook é obrigatório: a função valida a assinatura em
+                                    {" "}<code className="font-mono">verify-webhook-signature</code> antes de processar o evento.
                                 </p>
                             )}
                         </div>
@@ -357,7 +396,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             ? 'Cole esta URL no painel do PushinPay (Webhooks). Ela também é enviada automaticamente em cada cobrança PIX.'
                                             : gateway.slug === 'pagarme'
                                                 ? 'Cole esta URL em Configurações → Webhooks no painel do Pagar.me (eventos de pedido e cobrança).'
-                                                : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
+                                                : gateway.slug === 'paypal'
+                                                    ? 'Cole esta URL no app REST do PayPal (Webhooks) e copie o Webhook ID gerado para o campo acima.'
+                                                    : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
                                 </p>
                             </div>
                         )}

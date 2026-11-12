@@ -789,6 +789,248 @@ class PagarmeProvider implements PaymentProvider {
     }
 }
 
+/** Mapeia o status de uma Order PayPal (v2) para o status interno. */
+function mapPaypalOrderStatus(order: any): "pending" | "paid" | "failed" {
+    const status = String(order?.status || "").toUpperCase();
+    const capture = order?.purchase_units?.[0]?.payments?.captures?.[0];
+    const captureStatus = String(capture?.status || "").toUpperCase();
+
+    if (status === "COMPLETED" || captureStatus === "COMPLETED") return "paid";
+    if (["VOIDED", "CANCELLED"].includes(status)) return "failed";
+    if (["DECLINED", "FAILED", "REFUNDED", "REVERSED"].includes(captureStatus)) return "failed";
+
+    return "pending";
+}
+
+interface PayPalCredentials {
+    clientId: string;
+    clientSecret: string;
+    sandbox: boolean;
+    /** URL pública do site, usada no return_url/cancel_url do checkout. */
+    siteUrl?: string;
+}
+
+/** Cache de access token do PayPal por processo (evita OAuth a cada request). */
+const paypalTokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+/**
+ * PayPal Orders API v2 (checkout hospedado).
+ * Fluxo: criamos a Order, redirecionamos para `approve`, e capturamos no
+ * retorno (polling da página de obrigado) ou pelo webhook.
+ * Moeda: USD (o PayPal não opera em BRL).
+ */
+class PayPalProvider implements PaymentProvider {
+    private clientId: string;
+    private clientSecret: string;
+    private baseUrl: string;
+    private siteUrl: string;
+
+    constructor(credentials: PayPalCredentials) {
+        this.clientId = credentials.clientId;
+        this.clientSecret = credentials.clientSecret;
+        this.baseUrl = credentials.sandbox
+            ? "https://api-m.sandbox.paypal.com"
+            : "https://api-m.paypal.com";
+        this.siteUrl = (credentials.siteUrl || "").replace(/\/$/, "");
+    }
+
+    private async accessToken(): Promise<string> {
+        const cacheKey = `${this.baseUrl}:${this.clientId}`;
+        const cached = paypalTokenCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now() + 30_000) {
+            return cached.token;
+        }
+
+        const res = await fetch(`${this.baseUrl}/v1/oauth2/token`, {
+            method: "POST",
+            headers: {
+                Authorization: `Basic ${btoa(`${this.clientId}:${this.clientSecret}`)}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+                Accept: "application/json",
+            },
+            body: "grant_type=client_credentials",
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            const error: any = new Error(
+                "PayPal: falha na autenticação. Verifique Client ID/Secret e o ambiente (sandbox/produção).",
+            );
+            error.detail = text.slice(0, 300);
+            throw error;
+        }
+
+        const data = await res.json();
+        const token = String(data?.access_token || "");
+        if (!token) throw new Error("PayPal: token de acesso vazio.");
+
+        const expiresIn = Number(data?.expires_in) || 300;
+        paypalTokenCache.set(cacheKey, {
+            token,
+            expiresAt: Date.now() + Math.max(60, expiresIn - 60) * 1000,
+        });
+
+        return token;
+    }
+
+    private async request(
+        endpoint: string,
+        method: string,
+        body?: any,
+        extraHeaders: Record<string, string> = {},
+    ) {
+        const token = await this.accessToken();
+        const res = await fetch(`${this.baseUrl}${endpoint}`, {
+            method,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+                ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+                ...extraHeaders,
+            },
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = { message: rawText };
+        }
+
+        if (!res.ok) {
+            const detail = data?.details?.[0]?.description || data?.message || res.statusText;
+            const error: any = new Error(`PayPal: ${detail}`);
+            error.status = res.status;
+            error.detail = detail;
+            error.issue = data?.details?.[0]?.issue;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async testConnection(): Promise<boolean> {
+        try {
+            await this.accessToken();
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
+        if (!this.siteUrl) {
+            throw new Error("URL pública do site não configurada para o retorno do PayPal.");
+        }
+
+        const amount = (Math.max(1, Math.round(order.amount)) / 100).toFixed(2);
+        const name = (order.customer.name || "Cliente").trim();
+        const [given, ...rest] = name.split(/\s+/);
+        const surname = rest.join(" ") || given;
+
+        const body: Record<string, any> = {
+            intent: "CAPTURE",
+            purchase_units: [{
+                reference_id: order.id.slice(0, 256),
+                custom_id: order.id.slice(0, 127),
+                description: (order.description || `Pedido ${order.id}`).slice(0, 127),
+                amount: { currency_code: "USD", value: amount },
+            }],
+            application_context: {
+                brand_name: "Flow5.5",
+                locale: "pt-BR",
+                shipping_preference: "NO_SHIPPING",
+                user_action: "PAY_NOW",
+                return_url: `${this.siteUrl}/checkout/obrigado/${order.id}?method=card&paypal=1`,
+                cancel_url: `${this.siteUrl}/checkout/obrigado/${order.id}?method=card&status=cancelled`,
+            },
+        };
+
+        if (order.customer.email) {
+            const payer: Record<string, any> = {
+                email_address: order.customer.email,
+                name: {
+                    given_name: given.slice(0, 140),
+                    surname: surname.slice(0, 140),
+                },
+            };
+            const phone = String(order.customer.phone || "").replace(/\D/g, "").slice(-14);
+            if (phone.length >= 8) {
+                payer.phone = {
+                    phone_type: "MOBILE",
+                    phone_number: { national_number: phone },
+                };
+            }
+            body.payer = payer;
+        }
+
+        const data = await this.request(
+            "/v2/checkout/orders",
+            "POST",
+            body,
+            { "PayPal-Request-Id": `create-${order.id}`.slice(0, 108) },
+        );
+
+        const approveUrl = Array.isArray(data?.links)
+            ? data.links.find((l: any) => l?.rel === "approve")?.href
+                ?? data.links.find((l: any) => l?.rel === "payer-action")?.href
+            : undefined;
+
+        if (!data?.id || !approveUrl) {
+            throw new Error("PayPal: não foi possível obter o link de aprovação.");
+        }
+
+        return {
+            external_id: String(data.id),
+            status: "pending",
+            redirect_url: approveUrl,
+            raw_response: data,
+        };
+    }
+
+    /**
+     * Consulta a Order e, se estiver APROVADA, captura o pagamento.
+     * Idempotente: reenvios recebem 422 e caem na releitura da Order.
+     */
+    async getTransactionStatus(
+        paypalOrderId: string,
+    ): Promise<"pending" | "paid" | "failed" | null> {
+        const id = String(paypalOrderId || "").trim();
+        if (!id) return null;
+
+        try {
+            let order = await this.request(`/v2/checkout/orders/${id}`, "GET");
+            let mapped = mapPaypalOrderStatus(order);
+
+            if (mapped === "pending" && String(order?.status || "").toUpperCase() === "APPROVED") {
+                try {
+                    const captured = await this.request(
+                        `/v2/checkout/orders/${id}/capture`,
+                        "POST",
+                        {},
+                        { "PayPal-Request-Id": `cap-${id}`.slice(0, 108) },
+                    );
+                    order = captured;
+                    mapped = mapPaypalOrderStatus(captured);
+                } catch {
+                    try {
+                        order = await this.request(`/v2/checkout/orders/${id}`, "GET");
+                        mapped = mapPaypalOrderStatus(order);
+                    } catch {
+                        // mantém o status pendente; o webhook confirma depois
+                    }
+                }
+            }
+
+            return mapped;
+        } catch {
+            return null;
+        }
+    }
+}
+
 interface AsaasCredentials {
     apiKey: string;
     /** true => sandbox (credencial de teste), false => produção. */
@@ -1153,6 +1395,19 @@ function createPaymentProvider(
         });
     }
 
+    if (slug === 'paypal') {
+        // public_key = Client ID; secret_key = Client Secret.
+        const clientId = credentials.public_key || credentials.client_id;
+        const clientSecret = credentials.secret_key;
+        if (!clientId || !clientSecret) throw new Error("Client ID/Secret do PayPal ausentes");
+        return new PayPalProvider({
+            clientId,
+            clientSecret,
+            sandbox: (options?.env ?? credentials.env) === 'test',
+            siteUrl: options?.siteUrl,
+        });
+    }
+
     throw new Error(`Gateway '${slug}' não suportado`);
 }
 
@@ -1343,8 +1598,8 @@ Deno.serve(async (req) => {
                 ? payload.amount
                 : baseTotal;
 
-            // Determinar moeda baseada no gateway
-            const currency = cred.gateway.slug === 'stripe' ? 'USD' : 'BRL';
+            // Determinar moeda baseada no gateway. O PayPal não opera em BRL.
+            const currency = (cred.gateway.slug === 'stripe' || cred.gateway.slug === 'paypal') ? 'USD' : 'BRL';
 
             const { data: order } = await supabaseAdmin.from('orders').insert({
                 user_id: user.id,
@@ -1642,6 +1897,20 @@ Deno.serve(async (req) => {
                         logger.warn('Failed to query Pagar.me status', e);
                     }
                 }
+            } else if (cred && gatewaySlug === 'paypal') {
+                // O PayPal pode estar APROVADO sem captura: getTransactionStatus
+                // captura na hora e devolve o status já consolidado.
+                const clientId = cred.public_key || cred.client_id;
+                if (clientId && cred.secret_key) {
+                    const provider = new PayPalProvider({
+                        clientId,
+                        clientSecret: cred.secret_key,
+                        sandbox: cred.env === 'test',
+                    });
+                    const mapped = await provider.getTransactionStatus(payment.external_payment_id);
+                    if (mapped === 'paid') realStatus = 'paid';
+                    else if (mapped === 'failed') realStatus = 'failed';
+                }
             }
 
             if (realStatus === 'failed' && order.status === 'pending') {
@@ -1760,6 +2029,19 @@ Deno.serve(async (req) => {
                 });
                 ok = await provider.testConnection();
                 if (!ok) detail = "Secret key rejeitada pelo Pagar.me (verifique também o ambiente: teste x produção).";
+            } else if (slug === 'paypal') {
+                const clientId = cred.public_key || cred.client_id;
+                if (!clientId) {
+                    detail = "Client ID do PayPal não configurado.";
+                } else {
+                    const provider = new PayPalProvider({
+                        clientId,
+                        clientSecret: cred.secret_key,
+                        sandbox: cred.env === 'test',
+                    });
+                    ok = await provider.testConnection();
+                    if (!ok) detail = "Client ID/Secret rejeitados pelo PayPal (verifique também o ambiente: sandbox x produção).";
+                }
             } else {
                 detail = `Gateway '${slug}' não suportado para teste.`;
             }

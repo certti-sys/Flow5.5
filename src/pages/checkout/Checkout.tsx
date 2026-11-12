@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
     // Stripe state
     const [currency, setCurrency] = useState<string>('BRL');
-    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme'>('mercadopago');
+    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal'>('mercadopago');
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
                 return;
             }
 
-            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme';
+            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal';
             const slugs = activeGateways.map(g => g.slug as GatewaySlug);
 
             // 1) Gateway marcado como padrão no admin vence sempre.
@@ -130,7 +130,7 @@ export default function CheckoutPage() {
 
             console.log('✅ Gateway selecionado:', gateway, { defaultSlug, detectedCurrency });
             setSelectedGateway(gateway);
-            setCurrency(gateway === 'stripe' ? 'USD' : 'BRL');
+            setCurrency(gateway === 'stripe' || gateway === 'paypal' ? 'USD' : 'BRL');
         };
 
         fetchActiveGateways();
@@ -203,6 +203,10 @@ export default function CheckoutPage() {
                     } else {
                         setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
                     }
+                } else if (gatewaySlug === 'paypal') {
+                    // PayPal usa checkout hospedado (Orders API). O cliente
+                    // aprova no site do PayPal e volta para a página de obrigado.
+                    setAllowedMethods(['credit_card']);
                 }
             }
         };
@@ -659,8 +663,8 @@ export default function CheckoutPage() {
                             />
                         )}
 
-                        {/* Mercado Pago / Asaas / PushinPay / Pagar.me Payment Methods */}
-                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme') && allowedMethods.length > 0 && (
+                        {/* Mercado Pago / Asaas / PushinPay / Pagar.me / PayPal Payment Methods */}
+                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme' || selectedGateway === 'paypal') && allowedMethods.length > 0 && (
                             <>
                                 <PaymentMethods
                                     form={form}
@@ -673,11 +677,11 @@ export default function CheckoutPage() {
                                     allowedMethods={allowedMethods}
                                 />
 
-                                {/* No Asaas e no Pagar.me o cartão é digitado na página hospedada (PCI). */}
-                                {(selectedGateway === 'asaas' || selectedGateway === 'pagarme') && selectedMethod === 'credit_card' && (
+                                {/* No Asaas, Pagar.me e PayPal o cartão é digitado no ambiente do gateway (PCI). */}
+                                {(selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal') && selectedMethod === 'credit_card' && (
                                     <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
-                                        O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : 'Pagar.me'}. Ao confirmar,
-                                        você será redirecionado para concluir o pagamento.
+                                        O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : selectedGateway === 'pagarme' ? 'Pagar.me' : 'PayPal'}. Ao confirmar,
+                                        você será redirecionado para concluir o pagamento{selectedGateway === 'paypal' ? ' (valor em dólar)' : ''}.
                                     </div>
                                 )}
 
@@ -718,6 +722,7 @@ export default function CheckoutPage() {
                             || selectedGateway === 'asaas'
                             || selectedGateway === 'pushinpay'
                             || selectedGateway === 'pagarme'
+                            || selectedGateway === 'paypal'
                             || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
                             <>
                                 <Button
@@ -736,7 +741,7 @@ export default function CheckoutPage() {
                                             {selectedGateway === 'stripe' ? (
                                                 "Continuar para pagamento"
                                             ) : (
-                                                <>Pagar R$ {(() => {
+                                                <>Pagar {currency === 'USD' ? 'US$' : 'R$'} {(() => {
                                                     const basePrice = product?.price || 1000;
                                                     const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
                                                         const bump = orderBumps?.find((b: any) => b.id === bumpId);
@@ -749,7 +754,9 @@ export default function CheckoutPage() {
                                                     }, 0);
                                                     const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
                                                     const finalAmountInCents = Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
-                                                    return (finalAmountInCents / 100).toFixed(2).replace('.', ',');
+                                                    return currency === 'USD'
+                                                        ? (finalAmountInCents / 100).toFixed(2)
+                                                        : (finalAmountInCents / 100).toFixed(2).replace('.', ',');
                                                 })()}</>
                                             )}
                                         </>

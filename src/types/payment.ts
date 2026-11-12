@@ -4,7 +4,7 @@
 export interface Gateway {
     id: string;
     name: string;
-    slug: 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme';
+    slug: 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal';
     is_active: boolean;
     is_default: boolean;
     created_at: string;

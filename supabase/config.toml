@@ -62,5 +62,8 @@ verify_jwt = false
 [functions.pagarme-webhook]
 verify_jwt = false
 
+[functions.paypal-webhook]
+verify_jwt = false
+
 [functions.sys-health]
 verify_jwt = true

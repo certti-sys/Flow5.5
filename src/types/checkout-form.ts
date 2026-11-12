@@ -15,8 +15,8 @@ export const checkoutFormSchema = z.object({
     paymentMethod: z.enum(["credit_card", "pix", "bolbradesco"]).optional(),
 
     // Gateway selecionado — define se o cartão é digitado no nosso form (MP)
-    // ou na página hospedada (Asaas, sem dados de cartão no cliente).
-    gateway: z.enum(["mercadopago", "stripe", "asaas", "pushinpay", "pagarme"]).optional(),
+    // ou na página hospedada (Asaas, Pagar.me e PayPal, sem dados de cartão no cliente).
+    gateway: z.enum(["mercadopago", "stripe", "asaas", "pushinpay", "pagarme", "paypal"]).optional(),
 
     // Card Fields (Optional unless paymentMethod is credit_card)
     cardHolder: z.string().optional(),
@@ -35,7 +35,7 @@ export const checkoutFormSchema = z.object({
 }).superRefine((data, ctx) => {
     // We assume the paymentMethod will be passed to the form or validated
     // If we want validation, we need to ensure paymentMethod is set in the form data
-    if (data.paymentMethod === "credit_card" && data.gateway !== "asaas" && data.gateway !== "pagarme") {
+    if (data.paymentMethod === "credit_card" && data.gateway !== "asaas" && data.gateway !== "pagarme" && data.gateway !== "paypal") {
         if (!data.cardHolder || data.cardHolder.length < 3) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nome no cartão é obrigatório", path: ["cardHolder"] });
         }
