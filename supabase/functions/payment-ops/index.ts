@@ -439,7 +439,7 @@ Deno.serve(async (req) => {
 
             const { data: credRows } = await supabaseAdmin
                 .from('gateway_credentials')
-                .select('*, gateway:gateways(slug)')
+                .select('*, gateway:gateways(slug, is_active)')
                 .eq('gateway_id', gatewayId)
                 .eq('is_active', true)
                 .order('env', { ascending: true }) // 'live' antes de 'test'
@@ -449,6 +449,12 @@ Deno.serve(async (req) => {
             const cred = credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0];
 
             if (!cred) throw new Error("Gateway inativo");
+
+            // O gateway também precisa estar ativo na listagem do admin:
+            // desativar ali deve bloquear novas cobranças, não só esconder do checkout.
+            if (cred.gateway?.is_active === false) {
+                throw new Error("Gateway desativado. Ative-o em Admin → Gateways.");
+            }
 
             const notificationUrl =
                 Deno.env.get('MERCADOPAGO_WEBHOOK_URL') ||
