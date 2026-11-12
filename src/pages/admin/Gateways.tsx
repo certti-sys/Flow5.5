@@ -79,6 +79,7 @@ export default function GatewaysPage() {
         pushinpay: "text-pink-400",
         pagarme: "text-cyan-400",
         paypal: "text-sky-400",
+        efi: "text-orange-400",
     };
 
     return (

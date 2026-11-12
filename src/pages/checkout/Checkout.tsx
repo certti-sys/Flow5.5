@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
     // Stripe state
     const [currency, setCurrency] = useState<string>('BRL');
-    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal'>('mercadopago');
+    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal' | 'efi'>('mercadopago');
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
                 return;
             }
 
-            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal';
+            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal' | 'efi';
             const slugs = activeGateways.map(g => g.slug as GatewaySlug);
 
             // 1) Gateway marcado como padrão no admin vence sempre.
@@ -207,6 +207,14 @@ export default function CheckoutPage() {
                     // PayPal usa checkout hospedado (Orders API). O cliente
                     // aprova no site do PayPal e volta para a página de obrigado.
                     setAllowedMethods(['credit_card']);
+                } else if (gatewaySlug === 'efi') {
+                    // Efí: PIX e boleto são gerados no servidor; o cartão vai
+                    // para o link de pagamento hospedado da Efí (PCI).
+                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
+                        setAllowedMethods(gatewayConfig.allowed_methods);
+                    } else {
+                        setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
+                    }
                 }
             }
         };
@@ -663,8 +671,8 @@ export default function CheckoutPage() {
                             />
                         )}
 
-                        {/* Mercado Pago / Asaas / PushinPay / Pagar.me / PayPal Payment Methods */}
-                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme' || selectedGateway === 'paypal') && allowedMethods.length > 0 && (
+                        {/* Mercado Pago / Asaas / PushinPay / Pagar.me / PayPal / Efí Payment Methods */}
+                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi') && allowedMethods.length > 0 && (
                             <>
                                 <PaymentMethods
                                     form={form}
@@ -677,10 +685,10 @@ export default function CheckoutPage() {
                                     allowedMethods={allowedMethods}
                                 />
 
-                                {/* No Asaas, Pagar.me e PayPal o cartão é digitado no ambiente do gateway (PCI). */}
-                                {(selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal') && selectedMethod === 'credit_card' && (
+                                {/* No Asaas, Pagar.me, PayPal e Efí o cartão é digitado no ambiente do gateway (PCI). */}
+                                {(selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi') && selectedMethod === 'credit_card' && (
                                     <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
-                                        O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : selectedGateway === 'pagarme' ? 'Pagar.me' : 'PayPal'}. Ao confirmar,
+                                        O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : selectedGateway === 'pagarme' ? 'Pagar.me' : selectedGateway === 'paypal' ? 'PayPal' : 'Efí'}. Ao confirmar,
                                         você será redirecionado para concluir o pagamento{selectedGateway === 'paypal' ? ' (valor em dólar)' : ''}.
                                     </div>
                                 )}
@@ -723,6 +731,7 @@ export default function CheckoutPage() {
                             || selectedGateway === 'pushinpay'
                             || selectedGateway === 'pagarme'
                             || selectedGateway === 'paypal'
+                            || selectedGateway === 'efi'
                             || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
                             <>
                                 <Button

@@ -1031,6 +1031,424 @@ class PayPalProvider implements PaymentProvider {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Efí (antiga Gerencianet)
+// ---------------------------------------------------------------------------
+
+function mapEfiChargeStatus(status: string): "pending" | "paid" | "failed" {
+    const s = String(status || "").toLowerCase();
+    if (["paid", "settled"].includes(s)) return "paid";
+    if (["canceled", "cancelled", "expired", "refunded", "contested", "unpaid"].includes(s)) return "failed";
+    return "pending";
+}
+
+function mapEfiPixStatus(status: string): "pending" | "paid" | "failed" {
+    const s = String(status || "").toUpperCase();
+    if (s === "CONCLUIDA") return "paid";
+    if (["REMOVIDA_PELO_USUARIO_RECEBEDOR", "REMOVIDA_PELO_PSP", "CANCELADA"].includes(s)) return "failed";
+    return "pending";
+}
+
+interface EfiCredentials {
+    clientId: string;
+    clientSecret: string;
+    sandbox: boolean;
+    /** Certificado .p12 em base64 (obrigatório para PIX). */
+    certificateP12?: string;
+    certificatePassword?: string;
+    pixKey?: string;
+    notificationUrl?: string;
+}
+
+const efiTokenCache = new Map<string, { token: string; expiresAt: number }>();
+const efiPemCache = new Map<string, { cert: string; key: string }>();
+const efiClientCache = new Map<string, any>();
+
+/**
+ * Converte o .p12 da Efí em PEM (cert + key) para uso no mTLS do Deno.
+ * O node-forge é carregado sob demanda: apenas quem usa PIX paga esse custo.
+ */
+async function efiP12ToPem(base64: string, password: string): Promise<{ cert: string; key: string }> {
+    const cacheKey = `${base64.length}:${password}`;
+    const cached = efiPemCache.get(cacheKey);
+    if (cached) return cached;
+
+    const specifier = "https://esm.sh/node-forge@1.3.1";
+    const forgeModule: any = await import(specifier);
+    const forge = forgeModule.default ?? forgeModule;
+
+    const clean = String(base64 || "").replace(/^data:[^;]+;base64,/, "").replace(/\s+/g, "");
+    const der = forge.util.decode64(clean);
+    const asn1 = forge.asn1.fromDer(der);
+    const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, false, password || "");
+
+    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] ?? [];
+    const keyBags = [
+        ...(p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] ?? []),
+        ...(p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] ?? []),
+    ];
+
+    if (!certBags.length || !keyBags.length) {
+        throw new Error("Efí: não foi possível ler o certificado P12 (verifique a senha).");
+    }
+
+    const pem = {
+        cert: certBags.map((bag: any) => forge.pki.certificateToPem(bag.cert)).join("\n"),
+        key: forge.pki.privateKeyToPem(keyBags[0].key),
+    };
+    efiPemCache.set(cacheKey, pem);
+    return pem;
+}
+
+/**
+ * Efí: OAuth2 em dois hosts.
+ * - PIX: pix(.api).efipay.com.br, exige mTLS com o .p12.
+ * - Cobranças (boleto e link de cartão): cobrancas(.api).efipay.com.br, sem mTLS.
+ */
+class EfiProvider implements PaymentProvider {
+    private clientId: string;
+    private clientSecret: string;
+    private pixBase: string;
+    private cobBase: string;
+    private certificateP12?: string;
+    private certificatePassword: string;
+    private pixKey: string;
+    private notificationUrl: string;
+
+    constructor(credentials: EfiCredentials) {
+        this.clientId = credentials.clientId;
+        this.clientSecret = credentials.clientSecret;
+        this.pixBase = credentials.sandbox
+            ? "https://pix-h.api.efipay.com.br"
+            : "https://pix.api.efipay.com.br";
+        this.cobBase = credentials.sandbox
+            ? "https://cobrancas-h.api.efipay.com.br"
+            : "https://cobrancas.api.efipay.com.br";
+        this.certificateP12 = credentials.certificateP12;
+        this.certificatePassword = credentials.certificatePassword || "";
+        this.pixKey = credentials.pixKey || "";
+        this.notificationUrl = (credentials.notificationUrl || "").replace(/\/$/, "");
+    }
+
+    private async pixClient() {
+        if (!this.certificateP12) {
+            throw new Error("Efí: certificado P12 não configurado (obrigatório para PIX).");
+        }
+
+        const cacheKey = `${this.clientId}:${this.certificateP12.length}:${this.certificatePassword}`;
+        const cached = efiClientCache.get(cacheKey);
+        if (cached) return cached;
+
+        const create = (Deno as any).createHttpClient;
+        if (typeof create !== "function") {
+            throw new Error("Efí: o runtime atual não suporta mTLS (Deno.createHttpClient).");
+        }
+
+        const pem = await efiP12ToPem(this.certificateP12, this.certificatePassword);
+        const client = create({ cert: pem.cert, key: pem.key });
+        efiClientCache.set(cacheKey, client);
+        return client;
+    }
+
+    private async accessToken(kind: "pix" | "cob"): Promise<string> {
+        const base = kind === "pix" ? this.pixBase : this.cobBase;
+        const cacheKey = `${kind}:${base}:${this.clientId}`;
+        const cached = efiTokenCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now() + 30_000) {
+            return cached.token;
+        }
+
+        const endpoint = kind === "pix" ? "/oauth/token" : "/v1/authorize";
+        const client = kind === "pix" ? await this.pixClient() : undefined;
+
+        const res = await fetch(`${base}${endpoint}`, {
+            method: "POST",
+            headers: {
+                Authorization: `Basic ${btoa(`${this.clientId}:${this.clientSecret}`)}`,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({ grant_type: "client_credentials" }),
+            ...(client ? { client } : {}),
+        } as any);
+
+        const text = await res.text();
+        let data: any = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            data = { message: text };
+        }
+
+        if (!res.ok) {
+            const detail = data?.error_description || data?.mensagem || data?.message || res.statusText;
+            const error: any = new Error(`Efí: falha na autenticação. ${detail}`);
+            error.status = res.status;
+            error.detail = detail;
+            throw error;
+        }
+
+        const token = String(data?.access_token || "");
+        if (!token) throw new Error("Efí: token de acesso vazio.");
+
+        const expiresIn = Number(data?.expires_in) || 600;
+        efiTokenCache.set(cacheKey, {
+            token,
+            expiresAt: Date.now() + Math.max(60, expiresIn - 60) * 1000,
+        });
+
+        return token;
+    }
+
+    private async request(
+        kind: "pix" | "cob",
+        endpoint: string,
+        method: string,
+        body?: unknown,
+    ) {
+        const token = await this.accessToken(kind);
+        const base = kind === "pix" ? this.pixBase : this.cobBase;
+        const client = kind === "pix" ? await this.pixClient() : undefined;
+
+        const res = await fetch(`${base}${endpoint}`, {
+            method,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+                ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+            },
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+            ...(client ? { client } : {}),
+        } as any);
+
+        const text = await res.text();
+        let data: any = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            data = { message: text };
+        }
+
+        if (!res.ok) {
+            const detail = data?.mensagem || data?.message || data?.error_description || res.statusText;
+            const error: any = new Error(`Efí: ${detail}`);
+            error.status = res.status;
+            error.detail = detail;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async testConnection(): Promise<boolean> {
+        try {
+            await this.accessToken("cob");
+            if (this.certificateP12 && this.pixKey) {
+                await this.accessToken("pix");
+            }
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private customerDocument(order: OrderContext): string {
+        return String(order.customer.tax_id || "").replace(/\D/g, "");
+    }
+
+    private normalizedPhone(order: OrderContext): string {
+        let digits = String(order.customer.phone || "").replace(/\D/g, "");
+        if (!digits) return "";
+        if (digits.length > 11 && digits.startsWith("55")) digits = digits.slice(2);
+        digits = digits.replace(/^0+/, "");
+        if (digits.length < 10) return "";
+        return digits.slice(-11);
+    }
+
+    private boletoCustomer(order: OrderContext): Record<string, any> {
+        const document = this.customerDocument(order);
+        const phone = this.normalizedPhone(order);
+        const customer: Record<string, any> = {
+            email: order.customer.email || "",
+        };
+
+        if (phone) customer.phone_number = phone;
+
+        if (document.length === 14) {
+            customer.juridical_person = {
+                corporate_name: (order.customer.name || "Cliente").slice(0, 100),
+                cnpj: document,
+            };
+        } else {
+            customer.name = (order.customer.name || "Cliente").slice(0, 100);
+            customer.cpf = document.length === 11 ? document : "00000000000";
+        }
+
+        return customer;
+    }
+
+    private async createPix(order: OrderContext): Promise<PaymentIntentResult> {
+        if (!this.pixKey) {
+            throw new Error("Efí: chave PIX não configurada no gateway.");
+        }
+
+        const document = this.customerDocument(order);
+        const body: Record<string, any> = {
+            calendario: { expiracao: 86400 },
+            valor: { original: (Math.max(1, Math.round(order.amount)) / 100).toFixed(2) },
+            chave: this.pixKey,
+            solicitacaoPagador: `Pedido #${order.id.slice(0, 8)}`.slice(0, 140),
+            infoAdicionais: [{ nome: "order_id", valor: order.id }],
+        };
+
+        if (document.length === 11) {
+            body.devedor = { cpf: document, nome: (order.customer.name || "Cliente").slice(0, 100) };
+        } else if (document.length === 14) {
+            body.devedor = { cnpj: document, nome: (order.customer.name || "Cliente").slice(0, 100) };
+        }
+
+        const cob = await this.request("pix", "/v2/cob", "POST", body);
+
+        const txid = String(cob?.txid || "");
+        if (!txid) throw new Error("Efí: resposta sem txid da cobrança PIX.");
+
+        let qrCode = typeof cob?.pixCopiaECola === "string" ? cob.pixCopiaECola : "";
+        let qrCodeBase64: string | undefined;
+
+        if (cob?.loc?.id) {
+            try {
+                const qr = await this.request("pix", `/v2/loc/${cob.loc.id}/qrcode`, "GET");
+                if (typeof qr?.qrcode === "string" && qr.qrcode) qrCode = qr.qrcode;
+                if (typeof qr?.imagemQrcode === "string" && qr.imagemQrcode) {
+                    // A Efí devolve data URI; a página de obrigado já prefixa.
+                    qrCodeBase64 = qr.imagemQrcode.replace(/^data:[^;]+;base64,/, "");
+                }
+            } catch (e) {
+                console.warn("Efí: falha ao gerar o QR Code PIX", e);
+            }
+        }
+
+        return {
+            external_id: txid,
+            status: mapEfiPixStatus(String(cob?.status || "ATIVA")),
+            qr_code: qrCode || undefined,
+            qr_code_base64: qrCodeBase64,
+            raw_response: cob,
+        };
+    }
+
+    private async createBoleto(order: OrderContext): Promise<PaymentIntentResult> {
+        const expireAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10);
+
+        const body: Record<string, any> = {
+            items: [{
+                name: `Pedido #${order.id.slice(0, 8)}`,
+                amount: 1,
+                value: Math.max(1, Math.round(order.amount)),
+            }],
+            metadata: {
+                custom_id: order.id,
+                ...(this.notificationUrl ? { notification_url: this.notificationUrl } : {}),
+            },
+            payment: {
+                banking_billet: {
+                    expire_at: expireAt,
+                    customer: this.boletoCustomer(order),
+                },
+            },
+        };
+
+        const response = await this.request("cob", "/v1/charge/one-step", "POST", body);
+        const charge = response?.data ?? {};
+        if (!charge?.charge_id) {
+            throw new Error("Efí: resposta sem identificador da cobrança de boleto.");
+        }
+
+        const billet = charge?.payment?.banking_billet ?? {};
+        const barcode = billet?.linha_digitavel || billet?.barcode || "";
+        const rawPdf = billet?.pdf;
+        const pdfUrl = typeof rawPdf === "string"
+            ? rawPdf
+            : (rawPdf?.charge || rawPdf?.url || "");
+
+        return {
+            external_id: String(charge.charge_id),
+            status: mapEfiChargeStatus(String(charge.status || "")),
+            ticket_url: pdfUrl || undefined,
+            raw_response: { ...charge, _barcode: barcode },
+        };
+    }
+
+    private async createCardLink(order: OrderContext): Promise<PaymentIntentResult> {
+        const expireAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10);
+
+        const body: Record<string, any> = {
+            items: [{
+                name: `Pedido #${order.id.slice(0, 8)}`,
+                amount: 1,
+                value: Math.max(1, Math.round(order.amount)),
+            }],
+            metadata: {
+                custom_id: order.id,
+                ...(this.notificationUrl ? { notification_url: this.notificationUrl } : {}),
+            },
+            customer: { email: order.customer.email || "" },
+            settings: {
+                payment_method: "credit_card",
+                expire_at: expireAt,
+                message: `Pedido #${order.id.slice(0, 8)}`.slice(0, 80),
+            },
+        };
+
+        const response = await this.request("cob", "/v1/charge/one-step/link", "POST", body);
+        const charge = response?.data ?? {};
+        if (!charge?.payment_url) {
+            throw new Error("Efí: não foi possível gerar o link de pagamento do cartão.");
+        }
+
+        return {
+            external_id: String(charge.charge_id ?? `link-${order.id}`),
+            status: "pending",
+            redirect_url: charge.payment_url,
+            raw_response: charge,
+        };
+    }
+
+    async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
+        const method = String(order.metadata?.payment_method_id || "pix").toLowerCase();
+
+        if (method === "credit_card") {
+            return this.createCardLink(order);
+        }
+        if (method === "bolbradesco") {
+            return this.createBoleto(order);
+        }
+        return this.createPix(order);
+    }
+
+    async getTransactionStatus(transactionId: string): Promise<"pending" | "paid" | "failed" | null> {
+        const id = String(transactionId || "").trim();
+        if (!id) return null;
+
+        try {
+            // Cobranças (boleto/cartão) usam charge_id numérico; PIX usa txid.
+            if (/^\d+$/.test(id)) {
+                const detail = await this.request("cob", `/v1/charge/${id}`, "GET");
+                return mapEfiChargeStatus(String(detail?.data?.status || ""));
+            }
+
+            const cob = await this.request("pix", `/v2/cob/${encodeURIComponent(id)}`, "GET");
+            return mapEfiPixStatus(String(cob?.status || ""));
+        } catch {
+            return null;
+        }
+    }
+}
+
 interface AsaasCredentials {
     apiKey: string;
     /** true => sandbox (credencial de teste), false => produção. */
@@ -1405,6 +1823,24 @@ function createPaymentProvider(
             clientSecret,
             sandbox: (options?.env ?? credentials.env) === 'test',
             siteUrl: options?.siteUrl,
+        });
+    }
+
+    if (slug === 'efi') {
+        // public_key = Client ID; secret_key = Client Secret.
+        // extra_config: certificate_p12 (base64), certificate_password, pix_key.
+        const clientId = credentials.public_key || credentials.client_id;
+        const clientSecret = credentials.secret_key;
+        if (!clientId || !clientSecret) throw new Error("Client ID/Secret do Efí ausentes");
+        const extra = credentials.extra_config ?? {};
+        return new EfiProvider({
+            clientId,
+            clientSecret,
+            sandbox: (options?.env ?? credentials.env) === 'test',
+            certificateP12: extra.certificate_p12,
+            certificatePassword: extra.certificate_password,
+            pixKey: extra.pix_key,
+            notificationUrl: options?.notificationUrl,
         });
     }
 
@@ -1911,6 +2347,19 @@ Deno.serve(async (req) => {
                     if (mapped === 'paid') realStatus = 'paid';
                     else if (mapped === 'failed') realStatus = 'failed';
                 }
+            } else if (cred && gatewaySlug === 'efi') {
+                const extra = cred.extra_config ?? {};
+                const provider = new EfiProvider({
+                    clientId: cred.public_key || cred.client_id,
+                    clientSecret: cred.secret_key,
+                    sandbox: cred.env === 'test',
+                    certificateP12: extra.certificate_p12,
+                    certificatePassword: extra.certificate_password,
+                    pixKey: extra.pix_key,
+                });
+                const mapped = await provider.getTransactionStatus(payment.external_payment_id);
+                if (mapped === 'paid') realStatus = 'paid';
+                else if (mapped === 'failed') realStatus = 'failed';
             }
 
             if (realStatus === 'failed' && order.status === 'pending') {
@@ -2041,6 +2490,27 @@ Deno.serve(async (req) => {
                     });
                     ok = await provider.testConnection();
                     if (!ok) detail = "Client ID/Secret rejeitados pelo PayPal (verifique também o ambiente: sandbox x produção).";
+                }
+            } else if (slug === 'efi') {
+                const extra = cred.extra_config ?? {};
+                const clientId = cred.public_key || cred.client_id;
+                if (!clientId) {
+                    detail = "Client ID do Efí não configurado.";
+                } else {
+                    const provider = new EfiProvider({
+                        clientId,
+                        clientSecret: cred.secret_key,
+                        sandbox: cred.env === 'test',
+                        certificateP12: extra.certificate_p12,
+                        certificatePassword: extra.certificate_password,
+                        pixKey: extra.pix_key,
+                    });
+                    ok = await provider.testConnection();
+                    if (!ok) {
+                        detail = extra.certificate_p12
+                            ? "Credenciais ou certificado rejeitados pelo Efí (confira Client ID/Secret, senha do P12 e o ambiente)."
+                            : "Credenciais rejeitadas pelo Efí. Para testar o PIX, envie também o certificado P12 e a senha.";
+                    }
                 }
             } else {
                 detail = `Gateway '${slug}' não suportado para teste.`;

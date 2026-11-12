@@ -35,6 +35,13 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
     const [testing, setTesting] = useState(false);
     const [copiedWebhook, setCopiedWebhook] = useState(false);
 
+    // Efí: extras guardados em extra_config
+    const [pixKey, setPixKey] = useState("");
+    const [certificateP12, setCertificateP12] = useState("");
+    const [certificatePassword, setCertificatePassword] = useState("");
+    const [hasCertificate, setHasCertificate] = useState(false);
+    const [certificateFileName, setCertificateFileName] = useState("");
+
     const webhookUrl =
         gateway?.slug === 'mercadopago'
             ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`
@@ -46,7 +53,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                         ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pagarme-webhook`
                         : gateway?.slug === 'paypal'
                             ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/paypal-webhook`
-                            : null;
+                            : gateway?.slug === 'efi'
+                                ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/efi-webhook`
+                                : null;
 
     const handleTestConnection = async () => {
         if (!gateway) return;
@@ -85,6 +94,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             return ["pix"];
         } else if (gatewaySlug === 'paypal') {
             return ["credit_card"];
+        } else if (gatewaySlug === 'efi') {
+            return ["credit_card", "pix", "bolbradesco"];
         }
         return ["credit_card"];
     };
@@ -101,6 +112,12 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             return [{ id: "pix", label: "Pix" }];
         } else if (gatewaySlug === 'paypal') {
             return [{ id: "credit_card", label: "Cartão / Conta PayPal" }];
+        } else if (gatewaySlug === 'efi') {
+            return [
+                { id: "credit_card", label: "Cartão de Crédito" },
+                { id: "pix", label: "Pix" },
+                { id: "bolbradesco", label: "Boleto Bancário" }
+            ];
         } else if (gatewaySlug === 'stripe') {
             return [
                 { id: "card", label: "Cartão de Crédito" },
@@ -143,6 +160,12 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             setIsActive(credentials.is_active ?? true);
             setAllowedMethods(credentials.allowed_methods || getDefaultMethods(gateway?.slug || ""));
             setMaxInstallments((credentials as any).max_installments || 1);
+            const extra = (credentials as any).extra_config ?? {};
+            setPixKey(extra.pix_key || "");
+            setCertificateP12("");
+            setCertificatePassword(extra.certificate_password ? "********" : "");
+            setHasCertificate(Boolean(extra.certificate_p12));
+            setCertificateFileName("");
         } else {
             setPublicKey("");
             setSecretKey("");
@@ -150,6 +173,11 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             setIsActive(true);
             setAllowedMethods(getDefaultMethods(gateway?.slug || ""));
             setMaxInstallments(1);
+            setPixKey("");
+            setCertificateP12("");
+            setCertificatePassword("");
+            setHasCertificate(false);
+            setCertificateFileName("");
         }
     }, [credentials, activeTab, gateway]);
 
@@ -170,6 +198,18 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             if (secretKey !== "********") payload.secret_key = secretKey;
             if (webhookSecret !== "********") payload.webhook_secret = webhookSecret;
 
+            if (gateway.slug === 'efi') {
+                const extra: Record<string, any> = {
+                    ...(((credentials as any)?.extra_config) ?? {}),
+                    pix_key: pixKey,
+                };
+                if (certificateP12) extra.certificate_p12 = certificateP12;
+                if (certificatePassword !== "********") {
+                    extra.certificate_password = certificatePassword;
+                }
+                payload.extra_config = extra;
+            }
+
             const { error } = await supabase
                 .from("gateway_credentials")
                 .upsert(payload, { onConflict: "gateway_id,env" });
@@ -188,6 +228,25 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     const handleSave = () => {
         mutation.mutate();
+    };
+
+    const handleCertificateFile = (file: File | undefined) => {
+        if (!file) return;
+        if (file.size > 200_000) {
+            toast.error("Certificado muito grande. Envie o .p12 original (até 200 KB).");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = String(reader.result || "");
+            const base64 = result.includes(",") ? result.split(",")[1] : result;
+            setCertificateP12(base64);
+            setHasCertificate(true);
+            setCertificateFileName(file.name);
+        };
+        reader.onerror = () => toast.error("Não foi possível ler o arquivo do certificado.");
+        reader.readAsDataURL(file);
     };
 
     if (!gateway) return null;
@@ -235,7 +294,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
                                     {gateway.slug === 'stripe'
                                         ? 'Publishable Key'
-                                        : gateway.slug === 'paypal'
+                                        : gateway.slug === 'paypal' || gateway.slug === 'efi'
                                             ? 'Client ID'
                                             : 'Public Key'}
                                 </Label>
@@ -245,7 +304,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             ? 'pk_test_...'
                                             : gateway.slug === 'paypal'
                                                 ? 'Client ID do app PayPal'
-                                                : 'pk_...'
+                                                : gateway.slug === 'efi'
+                                                    ? 'Client ID do app Efí'
+                                                    : 'pk_...'
                                     }
                                     value={publicKey}
                                     onChange={(e) => setPublicKey(e.target.value)}
@@ -259,6 +320,11 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 {gateway.slug === 'paypal' && (
                                     <p className="text-[12px] text-white/60">
                                         Client ID do app REST no painel do PayPal Developers.
+                                    </p>
+                                )}
+                                {gateway.slug === 'efi' && (
+                                    <p className="text-[12px] text-white/60">
+                                        Client ID da aplicação criada em Efí → API.
                                     </p>
                                 )}
                             </div>
@@ -277,7 +343,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                     ? 'Secret Key'
                                                     : gateway.slug === 'paypal'
                                                         ? 'Client Secret'
-                                                        : 'Access Token / Secret Key'}
+                                                        : gateway.slug === 'efi'
+                                                            ? 'Client Secret'
+                                                            : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
                                     variant="ghost"
@@ -302,7 +370,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                     ? 'sk_test_... ou sk_live_...'
                                                     : gateway.slug === 'paypal'
                                                         ? 'Client Secret do app PayPal'
-                                                        : 'sk_...'
+                                                        : gateway.slug === 'efi'
+                                                            ? 'Client Secret do app Efí'
+                                                            : 'sk_...'
                                 }
                                 value={secretKey}
                                 onChange={(e) => setSecretKey(e.target.value)}
@@ -321,6 +391,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? "Secret key do Pagar.me. No ambiente de teste use uma chave sk_test_... (sdx-api)."
                                     : gateway.slug === 'paypal'
                                     ? "Client Secret do app REST. Use as credenciais de sandbox no ambiente de teste."
+                                    : gateway.slug === 'efi'
+                                    ? "Client Secret da aplicação Efí. Use as credenciais de homologação no ambiente de teste."
                                     : "Token de acesso privado."}
                             </p>
                         </div>
@@ -331,7 +403,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? 'Token do Webhook (Opcional)'
                                     : gateway.slug === 'paypal'
                                         ? 'Webhook ID (Obrigatório)'
-                                        : 'Webhook Secret (Opcional)'}
+                                        : gateway.slug === 'efi'
+                                            ? 'HMAC do Webhook (Opcional)'
+                                            : 'Webhook Secret (Opcional)'}
                             </Label>
                             <Input
                                 type={showSecrets ? "text" : "password"}
@@ -342,7 +416,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             ? 'segredo enviado em X-Webhook-Signature'
                                             : gateway.slug === 'paypal'
                                                 ? 'ID do webhook criado no painel do PayPal'
-                                                : 'whsec_...'
+                                                : gateway.slug === 'efi'
+                                                    ? 'valor esperado em ?hmac='
+                                                    : 'whsec_...'
                                 }
                                 value={webhookSecret}
                                 onChange={(e) => setWebhookSecret(e.target.value)}
@@ -364,6 +440,12 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 <p className="text-[12px] text-white/60">
                                     O ID do webhook é obrigatório: a função valida a assinatura em
                                     {" "}<code className="font-mono">verify-webhook-signature</code> antes de processar o evento.
+                                </p>
+                            )}
+                            {gateway.slug === 'efi' && (
+                                <p className="text-[12px] text-white/60">
+                                    Se preenchido, o webhook exige <code className="font-mono">?hmac=valor</code> na URL.
+                                    A cobrança é sempre reconsultada no Efí antes de alterar o pedido.
                                 </p>
                             )}
                         </div>
@@ -398,8 +480,64 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                 ? 'Cole esta URL em Configurações → Webhooks no painel do Pagar.me (eventos de pedido e cobrança).'
                                                 : gateway.slug === 'paypal'
                                                     ? 'Cole esta URL no app REST do PayPal (Webhooks) e copie o Webhook ID gerado para o campo acima.'
-                                                    : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
+                                                    : gateway.slug === 'efi'
+                                                        ? 'Cadastre esta URL no Efí (API → Webhooks) para a chave PIX e a API Cobranças. Para PIX, a URL precisa ser pública e HTTPS.'
+                                                        : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
                                 </p>
+                            </div>
+                        )}
+
+                        {gateway.slug === 'efi' && (
+                            <div className="space-y-4 p-5 rounded-[12px] bg-black/20 border border-white/5">
+                                <div className="space-y-2">
+                                    <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
+                                        Chave PIX
+                                    </Label>
+                                    <Input
+                                        value={pixKey}
+                                        onChange={(e) => setPixKey(e.target.value)}
+                                        placeholder="chave PIX cadastrada no Efí"
+                                        className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
+                                    />
+                                    <p className="text-[12px] text-white/60">
+                                        Obrigatória para gerar cobranças PIX. Pode ser CPF/CNPJ, e-mail, telefone ou chave aleatória.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
+                                        Certificado P12 (obrigatório para PIX)
+                                    </Label>
+                                    <Input
+                                        type="file"
+                                        accept=".p12,.pfx"
+                                        onChange={(e) => handleCertificateFile(e.target.files?.[0])}
+                                        className="bg-white/5 border-white/5 h-12 rounded-[12px] text-white file:text-white/80 file:bg-white/10 file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 file:text-[12px] cursor-pointer"
+                                    />
+                                    <p className="text-[12px] text-white/60">
+                                        {certificateFileName
+                                            ? `Arquivo selecionado: ${certificateFileName}`
+                                            : hasCertificate
+                                                ? "Certificado já salvo. Envie outro arquivo apenas para substituir."
+                                                : "Baixe o .p12 em Efí → API → Meus Certificados."}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
+                                        Senha do Certificado
+                                    </Label>
+                                    <Input
+                                        type={showSecrets ? "text" : "password"}
+                                        value={certificatePassword}
+                                        onChange={(e) => setCertificatePassword(e.target.value)}
+                                        placeholder={hasCertificate ? "********" : "senha do arquivo .p12"}
+                                        className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
+                                    />
+                                    <p className="text-[12px] text-white/60">
+                                        Guardada em <code className="font-mono">extra_config</code> e usada apenas para abrir o certificado no servidor.
+                                    </p>
+                                </div>
                             </div>
                         )}
 

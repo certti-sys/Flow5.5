@@ -4,7 +4,7 @@
 export interface Gateway {
     id: string;
     name: string;
-    slug: 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal';
+    slug: 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' | 'paypal' | 'efi';
     is_active: boolean;
     is_default: boolean;
     created_at: string;
@@ -19,6 +19,8 @@ export interface GatewayCredentials {
     webhook_secret?: string;
     is_active: boolean;
     allowed_methods?: string[];
+    /** Configurações específicas (ex.: certificado P12 e chave PIX do Efí). */
+    extra_config?: Record<string, any> | null;
 }
 
 export interface Product {

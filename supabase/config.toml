@@ -65,5 +65,8 @@ verify_jwt = false
 [functions.paypal-webhook]
 verify_jwt = false
 
+[functions.efi-webhook]
+verify_jwt = false
+
 [functions.sys-health]
 verify_jwt = true
