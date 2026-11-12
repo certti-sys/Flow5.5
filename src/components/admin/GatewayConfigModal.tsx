@@ -55,7 +55,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/paypal-webhook`
                             : gateway?.slug === 'efi'
                                 ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/efi-webhook`
-                                : null;
+                                : gateway?.slug === 'cajupay'
+                                    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cajupay-webhook`
+                                    : null;
 
     const handleTestConnection = async () => {
         if (!gateway) return;
@@ -96,6 +98,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             return ["credit_card"];
         } else if (gatewaySlug === 'efi') {
             return ["credit_card", "pix", "bolbradesco"];
+        } else if (gatewaySlug === 'cajupay') {
+            return ["credit_card", "pix"];
         }
         return ["credit_card"];
     };
@@ -117,6 +121,11 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                 { id: "credit_card", label: "Cartão de Crédito" },
                 { id: "pix", label: "Pix" },
                 { id: "bolbradesco", label: "Boleto Bancário" }
+            ];
+        } else if (gatewaySlug === 'cajupay') {
+            return [
+                { id: "credit_card", label: "Cartão de Crédito (página hospedada)" },
+                { id: "pix", label: "Pix" }
             ];
         } else if (gatewaySlug === 'stripe') {
             return [
@@ -296,7 +305,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         ? 'Publishable Key'
                                         : gateway.slug === 'paypal' || gateway.slug === 'efi'
                                             ? 'Client ID'
-                                            : 'Public Key'}
+                                            : gateway.slug === 'cajupay'
+                                                ? 'Chave Pública (X-API-Key)'
+                                                : 'Public Key'}
                                 </Label>
                                 <Input
                                     placeholder={
@@ -305,7 +316,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             : gateway.slug === 'paypal'
                                                 ? 'Client ID do app PayPal'
                                                 : gateway.slug === 'efi'
-                                                    ? 'Client ID do app Efí'
+                                                ? 'Client ID do app Efí'
+                                                : gateway.slug === 'cajupay'
+                                                    ? 'gpk_... (produção) ou gpk_test_... (sandbox)'
                                                     : 'pk_...'
                                     }
                                     value={publicKey}
@@ -327,6 +340,11 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         Client ID da aplicação criada em Efí → API.
                                     </p>
                                 )}
+                                {gateway.slug === 'cajupay' && (
+                                    <p className="text-[12px] text-white/60">
+                                        Chave pública gerada em CajuPay → API / Chaves. As chaves de sandbox começam com <code className="font-mono">gpk_test_</code>.
+                                    </p>
+                                )}
                             </div>
                         )}
 
@@ -345,7 +363,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                         ? 'Client Secret'
                                                         : gateway.slug === 'efi'
                                                             ? 'Client Secret'
-                                                            : 'Access Token / Secret Key'}
+                                                            : gateway.slug === 'cajupay'
+                                                                ? 'Chave Secreta (X-API-Secret)'
+                                                                : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
                                     variant="ghost"
@@ -372,7 +392,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                         ? 'Client Secret do app PayPal'
                                                         : gateway.slug === 'efi'
                                                             ? 'Client Secret do app Efí'
-                                                            : 'sk_...'
+                                                            : gateway.slug === 'cajupay'
+                                                                ? 'gsk_... (produção) ou gsk_test_... (sandbox)'
+                                                                : 'sk_...'
                                 }
                                 value={secretKey}
                                 onChange={(e) => setSecretKey(e.target.value)}
@@ -393,6 +415,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? "Client Secret do app REST. Use as credenciais de sandbox no ambiente de teste."
                                     : gateway.slug === 'efi'
                                     ? "Client Secret da aplicação Efí. Use as credenciais de homologação no ambiente de teste."
+                                    : gateway.slug === 'cajupay'
+                                    ? "Chave secreta (X-API-Secret). Sandbox usa o par gpk_test_/gsk_test_."
                                     : "Token de acesso privado."}
                             </p>
                         </div>
@@ -405,7 +429,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         ? 'Webhook ID (Obrigatório)'
                                         : gateway.slug === 'efi'
                                             ? 'HMAC do Webhook (Opcional)'
-                                            : 'Webhook Secret (Opcional)'}
+                                            : gateway.slug === 'cajupay'
+                                                ? 'Signing Secret do Webhook (Opcional)'
+                                                : 'Webhook Secret (Opcional)'}
                             </Label>
                             <Input
                                 type={showSecrets ? "text" : "password"}
@@ -418,7 +444,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                 ? 'ID do webhook criado no painel do PayPal'
                                                 : gateway.slug === 'efi'
                                                     ? 'valor esperado em ?hmac='
-                                                    : 'whsec_...'
+                                                    : gateway.slug === 'cajupay'
+                                                        ? 'signing_secret devolvido ao registrar o webhook'
+                                                        : 'whsec_...'
                                 }
                                 value={webhookSecret}
                                 onChange={(e) => setWebhookSecret(e.target.value)}
@@ -446,6 +474,13 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 <p className="text-[12px] text-white/60">
                                     Se preenchido, o webhook exige <code className="font-mono">?hmac=valor</code> na URL.
                                     A cobrança é sempre reconsultada no Efí antes de alterar o pedido.
+                                </p>
+                            )}
+                            {gateway.slug === 'cajupay' && (
+                                <p className="text-[12px] text-white/60">
+                                    Se preenchido, o webhook exige <code className="font-mono">X-CajuPay-Signature</code>
+                                    {" "}no formato <code className="font-mono">t=...,v1=HMAC_SHA256(secret, t.body)</code>.
+                                    A cobrança é sempre reconsultada no CajuPay antes de alterar o pedido.
                                 </p>
                             )}
                         </div>
@@ -482,7 +517,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                                     ? 'Cole esta URL no app REST do PayPal (Webhooks) e copie o Webhook ID gerado para o campo acima.'
                                                     : gateway.slug === 'efi'
                                                         ? 'Cadastre esta URL no Efí (API → Webhooks) para a chave PIX e a API Cobranças. Para PIX, a URL precisa ser pública e HTTPS.'
-                                                        : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
+                                                        : gateway.slug === 'cajupay'
+                                                            ? 'Cadastre esta URL em CajuPay → API → Webhooks. O signing secret devolvido no cadastro deve ser colado no campo acima.'
+                                                            : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
                                 </p>
                             </div>
                         )}

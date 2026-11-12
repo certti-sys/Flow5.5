@@ -463,6 +463,250 @@ class PushinPayProvider implements PaymentProvider {
     }
 }
 
+interface CajuPayCredentials {
+    /** Chave pública (X-API-Key, gpk_...). */
+    publicKey: string;
+    /** Chave secreta (X-API-Secret, gsk_...). */
+    secretKey: string;
+    /** URL pública do site, usada como retorno da página hospedada. */
+    siteUrl?: string;
+}
+
+/**
+ * CajuPay — PIX pela API direta e cartão pela página hospedada.
+ *
+ * A CajuPay não aceita PIX no checkout SDK e não tem boleto. Para não tocar
+ * dados de cartão no nosso código (PCI), o cartão é concluído na página
+ * `hosted_checkout_url` devolvida pela sessão de checkout.
+ */
+class CajuPayProvider implements PaymentProvider {
+    private publicKey: string;
+    private secretKey: string;
+    private baseUrl = "https://api.cajupay.com.br";
+    private siteUrl: string;
+
+    constructor(credentials: CajuPayCredentials) {
+        this.publicKey = credentials.publicKey;
+        this.secretKey = credentials.secretKey;
+        this.siteUrl = (credentials.siteUrl || "").replace(/\/$/, "");
+    }
+
+    private async request(
+        endpoint: string,
+        method: string,
+        body?: any,
+        idempotencyKey?: string,
+    ) {
+        const res = await fetch(`${this.baseUrl}${endpoint}`, {
+            method,
+            headers: {
+                "X-API-Key": this.publicKey,
+                "X-API-Secret": this.secretKey,
+                Accept: "application/json",
+                ...(body ? { "Content-Type": "application/json" } : {}),
+                ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = { message: rawText };
+        }
+
+        if (!res.ok) {
+            const message = data?.message || data?.error || data?.detail || res.statusText;
+            const error: any = new Error(`CajuPay: ${message}`);
+            error.status = res.status;
+            error.detail = data?.error_code || data?.code;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async testConnection(): Promise<boolean> {
+        try {
+            await this.request("/api/wallet/balance?kind=main", "GET");
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
+        const method = String(order.metadata?.payment_method_id || "pix").toLowerCase();
+        const amountCents = Math.round(Number(order.amount) || 0);
+        if (amountCents < 1) {
+            throw new Error("CajuPay: valor inválido.");
+        }
+
+        const returnUrl = this.siteUrl
+            ? `${this.siteUrl}/checkout/obrigado/${order.id}?method=${method === "pix" ? "pix" : "card"}`
+            : undefined;
+
+        const consumer = {
+            name: order.customer.name,
+            email: order.customer.email,
+            document: (order.customer.tax_id || "").replace(/\D/g, ""),
+            ...(order.customer.phone
+                ? { phone: this.normalizePhone(order.customer.phone) }
+                : {}),
+        };
+
+        if (method === "pix") {
+            const data = await this.request(
+                "/api/payments/pix",
+                "POST",
+                {
+                    amount_cents: amountCents,
+                    currency: "BRL",
+                    description: order.description,
+                    product_ref: `order-${order.id}`,
+                    customer_ref: `flow55-order-${order.id}`,
+                    ...(returnUrl ? { partner_checkout_url: returnUrl } : {}),
+                    consumer,
+                },
+                `flow55-${order.id}-pix`,
+            );
+
+            const paymentId = data?.payment_id;
+            if (typeof paymentId !== "string" || paymentId === "") {
+                throw new Error("CajuPay: resposta sem payment_id.");
+            }
+
+            let pixCopyPaste = typeof data?.pix_copy_paste === "string" ? data.pix_copy_paste : undefined;
+            let rawQr = typeof data?.pix_qr_code === "string" ? data.pix_qr_code.trim() : "";
+
+            // O QR pode levar alguns instantes para ficar disponível.
+            if (!pixCopyPaste) {
+                try {
+                    await new Promise((r) => setTimeout(r, 1200));
+                    const fresh = await this.request(
+                        `/api/payments/${encodeURIComponent(paymentId)}`,
+                        "GET",
+                    );
+                    pixCopyPaste = typeof fresh?.pix_copy_paste === "string" ? fresh.pix_copy_paste : undefined;
+                    if (!rawQr && typeof fresh?.pix_qr_code === "string") {
+                        rawQr = fresh.pix_qr_code.trim();
+                    }
+                } catch (e) {
+                    console.warn("[CajuPay] QR Code indisponível após a criação:", e);
+                }
+            }
+
+            // `pix_qr_code` pode vir como base64 puro, data URI ou URL. A página
+            // de obrigado só desenha base64; nos demais casos o QR é gerado a
+            // partir do copia-e-cola.
+            const qrCodeBase64 = rawQr && !/^(https?:|<)/i.test(rawQr)
+                ? rawQr.replace(/^data:image\/[a-z]+;base64,/, "")
+                : undefined;
+
+            return {
+                external_id: paymentId,
+                status: "pending",
+                qr_code: pixCopyPaste,
+                qr_code_base64: qrCodeBase64,
+                raw_response: data,
+            };
+        }
+
+        if (method === "credit_card" || method === "card") {
+            const data = await this.request(
+                "/api/sdk/v1/checkout/sessions",
+                "POST",
+                {
+                    amount_cents: amountCents,
+                    currency: "BRL",
+                    description: order.description,
+                    allow_card: true,
+                    allow_pix: false,
+                    allow_boleto: false,
+                    metadata: {
+                        external_id: order.id,
+                        source: "flow55",
+                    },
+                    ...(returnUrl ? { partner_checkout_url: returnUrl } : {}),
+                    initial_payer: {
+                        name: consumer.name,
+                        email: consumer.email,
+                        ...(consumer.document ? { document: consumer.document } : {}),
+                    },
+                },
+                `flow55-${order.id}-card`,
+            );
+
+            const sessionId = data?.checkout_session_id ?? data?.id;
+            const hostedUrl = data?.hosted_checkout_url;
+            if (typeof sessionId !== "string" || sessionId === "") {
+                throw new Error("CajuPay: resposta sem checkout_session_id.");
+            }
+            if (typeof hostedUrl !== "string" || !/^https:\/\//i.test(hostedUrl)) {
+                throw new Error("CajuPay: página de checkout indisponível para este cartão.");
+            }
+
+            return {
+                external_id: `session:${sessionId}`,
+                status: "pending",
+                redirect_url: hostedUrl,
+                raw_response: data,
+            };
+        }
+
+        throw new Error("CajuPay aceita apenas PIX ou cartão de crédito.");
+    }
+
+    /** Telefone E.164 simples: +55DDDNÚMERO. */
+    private normalizePhone(phone: string): string {
+        const digits = phone.replace(/\D/g, "");
+        if (!digits) return "";
+        if (digits.startsWith("55") && digits.length >= 12) return `+${digits}`;
+        if (digits.length >= 10 && digits.length <= 11) return `+55${digits}`;
+        return `+${digits}`;
+    }
+
+    async getTransactionStatus(externalId: string): Promise<"pending" | "paid" | "failed"> {
+        if (!externalId) return "pending";
+
+        if (externalId.startsWith("session:")) {
+            const sessionId = externalId.slice("session:".length);
+            const data = await this.request(
+                `/api/sdk/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+                "GET",
+            );
+            return mapCajuPayStatus(data?.payment_status ?? data?.checkout_status ?? data?.status);
+        }
+
+        const data = await this.request(
+            `/api/payments/${encodeURIComponent(externalId)}`,
+            "GET",
+        );
+        return mapCajuPayStatus(data?.status);
+    }
+}
+
+/** Mapeia o status da CajuPay para o status interno. */
+function mapCajuPayStatus(status: unknown): "pending" | "paid" | "failed" {
+    const s = String(status ?? "").toLowerCase().trim();
+    if (!s) return "pending";
+    if ([
+        "paid", "completed", "complete", "settled", "approved", "confirmed",
+        "success", "successful", "succeeded", "captured", "pago", "aprovado",
+    ].includes(s)) {
+        return "paid";
+    }
+    if ([
+        "cancelled", "canceled", "expired", "failed", "refunded", "rejected",
+        "refused", "chargedback",
+    ].includes(s)) {
+        return "failed";
+    }
+    return "pending";
+}
+
 /** Mapeia o status de uma cobrança Pagar.me para o status interno. */
 function mapPagarmeChargeStatus(charge: any): "pending" | "paid" | "failed" {
     const status = String(charge?.status || "").toLowerCase();
@@ -1844,6 +2088,18 @@ function createPaymentProvider(
         });
     }
 
+    if (slug === 'cajupay') {
+        // public_key = X-API-Key (gpk_...); secret_key = X-API-Secret (gsk_...).
+        const publicKey = credentials.public_key || credentials.api_key;
+        const secretKey = credentials.secret_key;
+        if (!publicKey || !secretKey) throw new Error("Chaves públicas/secretas do CajuPay ausentes");
+        return new CajuPayProvider({
+            publicKey,
+            secretKey,
+            siteUrl: options?.siteUrl,
+        });
+    }
+
     throw new Error(`Gateway '${slug}' não suportado`);
 }
 
@@ -2360,6 +2616,21 @@ Deno.serve(async (req) => {
                 const mapped = await provider.getTransactionStatus(payment.external_payment_id);
                 if (mapped === 'paid') realStatus = 'paid';
                 else if (mapped === 'failed') realStatus = 'failed';
+            } else if (cred && gatewaySlug === 'cajupay') {
+                const publicKey = cred.public_key || cred.api_key;
+                if (publicKey && cred.secret_key) {
+                    const provider = new CajuPayProvider({
+                        publicKey,
+                        secretKey: cred.secret_key,
+                    });
+                    try {
+                        const mapped = await provider.getTransactionStatus(payment.external_payment_id);
+                        if (mapped === 'paid') realStatus = 'paid';
+                        else if (mapped === 'failed') realStatus = 'failed';
+                    } catch (e) {
+                        logger.warn('Failed to query CajuPay status', e);
+                    }
+                }
             }
 
             if (realStatus === 'failed' && order.status === 'pending') {
@@ -2511,6 +2782,18 @@ Deno.serve(async (req) => {
                             ? "Credenciais ou certificado rejeitados pelo Efí (confira Client ID/Secret, senha do P12 e o ambiente)."
                             : "Credenciais rejeitadas pelo Efí. Para testar o PIX, envie também o certificado P12 e a senha.";
                     }
+                }
+            } else if (slug === 'cajupay') {
+                const publicKey = cred.public_key || cred.api_key;
+                if (!publicKey) {
+                    detail = "Chave pública (X-API-Key) do CajuPay não configurada.";
+                } else {
+                    const provider = new CajuPayProvider({
+                        publicKey,
+                        secretKey: cred.secret_key,
+                    });
+                    ok = await provider.testConnection();
+                    if (!ok) detail = "Chaves rejeitadas pelo CajuPay (confira X-API-Key e X-API-Secret).";
                 }
             } else {
                 detail = `Gateway '${slug}' não suportado para teste.`;

@@ -80,6 +80,7 @@ export default function GatewaysPage() {
         pagarme: "text-cyan-400",
         paypal: "text-sky-400",
         efi: "text-orange-400",
+        cajupay: "text-lime-400",
     };
 
     return (
