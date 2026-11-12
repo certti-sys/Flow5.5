@@ -1,6 +1,10 @@
 // Defines Types for Payment Module (Frontend)
 // Mirrored from Database Schema
 
+import type { CheckoutConfig } from "./checkout-config";
+
+export type { CheckoutConfig };
+
 export interface Gateway {
     id: string;
     name: string;
@@ -31,17 +35,10 @@ export interface Product {
     active: boolean;
     type: 'one_time' | 'subscription';
     price?: number; // Price in cents (from database)
+    checkout_slug?: string | null;
     checkout_config: CheckoutConfig;
     metadata?: any;
     created_at: string;
-}
-
-export interface CheckoutConfig {
-    banner_url?: string | null;
-    logo_url?: string | null;
-    primary_color?: string;
-    features?: string[];
-    [key: string]: any;
 }
 
 export interface Price {

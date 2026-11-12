@@ -4,6 +4,7 @@ import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Product, CheckoutConfig } from "@/types/payment";
+import { normalizeCheckoutConfig } from "@/types/checkout-config";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,11 +128,19 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
 
     const mutation = useMutation({
         mutationFn: async (values: z.infer<typeof formSchema>) => {
+            // Preserva a personalização feita no Builder do checkout; o modal
+            // só atualiza os campos legados (cor, banner, logo e preço).
+            const current = normalizeCheckoutConfig(product?.checkout_config);
             const checkoutConfig: CheckoutConfig = {
+                ...current,
                 primary_color: values.primary_color,
                 banner_url: values.banner_url || null,
                 logo_url: values.logo_url || null,
                 price: values.price,
+                appearance: {
+                    ...current.appearance,
+                    primary_color: values.primary_color || current.appearance.primary_color,
+                },
             };
 
             const payload: any = {

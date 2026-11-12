@@ -5,10 +5,14 @@ import { cardUtils } from "@/lib/card-utils";
 export const checkoutFormSchema = z.object({
     name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
     email: z.string().email("E-mail inválido"),
+    // CPF/telefone são obrigatórios apenas quando o checkout exige
+    // (configuração do produto + exigência do gateway). A checagem de
+    // obrigatoriedade é feita no submit, para respeitar o checkout_config.
     cpf: z.string()
-        .min(11, "CPF incompleto")
-        .refine((val) => cardUtils.validateCPF(val), { message: "CPF inválido (dígitos incorretos)" }),
-    phone: z.string().min(14, "Telefone incompleto (formato: (00) 00000-0000)"),
+        .optional()
+        .or(z.literal(""))
+        .refine((val) => !val || cardUtils.validateCPF(val), { message: "CPF inválido (dígitos incorretos)" }),
+    phone: z.string().optional().or(z.literal("")),
 
     // We will use a hidden field or logic outside zod to know if we validate card
     // But for now, let's keep them optional and refine

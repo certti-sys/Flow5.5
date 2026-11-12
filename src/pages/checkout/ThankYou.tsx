@@ -8,6 +8,28 @@ import { CheckCircle, Clock, Copy, Check, ArrowRight, Home, BookOpen } from "luc
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ErrorState";
 
+interface PublicOrderItem {
+    product_id: string | null;
+    name: string;
+    image_url: string | null;
+    quantity: number;
+    unit_amount: number;
+    kind: string;
+}
+
+interface PublicOrder {
+    id: string;
+    status: string;
+    total_amount: number;
+    currency: string;
+    customer_first_name: string | null;
+    created_at: string;
+    paid_at: string | null;
+    items: PublicOrderItem[];
+    redirect_after_purchase: string | null;
+    payment: { status: string; method: string | null } | null;
+}
+
 export default function ThankYouPage() {
     const { orderId } = useParams();
     const [searchParams] = useSearchParams();
@@ -17,42 +39,42 @@ export default function ThankYouPage() {
     const qrCodeBase64 = searchParams.get("qrcode_base64");
 
     const [copied, setCopied] = useState(false);
-    const [order, setOrder] = useState<any>(null);
+    const [order, setOrder] = useState<PublicOrder | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchOrder = async () => {
-            if (!orderId) return;
-            const { data, error } = await supabase
-                .from("orders")
-                .select(`
-                    *,
-                    order_items(
-                        quantity,
-                        unit_amount,
-                        product:products(name)
-                    ),
-                    payments(status, external_payment_id)
-                `)
-                .eq("id", orderId)
-                .single();
-            if (error) {
-                setLoadError(error.message);
-                toast.error("Não foi possível carregar os detalhes do pedido", {
-                    description: error.message.slice(0, 160),
-                });
-            }
-            setOrder(data);
+        if (!orderId) {
             setLoading(false);
+            setLoadError("Pedido inválido");
+            return;
+        }
+
+        let active = true;
+
+        // RPC pública: a página de obrigado não exige login, e as tabelas
+        // orders/order_items/payments só liberam leitura para autenticados.
+        supabase
+            .rpc("get_order_public", { p_order_id: orderId })
+            .then(({ data, error }) => {
+                if (!active) return;
+
+                if (error) setLoadError(error.message);
+                else if (!data) setLoadError("Pedido não encontrado");
+                else setOrder(data as PublicOrder);
+
+                setLoading(false);
+            });
+
+        return () => {
+            active = false;
         };
-        fetchOrder();
     }, [orderId]);
 
     // Polling de verificação de pagamento (reconfirma status no PSP a cada 3s enquanto pendente)
     useEffect(() => {
         if (!orderId) return;
-        if (order?.status === "paid" || order?.payments?.[0]?.status === "paid") return;
+        if (order?.status === "paid" || order?.payment?.status === "paid") return;
 
         let cancelled = false;
         const interval = setInterval(async () => {
@@ -66,7 +88,7 @@ export default function ThankYouPage() {
                 });
 
                 if (!error && data?.status === "paid" && !cancelled) {
-                    setOrder((prev: any) => prev ? { ...prev, status: "paid" } : prev);
+                    setOrder((prev) => prev ? { ...prev, status: "paid" } : prev);
                     toast.success("Pagamento confirmado! Acesso liberado. 🎉");
                     clearInterval(interval);
                 }
@@ -79,7 +101,22 @@ export default function ThankYouPage() {
             cancelled = true;
             clearInterval(interval);
         };
-    }, [orderId, order?.status, order?.payments]);
+    }, [orderId, order?.status, order?.payment?.status]);
+
+    const isPaid = order?.status === "paid" || order?.payment?.status === "paid";
+    const redirectAfterPurchase = order?.redirect_after_purchase ?? null;
+
+    // Redirecionamento pós-compra configurado no produto.
+    useEffect(() => {
+        if (!isPaid || !redirectAfterPurchase) return;
+        if (!/^https?:\/\//i.test(redirectAfterPurchase)) return;
+
+        const timer = setTimeout(() => {
+            window.location.href = redirectAfterPurchase;
+        }, 2500);
+
+        return () => clearTimeout(timer);
+    }, [isPaid, redirectAfterPurchase]);
 
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -88,8 +125,9 @@ export default function ThankYouPage() {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const formatCurrency = (amount: number) => {
-        return `R$ ${(amount / 100).toFixed(2).replace(".", ",")}`;
+    const formatCurrency = (amount: number, currency = "BRL") => {
+        const value = (amount / 100).toFixed(2);
+        return currency === "USD" ? `US$ ${value}` : `R$ ${value.replace(".", ",")}`;
     };
 
     if (loading) {
@@ -105,14 +143,13 @@ export default function ThankYouPage() {
             <div className="min-h-screen flex items-center justify-center p-4">
                 <ErrorState
                     title="Não foi possível carregar o pedido"
-                    description="Ocorreu um erro ao buscar os detalhes da sua compra."
+                    description="O link pode estar incorreto ou o pedido ainda não foi gerado."
                     onRetry={() => window.location.reload()}
                 />
             </div>
         );
     }
 
-    // Se o pedido não foi encontrado (RLS bloqueou ou não existe)
     if (!order) {
         return (
             <div className="min-h-screen flex items-center justify-center p-4">
@@ -121,7 +158,7 @@ export default function ThankYouPage() {
                         <div className="text-4xl">🔒</div>
                         <h1 className="text-xl font-bold">Pedido não encontrado</h1>
                         <p className="text-muted-foreground text-sm">
-                            Este pedido não existe ou você não tem permissão para acessá-lo.
+                            Este pedido não existe ou o link está incompleto.
                         </p>
                         <Button asChild variant="outline" className="mt-4">
                             <Link to="/">
@@ -134,8 +171,6 @@ export default function ThankYouPage() {
             </div>
         );
     }
-
-    const isPaid = order?.status === "paid" || order?.payments?.[0]?.status === "paid";
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
@@ -155,7 +190,11 @@ export default function ThankYouPage() {
                     {/* Mensagem Principal */}
                     <div className="space-y-2">
                         <h1 className="text-2xl font-bold">
-                            {isPaid ? "Pagamento Confirmado!" : "Aguardando Pagamento"}
+                            {isPaid
+                                ? "Pagamento Confirmado!"
+                                : order.customer_first_name
+                                    ? `Quase lá, ${order.customer_first_name}!`
+                                    : "Aguardando Pagamento"}
                         </h1>
                         <p className="text-muted-foreground">
                             {isPaid
@@ -176,7 +215,7 @@ export default function ThankYouPage() {
                         <div className="space-y-4">
                             <div className="p-4 bg-white rounded-lg inline-block">
                                 <img
-                                    src={qrCodeBase64 ? `data:image/png;base64,${qrCodeBase64}` : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode)}`}
+                                    src={qrCodeBase64 ? `data:image/png;base64,${qrCodeBase64}` : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode!)}`}
                                     alt="QR Code PIX"
                                     className="w-48 h-48"
                                     loading="eager"
@@ -187,14 +226,14 @@ export default function ThankYouPage() {
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        value={qrCode}
+                                        value={qrCode ?? ""}
                                         readOnly
                                         className="flex-1 text-xs p-2 rounded border bg-muted/50 truncate"
                                     />
                                     <Button
                                         variant="outline"
                                         size="icon"
-                                        onClick={() => handleCopy(qrCode)}
+                                        onClick={() => qrCode && handleCopy(qrCode)}
                                     >
                                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                     </Button>
@@ -219,25 +258,25 @@ export default function ThankYouPage() {
                     )}
 
                     {/* Detalhes do Pedido */}
-                    {order && (
-                        <div className="text-left p-4 bg-muted/30 rounded-lg space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Pedido</span>
-                                <span className="font-mono">#{order.id?.slice(0, 8)}</span>
-                            </div>
-                            {order.order_items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between text-sm">
-                                    <span>{item.product?.name}</span>
-                                    <span className="font-medium">{formatCurrency(item.unit_amount)}</span>
-                                </div>
-                            ))}
-                            <Separator className="my-2" />
-                            <div className="flex justify-between font-bold">
-                                <span>Total</span>
-                                <span className="text-primary">{formatCurrency(order.total_amount)}</span>
-                            </div>
+                    <div className="text-left p-4 bg-muted/30 rounded-lg space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Pedido</span>
+                            <span className="font-mono">#{order.id?.slice(0, 8)}</span>
                         </div>
-                    )}
+                        {order.items?.map((item, i) => (
+                            <div key={`${item.product_id}-${i}`} className="flex justify-between gap-3 text-sm">
+                                <span className="truncate">{item.name}</span>
+                                <span className="font-medium shrink-0">
+                                    {formatCurrency(item.unit_amount, order.currency)}
+                                </span>
+                            </div>
+                        ))}
+                        <Separator className="my-2" />
+                        <div className="flex justify-between font-bold">
+                            <span>Total</span>
+                            <span className="text-primary">{formatCurrency(order.total_amount, order.currency)}</span>
+                        </div>
+                    </div>
 
                     <Separator />
 
@@ -257,7 +296,21 @@ export default function ThankYouPage() {
                                 </Link>
                             </Button>
                         )}
+                        {isPaid && redirectAfterPurchase && /^https?:\/\//i.test(redirectAfterPurchase) && (
+                            <Button asChild className="flex-1">
+                                <a href={redirectAfterPurchase}>
+                                    Continuar
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                </a>
+                            </Button>
+                        )}
                     </div>
+
+                    {isPaid && redirectAfterPurchase && /^https?:\/\//i.test(redirectAfterPurchase) && (
+                        <p className="text-xs text-muted-foreground">
+                            Você será redirecionado automaticamente em instantes.
+                        </p>
+                    )}
                 </CardContent>
             </Card>
         </div>

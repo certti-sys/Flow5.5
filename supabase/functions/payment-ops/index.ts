@@ -2104,6 +2104,109 @@ function createPaymentProvider(
 }
 
 
+/** Senha temporária legível para o e-mail de boas-vindas do comprador. */
+function generateTempPassword(): string {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    const random = Array.from(bytes)
+        .map((b) => b.toString(36).padStart(2, '0'))
+        .join('')
+        .slice(0, 10);
+    return `${random}Aa1!`;
+}
+
+async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: string): Promise<void> {
+    try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({
+                type: 'welcome',
+                to: email,
+                toName: name,
+                data: {
+                    user_name: name,
+                    user_email: email,
+                    temp_password: tempPassword,
+                    login_url: `${(Deno.env.get('SITE_URL') || supabaseUrl).replace(/\/$/, '')}/login`,
+                },
+            }),
+        });
+    } catch (error) {
+        // O e-mail é conveniência: nunca deve derrubar a compra.
+        logger.error('Falha ao enviar e-mail de boas-vindas do checkout', error);
+    }
+}
+
+/**
+ * Resolve a conta do comprador. Se já existe sessão, usa. Caso contrário
+ * procura pelo e-mail em `profiles` e, se necessário, cria a conta com senha
+ * temporária (compra como visitante, igual à referência Getfy).
+ */
+async function resolveCheckoutUser(
+    supabaseAdmin: any,
+    email: string,
+    name: string,
+    phone?: string,
+    cpf?: string,
+): Promise<{ id: string; email: string; metadata: Record<string, any> }> {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, email, name')
+        // E-mails do Supabase Auth já são normalizados em minúsculas; `eq` evita
+        // que `_`/`*` do ILIKE casem com outra conta.
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+    if (profile?.id) {
+        if (phone) {
+            await supabaseAdmin
+                .from('profiles')
+                .update({ whatsapp: phone })
+                .eq('id', profile.id)
+                .is('whatsapp', null);
+        }
+        return { id: profile.id, email: profile.email || normalizedEmail, metadata: { name: profile.name || name } };
+    }
+
+    const tempPassword = generateTempPassword();
+    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: normalizedEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { name, whatsapp: phone, cpf },
+    });
+
+    if (createError || !created?.user) {
+        // Corrida: outra requisição pode ter criado a conta entre a consulta
+        // em profiles e o createUser. Tenta reencontrar antes de desistir.
+        const { data: retryProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email, name')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (retryProfile?.id) {
+            return {
+                id: retryProfile.id,
+                email: retryProfile.email || normalizedEmail,
+                metadata: { name: retryProfile.name || name },
+            };
+        }
+
+        throw new Error(`Não foi possível criar a conta do comprador: ${createError?.message || 'erro desconhecido'}`);
+    }
+
+    await sendGuestWelcomeEmail(normalizedEmail, name, tempPassword);
+    return { id: created.user.id, email: normalizedEmail, metadata: { name, phone, cpf } };
+}
+
 Deno.serve(async (req) => {
     const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
     if (req.method === 'OPTIONS') {
@@ -2124,37 +2227,6 @@ Deno.serve(async (req) => {
         const siteUrl = (Deno.env.get('SITE_URL') || req.headers.get('origin') || '')
             .replace(/\/$/, '');
 
-        const authHeader = req.headers.get('Authorization');
-        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-            global: { headers: { Authorization: authHeader || '' } }
-        });
-
-        const { data: { user }, error: authUserError } = await supabaseClient.auth.getUser();
-        if (authUserError || !user) throw new Error("Não autenticado");
-
-        // --- RATE LIMITING ---
-        const rateLimit = await checkRateLimit(
-            supabaseClient,
-            user.id,
-            'payment-ops',
-            10,    // 10 requests
-            60     // per minute
-        );
-
-        if (!rateLimit.allowed) {
-            logger.warn(`Rate limit hit for payment-ops: ${user.id}`);
-            return new Response(
-                JSON.stringify({ 
-                    error: 'Muitas solicitações.', 
-                    retryAfter: rateLimit.retryAfter 
-                }), 
-                { 
-                    status: 429, 
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimit.retryAfter) } 
-                }
-            );
-        }
-
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
         const bodyRaw = await req.json();
@@ -2170,6 +2242,61 @@ Deno.serve(async (req) => {
 
         const { action, payload } = validation.data;
         logger.info(`Action: ${action}`, { productId: payload?.productId, gatewayId: payload?.gatewayId });
+
+        const authHeader = req.headers.get('Authorization');
+        const bearer = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+        const isAnonymousRequest = !bearer || bearer === supabaseAnonKey;
+
+        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+            global: { headers: { Authorization: authHeader || '' } }
+        });
+
+        // Sessão é opcional para o checkout público (compra como visitante).
+        // `test_connection` continua exigindo administrador.
+        let user: { id: string; email?: string; user_metadata?: Record<string, any> } | null = null;
+        if (!isAnonymousRequest) {
+            const { data: authData, error: authUserError } = await supabaseClient.auth.getUser();
+            if (!authUserError && authData?.user) user = authData.user;
+        }
+
+        if (action === 'test_connection') {
+            if (!user) throw new Error("Não autenticado");
+            const { data: adminRole } = await supabaseAdmin
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', user.id)
+                .eq('role', 'admin')
+                .maybeSingle();
+            if (!adminRole) throw new Error("Acesso restrito a administradores");
+        }
+
+        // --- RATE LIMITING ---
+        // Visitantes são limitados por e-mail; o IP fica como fallback.
+        const rateLimitIdentifier = user?.id
+            || (payload?.email ? `email:${payload.email.toLowerCase()}` : null)
+            || `ip:${req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'}`;
+
+        const rateLimit = await checkRateLimit(
+            supabaseAdmin,
+            rateLimitIdentifier,
+            'payment-ops',
+            10,    // 10 requests
+            60     // per minute
+        );
+
+        if (!rateLimit.allowed) {
+            logger.warn(`Rate limit hit for payment-ops: ${rateLimitIdentifier}`);
+            return new Response(
+                JSON.stringify({ 
+                    error: 'Muitas solicitações.', 
+                    retryAfter: rateLimit.retryAfter 
+                }), 
+                { 
+                    status: 429, 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimit.retryAfter) } 
+                }
+            );
+        }
 
         if (action === 'create_paymentIntent') {
 
@@ -2293,15 +2420,31 @@ Deno.serve(async (req) => {
             // Determinar moeda baseada no gateway. O PayPal não opera em BRL.
             const currency = (cred.gateway.slug === 'stripe' || cred.gateway.slug === 'paypal') ? 'USD' : 'BRL';
 
+            // Compra como visitante: sem sessão, resolve/cria a conta pelo e-mail
+            // para que o acesso ao curso seja concedido no pagamento.
+            const checkoutEmail = (payload.email || user?.email || '').trim().toLowerCase();
+            const checkoutName = (payload.name || user?.user_metadata?.name || '').trim();
+
+            if (!checkoutEmail) throw new Error("E-mail é obrigatório para finalizar a compra");
+            if (!user && checkoutName.length < 3) throw new Error("Nome completo é obrigatório para finalizar a compra");
+
+            const checkoutUser = user
+                ? { id: user.id, email: user.email || checkoutEmail, metadata: (user.user_metadata || {}) as Record<string, any> }
+                : await resolveCheckoutUser(supabaseAdmin, checkoutEmail, checkoutName, payload.phone, payload.cpf);
+
             const { data: order } = await supabaseAdmin.from('orders').insert({
-                user_id: user.id,
+                user_id: checkoutUser.id,
                 status: 'pending',
                 currency: currency,
                 total_amount: price,
-                customer_email: user.email || payload.email,
-                customer_name: payload.name || user.user_metadata?.name || null,
-                customer_phone: payload.phone || user.user_metadata?.phone || null,
-                customer_cpf: payload.cpf || null
+                customer_email: checkoutUser.email,
+                customer_name: payload.name || checkoutUser.metadata?.name || null,
+                customer_phone: payload.phone || checkoutUser.metadata?.whatsapp || checkoutUser.metadata?.phone || null,
+                customer_cpf: payload.cpf || checkoutUser.metadata?.cpf || null,
+                metadata: {
+                    idempotency_key: payload.idempotencyKey ?? null,
+                    guest_checkout: !user,
+                },
             }).select('*').single();
 
             // Insert coupon usage if applied
@@ -2310,7 +2453,7 @@ Deno.serve(async (req) => {
                     await supabaseAdmin.from('coupon_usage').insert({
                         coupon_id: payload.couponId,
                         order_id: order.id,
-                        user_id: user.id,
+                        user_id: checkoutUser.id,
                         discount_applied: discountApplied || payload.discountAmount || 0
                     });
 
@@ -2351,10 +2494,10 @@ Deno.serve(async (req) => {
                 currency: currency,
                 description: `Pedido #${order.id.slice(0, 8)}`,
                 customer: {
-                    email: user.email!,
-                    name: payload.name || user.user_metadata?.name || "Cliente",
-                    tax_id: payload.cpf || user.user_metadata?.cpf,
-                    phone: payload.phone || user.user_metadata?.phone
+                    email: checkoutUser.email,
+                    name: payload.name || checkoutUser.metadata?.name || "Cliente",
+                    tax_id: payload.cpf || checkoutUser.metadata?.cpf,
+                    phone: payload.phone || checkoutUser.metadata?.whatsapp || checkoutUser.metadata?.phone
                 },
                 items: itemsToInsert.map(it => ({
                     id: it.product_id,
@@ -2367,7 +2510,7 @@ Deno.serve(async (req) => {
                     installments: payload.installments || 1,
                     payment_method_id: payload.payment_method_id,
                     issuer_id: payload.issuer_id,
-                    user_id: user.id,
+                    user_id: checkoutUser.id,
                     idempotency_key: payload.idempotencyKey,
                     address: payload.address,
                 }
@@ -2415,13 +2558,13 @@ Deno.serve(async (req) => {
                 const { data: existing } = await supabaseAdmin
                     .from('user_course_access')
                     .select('id')
-                    .eq('user_id', user.id)
+                    .eq('user_id', checkoutUser.id)
                     .eq('course_id', product.course_id)
                     .maybeSingle();
 
                 if (!existing) {
                     const { error: accessError } = await supabaseAdmin.from('user_course_access').insert({
-                        user_id: user.id,
+                        user_id: checkoutUser.id,
                         course_id: product.course_id,
                         source: 'checkout',
                         granted_by: null

@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -15,7 +15,7 @@ import { CustomCardForm } from "@/components/checkout/CustomCardForm";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Loader2, Lock, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { cardUtils } from "@/lib/card-utils";
 import { OrderBumpCard } from "@/components/checkout/OrderBumpCard";
 import { CouponInput } from "@/features/coupons/components/CouponInput";
@@ -23,6 +23,11 @@ import { CouponValidationResult } from "@/features/coupons/types";
 import { StripeCardElement } from "@/components/checkout/StripeCardElement";
 import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
+import { normalizeCheckoutConfig } from "@/types/checkout-config";
+import { CheckoutContentBlocks, CheckoutYoutube } from "@/components/checkout/CheckoutContentBlocks";
+import { CheckoutReviews } from "@/components/checkout/CheckoutReviews";
+import { CheckoutSupportButton } from "@/components/checkout/CheckoutSupportButton";
+import { CheckoutFooter } from "@/components/checkout/CheckoutFooter";
 
 // Declare window.MercadoPago for types
 declare global {
@@ -32,7 +37,7 @@ declare global {
 }
 
 export default function CheckoutPage() {
-    const { productId } = useParams();
+    const { productId, slug } = useParams<{ productId?: string; slug?: string }>();
     const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
     const [allowedMethods, setAllowedMethods] = useState<string[]>([]);
     // Lifted state for payment method
@@ -49,26 +54,108 @@ export default function CheckoutPage() {
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
 
-    // 1. Fetch Product
+    // 1. Fetch Product (por UUID ou pelo slug público /c/:slug)
     const { data: product, isLoading: loadingProduct, error: productError, refetch: refetchProduct } = useQuery({
-        queryKey: ["checkoutProduct", productId],
+        queryKey: ["checkoutProduct", productId ?? slug],
         queryFn: async () => {
-            // maybeSingle(): id inexistente devolve null em vez de 406 (PGRST116),
+            // maybeSingle(): id/slug inexistente devolve null em vez de 406 (PGRST116),
             // que aparecia como erro de rede no console para links inválidos.
-            const { data, error } = await supabase
-                .from("products")
-                .select("*")
-                .eq("id", productId)
-                .maybeSingle();
+            let query = supabase.from("products").select("*");
+
+            query = productId
+                ? query.eq("id", productId)
+                : query.eq("checkout_slug", slug!).eq("active", true);
+
+            const { data, error } = await query.maybeSingle();
             if (error) throw error;
             return data as Product | null;
         },
-        enabled: !!productId
+        enabled: !!productId || !!slug
     });
+
+    // Configuração de personalização normalizada (defaults + banco).
+    const config = useMemo(
+        () => normalizeCheckoutConfig(product?.checkout_config),
+        [product?.checkout_config]
+    );
+
+    const resolvedProductId = product?.id ?? productId;
+
+    // Campos exigidos pelos gateways (independente da configuração do produto).
+    const gatewayRequiresCpf = selectedGateway === 'pagarme'
+        || (selectedGateway === 'mercadopago' && selectedMethod === 'credit_card');
+    const showCpfField = config.customer_fields.cpf || gatewayRequiresCpf;
+    const showPhoneField = config.customer_fields.phone;
+    const showCouponField = config.customer_fields.coupon;
+
+    // SEO / metadados do checkout configurados no admin.
+    useEffect(() => {
+        if (!product) return;
+
+        const previousTitle = document.title;
+        document.title = config.seo.title || product.name;
+
+        const managed: Array<{ el: HTMLMetaElement | HTMLLinkElement; previous: string | null }> = [];
+
+        const ensureMeta = (attr: "name" | "property", key: string, content: string) => {
+            if (!content) return;
+            const selector = `meta[${attr}="${key}"]`;
+            let el = document.head.querySelector<HTMLMetaElement>(selector);
+            const previous = el?.getAttribute("content") ?? null;
+            if (!el) {
+                el = document.createElement("meta");
+                el.setAttribute(attr, key);
+                document.head.appendChild(el);
+            }
+            el.setAttribute("content", content);
+            managed.push({ el, previous });
+        };
+
+        const ensureIcon = (href: string) => {
+            if (!href) return;
+            let el = document.head.querySelector<HTMLLinkElement>('link[rel="icon"]');
+            const previous = el?.getAttribute("href") ?? null;
+            if (!el) {
+                el = document.createElement("link");
+                el.setAttribute("rel", "icon");
+                document.head.appendChild(el);
+            }
+            el.setAttribute("href", href);
+            managed.push({ el, previous });
+        };
+
+        ensureMeta("name", "description", config.seo.description);
+        ensureMeta("property", "og:title", config.seo.title || product.name);
+        ensureMeta("property", "og:description", config.seo.description);
+        ensureMeta("property", "og:image", config.seo.og_image);
+        ensureIcon(config.seo.favicon);
+
+        return () => {
+            document.title = previousTitle;
+            for (const { el, previous } of managed) {
+                if (previous === null) el.remove();
+                else if (el instanceof HTMLMetaElement) el.setAttribute("content", previous);
+                else el.setAttribute("href", previous);
+            }
+        };
+    }, [product, config]);
+
+    // Cor de fundo do checkout (aplicada no layout via --checkout-bg).
+    useEffect(() => {
+        const root = document.documentElement;
+        const background = config.appearance.background_color;
+
+        if (background) root.style.setProperty('--checkout-bg', background);
+        else root.style.removeProperty('--checkout-bg');
+
+        return () => {
+            root.style.removeProperty('--checkout-bg');
+        };
+    }, [config.appearance.background_color]);
 
     // Fetch Order Bumps aplicáveis
     const { data: orderBumps } = useQuery({
-        queryKey: ["orderBumps", productId],
+        queryKey: ["orderBumps", resolvedProductId],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("order_bumps")
@@ -81,12 +168,12 @@ export default function CheckoutPage() {
                     offer_product:products!offer_product_id(id, name, price, image_url)
                 `)
                 .eq("is_active", true)
-                .or(`trigger_product_id.eq.${productId},trigger_product_id.is.null`)
+                .or(`trigger_product_id.eq.${resolvedProductId},trigger_product_id.is.null`)
                 .order("priority", { ascending: false });
             if (error) throw error;
             return data;
         },
-        enabled: !!productId
+        enabled: !!resolvedProductId
     });
 
     // 2. Fetch Gateway Public Key (Mercado Pago)
@@ -254,6 +341,28 @@ export default function CheckoutPage() {
         form.setValue("paymentMethod", selectedMethod);
     }, [selectedMethod, form]);
 
+    // Prefill para comprador logado (visitante começa vazio).
+    useEffect(() => {
+        let active = true;
+
+        supabase.auth.getUser().then(({ data }) => {
+            if (!active || !data.user) return;
+            const metadata = data.user.user_metadata ?? {};
+
+            if (!form.getValues("email")) form.setValue("email", data.user.email ?? "");
+            if (!form.getValues("name") && metadata.name) form.setValue("name", metadata.name);
+            if (!form.getValues("phone")) {
+                const phone = metadata.whatsapp || metadata.phone;
+                if (phone) form.setValue("phone", phone);
+            }
+            if (!form.getValues("cpf") && metadata.cpf) form.setValue("cpf", metadata.cpf);
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [form]);
+
     const updateInstallments = async (cardNumber: string) => {
         if (cardNumber.length < 6 || !mpPublicKey || !window.MercadoPago) return;
         
@@ -315,6 +424,21 @@ export default function CheckoutPage() {
             return;
           }
 
+          // Obrigatoriedade condicional: respeita o checkout_config e o gateway.
+          if (showCpfField && !cardUtils.validateCPF(data.cpf || "")) {
+            form.setError("cpf", { message: "CPF inválido ou incompleto" });
+            setIsProcessing(false);
+            toast.error("Informe um CPF válido.");
+            return;
+          }
+
+          if (showPhoneField && (!data.phone || data.phone.replace(/\D/g, "").length < 10)) {
+            form.setError("phone", { message: "Telefone inválido ou incompleto" });
+            setIsProcessing(false);
+            toast.error("Informe um celular válido.");
+            return;
+          }
+
             // If Stripe gateway, create Payment Intent first
             if (selectedGateway === 'stripe') {
                 await handleStripePayment(data);
@@ -354,7 +478,7 @@ export default function CheckoutPage() {
                     securityCode: data.cardCvv,
                     identification: {
                         type: "CPF",
-                        number: data.cpf.replace(/\D/g, "")
+                        number: (data.cpf || "").replace(/\D/g, "")
                     }
                 };
 
@@ -386,11 +510,8 @@ export default function CheckoutPage() {
                 }
             }
 
-            // 2. Verify user is authenticated
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                throw new Error("Você precisa estar autenticado para fazer uma compra. Faça login e tente novamente.");
-            }
+            // 2. Checkout público: visitante pode comprar; o backend resolve/cria
+            // a conta pelo e-mail antes de criar o pedido.
 
             // 3. Call Backend
             if (!gatewayId) throw new Error("Gateway não configurado");
@@ -414,7 +535,7 @@ export default function CheckoutPage() {
             const payloadToSend = {
                 action: 'create_paymentIntent',
                 payload: {
-                    productId: productId,
+                    productId: resolvedProductId,
                     gatewayId: gatewayId,
                     token: token || undefined,
                     payment_method_id: paymentMethodId || undefined,
@@ -520,11 +641,7 @@ export default function CheckoutPage() {
 
     const handleStripePayment = async (data: CheckoutFormValues) => {
         try {
-            // 1. Verify user is authenticated
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                throw new Error("Você precisa estar autenticado para fazer uma compra. Faça login e tente novamente.");
-            }
+            // 1. Checkout público: visitante pode comprar; o backend resolve a conta.
 
             // 2. Calculate final amount
             const basePrice = product?.price || 1000;
@@ -547,7 +664,7 @@ export default function CheckoutPage() {
             const payloadToSend = {
                 action: 'create_paymentIntent',
                 payload: {
-                    productId: productId,
+                    productId: resolvedProductId,
                     gatewayId: gatewayId,
                     cpf: data.cpf,
                     name: data.name,
@@ -631,34 +748,217 @@ export default function CheckoutPage() {
     }
     if (!product) return <ErrorState title="Produto não encontrado" description="O link deste checkout pode estar incorreto ou o produto foi removido." />;
 
+    const buyButtonColor = config.appearance.buy_button_color || config.appearance.primary_color || undefined;
+    const buyButtonText = config.appearance.buy_button_text?.trim();
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Coluna Esquerda: Formulários */}
-            <div className="lg:col-span-7 space-y-6">
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(
-                            handlePaymentSubmit,
-                            (errors) => {
-                                // [DEBUG] Temporary instrumentation for validation errors
-                                console.error('[checkout] validation errors', errors);
-                                toast.error('Verifique os campos obrigatórios do checkout.');
-                            }
-                        )}
-                        className="space-y-6"
-                    >
-                        <CustomerForm form={form} />
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Coluna Esquerda: Formulários */}
+                <div className="lg:col-span-7 space-y-6">
+                    {config.logo_url && (
+                        <img
+                            src={config.logo_url}
+                            alt={product.name}
+                            className="h-12 w-auto object-contain"
+                        />
+                    )}
 
-                        {selectedMethod === 'bolbradesco' && (
-                            <BoletoAddressForm form={form} />
-                        )}
+                    {config.banner_url && (
+                        <img
+                            src={config.banner_url}
+                            alt=""
+                            className="w-full rounded-xl border object-cover"
+                            loading="eager"
+                        />
+                    )}
 
-                        {/* Stripe Payment Element */}
-                        {selectedGateway === 'stripe' && stripePublicKey && stripeClientSecret && (
-                            <StripeCardElement
-                                publicKey={stripePublicKey}
-                                clientSecret={stripeClientSecret}
-                                orderId={stripeOrderId ?? undefined}
+                    {config.youtube_position === 'top' && (
+                        <CheckoutYoutube url={config.youtube_url} />
+                    )}
+
+                    <CheckoutContentBlocks
+                        blocks={config.appearance.content_blocks}
+                        placement="main"
+                    />
+
+                    <Form {...form}>
+                        <form
+                            onSubmit={form.handleSubmit(
+                                handlePaymentSubmit,
+                                (errors) => {
+                                    // [DEBUG] Temporary instrumentation for validation errors
+                                    console.error('[checkout] validation errors', errors);
+                                    toast.error('Verifique os campos obrigatórios do checkout.');
+                                }
+                            )}
+                            className="space-y-6"
+                        >
+                            <CustomerForm
+                                form={form}
+                                showCpf={showCpfField}
+                                showPhone={showPhoneField}
+                            />
+
+                            {selectedMethod === 'bolbradesco' && (
+                                <BoletoAddressForm form={form} />
+                            )}
+
+                            {/* Stripe Payment Element */}
+                            {selectedGateway === 'stripe' && stripePublicKey && stripeClientSecret && (
+                                <StripeCardElement
+                                    publicKey={stripePublicKey}
+                                    clientSecret={stripeClientSecret}
+                                    orderId={stripeOrderId ?? undefined}
+                                    amount={(() => {
+                                        const basePrice = product?.price || 1000;
+                                        const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
+                                            const bump = orderBumps?.find((b: any) => b.id === bumpId);
+                                            if (bump?.offer_product) {
+                                                const offerProduct = bump.offer_product as any;
+                                                const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
+                                                return acc + discounted;
+                                            }
+                                            return acc;
+                                        }, 0);
+                                        const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
+                                        return Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
+                                    })()}
+                                    currency={currency}
+                                    onSuccess={handleStripeSuccess}
+                                    onError={handleStripeError}
+                                />
+                            )}
+
+                            {/* Mercado Pago / Asaas / PushinPay / Pagar.me / PayPal / Efí / CajuPay Payment Methods */}
+                            {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && allowedMethods.length > 0 && (
+                                <>
+                                    <PaymentMethods
+                                        form={form}
+                                        onMethodChange={(m) => {
+                                            setSelectedMethod(m);
+                                            // Mantém o formulário sincronizado para que a
+                                            // validação condicional (cartão/boleto) rode no submit.
+                                            form.setValue('paymentMethod', m, { shouldValidate: false });
+                                        }}
+                                        allowedMethods={allowedMethods}
+                                    />
+
+                                    {/* No Asaas, Pagar.me, PayPal, Efí e CajuPay o cartão é digitado no ambiente do gateway (PCI). */}
+                                    {(selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && selectedMethod === 'credit_card' && (
+                                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
+                                            O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : selectedGateway === 'pagarme' ? 'Pagar.me' : selectedGateway === 'paypal' ? 'PayPal' : selectedGateway === 'efi' ? 'Efí' : 'CajuPay'}. Ao confirmar,
+                                            você será redirecionado para concluir o pagamento{selectedGateway === 'paypal' ? ' (valor em dólar)' : ''}.
+                                        </div>
+                                    )}
+
+                                    {/* Renderiza Formulário Customizado APENAS para Cartão no Mercado Pago. */}
+                                    {selectedMethod === 'credit_card' && selectedGateway === 'mercadopago' && (
+                                        <CustomCardForm
+                                            form={form}
+                                            installmentOptions={installmentOptions}
+                                            onCardNumberChange={updateInstallments}
+                                        />
+                                    )}
+                                </>
+                            )}
+
+                            {/* Order Bumps */}
+                            {orderBumps && orderBumps.length > 0 && (
+                                <div className="space-y-3">
+                                    {orderBumps.map((bump: any) => (
+                                        <OrderBumpCard
+                                            key={bump.id}
+                                            bump={bump}
+                                            selected={selectedBumps.includes(bump.id)}
+                                            onToggle={(id) => {
+                                                setSelectedBumps(prev =>
+                                                    prev.includes(id)
+                                                        ? prev.filter(b => b !== id)
+                                                        : [...prev, id]
+                                                )
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Submit Button — MP/Asaas pagam; Stripe usa este botão só
+                                para gerar o Payment Intent e então mostra o Element. */}
+                            {(selectedGateway === 'mercadopago'
+                                || selectedGateway === 'asaas'
+                                || selectedGateway === 'pushinpay'
+                                || selectedGateway === 'pagarme'
+                                || selectedGateway === 'paypal'
+                                || selectedGateway === 'efi'
+                                || selectedGateway === 'cajupay'
+                                || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
+                                <>
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-12 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                                        disabled={isProcessing}
+                                        style={buyButtonColor ? { backgroundColor: buyButtonColor } : undefined}
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                Processando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Lock className="mr-2 h-5 w-5" />
+                                                {selectedGateway === 'stripe' ? (
+                                                    buyButtonText || "Continuar para pagamento"
+                                                ) : (
+                                                    <>{buyButtonText || "Pagar"} {currency === 'USD' ? 'US$' : 'R$'} {(() => {
+                                                        const basePrice = product?.price || 1000;
+                                                        const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
+                                                            const bump = orderBumps?.find((b: any) => b.id === bumpId);
+                                                            if (bump?.offer_product) {
+                                                                const offerProduct = bump.offer_product as any;
+                                                                const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
+                                                                return acc + discounted;
+                                                            }
+                                                            return acc;
+                                                        }, 0);
+                                                        const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
+                                                        const finalAmountInCents = Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
+                                                        return currency === 'USD'
+                                                            ? (finalAmountInCents / 100).toFixed(2)
+                                                            : (finalAmountInCents / 100).toFixed(2).replace('.', ',');
+                                                    })()}</>
+                                                )}
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+                                        <Lock className="w-3 h-3" />
+                                        Ambiente Criptografado e Seguro
+                                    </div>
+                                </>
+                            )}
+
+                        </form>
+                    </Form>
+
+                    {config.youtube_position === 'bottom' && (
+                        <CheckoutYoutube url={config.youtube_url} />
+                    )}
+                </div>
+
+                {/* Coluna Direita: Resumo (Sticky) */}
+                <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-4">
+                    <CheckoutContentBlocks
+                        blocks={config.appearance.content_blocks}
+                        placement="sidebar"
+                    />
+
+                    {showCouponField && (
+                        <div className="bg-card border rounded-lg p-6 shadow-sm">
+                            <CouponInput
+                                productId={resolvedProductId!}
                                 amount={(() => {
                                     const basePrice = product?.price || 1000;
                                     const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
@@ -670,159 +970,31 @@ export default function CheckoutPage() {
                                         }
                                         return acc;
                                     }, 0);
-                                    const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
-                                    return Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
+                                    return (basePrice + bumpsTotal) / 100;
                                 })()}
-                                currency={currency}
-                                onSuccess={handleStripeSuccess}
-                                onError={handleStripeError}
+                                onApply={(result) => setAppliedCoupon(result)}
+                                disabled={isProcessing}
                             />
-                        )}
+                        </div>
+                    )}
 
-                        {/* Mercado Pago / Asaas / PushinPay / Pagar.me / PayPal / Efí / CajuPay Payment Methods */}
-                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && allowedMethods.length > 0 && (
-                            <>
-                                <PaymentMethods
-                                    form={form}
-                                    onMethodChange={(m) => {
-                                        setSelectedMethod(m);
-                                        // Mantém o formulário sincronizado para que a
-                                        // validação condicional (cartão/boleto) rode no submit.
-                                        form.setValue('paymentMethod', m, { shouldValidate: false });
-                                    }}
-                                    allowedMethods={allowedMethods}
-                                />
-
-                                {/* No Asaas, Pagar.me, PayPal, Efí e CajuPay o cartão é digitado no ambiente do gateway (PCI). */}
-                                {(selectedGateway === 'asaas' || selectedGateway === 'pagarme' || selectedGateway === 'paypal' || selectedGateway === 'efi' || selectedGateway === 'cajupay') && selectedMethod === 'credit_card' && (
-                                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
-                                        O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : selectedGateway === 'pagarme' ? 'Pagar.me' : selectedGateway === 'paypal' ? 'PayPal' : selectedGateway === 'efi' ? 'Efí' : 'CajuPay'}. Ao confirmar,
-                                        você será redirecionado para concluir o pagamento{selectedGateway === 'paypal' ? ' (valor em dólar)' : ''}.
-                                    </div>
-                                )}
-
-                                {/* Renderiza Formulário Customizado APENAS para Cartão no Mercado Pago. */}
-                                {selectedMethod === 'credit_card' && selectedGateway === 'mercadopago' && (
-                                    <CustomCardForm
-                                        form={form}
-                                        installmentOptions={installmentOptions}
-                                        onCardNumberChange={updateInstallments}
-                                    />
-                                )}
-                            </>
-                        )}
-
-                        {/* Order Bumps */}
-                        {orderBumps && orderBumps.length > 0 && (
-                            <div className="space-y-3">
-                                {orderBumps.map((bump: any) => (
-                                    <OrderBumpCard
-                                        key={bump.id}
-                                        bump={bump}
-                                        selected={selectedBumps.includes(bump.id)}
-                                        onToggle={(id) => {
-                                            setSelectedBumps(prev =>
-                                                prev.includes(id)
-                                                    ? prev.filter(b => b !== id)
-                                                    : [...prev, id]
-                                            )
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Submit Button — MP/Asaas pagam; Stripe usa este botão só
-                            para gerar o Payment Intent e então mostra o Element. */}
-                        {(selectedGateway === 'mercadopago'
-                            || selectedGateway === 'asaas'
-                            || selectedGateway === 'pushinpay'
-                            || selectedGateway === 'pagarme'
-                            || selectedGateway === 'paypal'
-                            || selectedGateway === 'efi'
-                            || selectedGateway === 'cajupay'
-                            || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
-                            <>
-                                <Button
-                                    type="submit"
-                                    className="w-full h-12 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                                    disabled={isProcessing}
-                                >
-                                    {isProcessing ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                            Processando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Lock className="mr-2 h-5 w-5" />
-                                            {selectedGateway === 'stripe' ? (
-                                                "Continuar para pagamento"
-                                            ) : (
-                                                <>Pagar {currency === 'USD' ? 'US$' : 'R$'} {(() => {
-                                                    const basePrice = product?.price || 1000;
-                                                    const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
-                                                        const bump = orderBumps?.find((b: any) => b.id === bumpId);
-                                                        if (bump?.offer_product) {
-                                                            const offerProduct = bump.offer_product as any;
-                                                            const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
-                                                            return acc + discounted;
-                                                        }
-                                                        return acc;
-                                                    }, 0);
-                                                    const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
-                                                    const finalAmountInCents = Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
-                                                    return currency === 'USD'
-                                                        ? (finalAmountInCents / 100).toFixed(2)
-                                                        : (finalAmountInCents / 100).toFixed(2).replace('.', ',');
-                                                })()}</>
-                                            )}
-                                        </>
-                                    )}
-                                </Button>
-
-                                <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-                                    <Lock className="w-3 h-3" />
-                                    Ambiente Criptografado e Seguro
-                                </div>
-                            </>
-                        )}
-
-                    </form>
-                </Form>
-            </div>
-
-            {/* Coluna Direita: Resumo (Sticky) */}
-            <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-4">
-                <div className="bg-card border rounded-lg p-6 shadow-sm">
-                    <CouponInput
-                        productId={productId!}
-                        amount={(() => {
-                            const basePrice = product?.price || 1000;
-                            const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
-                                const bump = orderBumps?.find((b: any) => b.id === bumpId);
-                                if (bump?.offer_product) {
-                                    const offerProduct = bump.offer_product as any;
-                                    const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
-                                    return acc + discounted;
-                                }
-                                return acc;
-                            }, 0);
-                            return (basePrice + bumpsTotal) / 100;
-                        })()}
-                        onApply={(result) => setAppliedCoupon(result)}
-                        disabled={isProcessing}
+                    <OrderSummary
+                        product={product}
+                        isLoading={loadingProduct}
+                        selectedBumps={selectedBumps}
+                        orderBumps={orderBumps as any}
+                        appliedCoupon={appliedCoupon}
+                        previousPrice={config.summary.previous_price ? config.summary.previous_price / 100 : null}
+                        discountText={config.summary.discount_text}
+                        showDescription={config.summary.show_description}
                     />
-                </div>
 
-                <OrderSummary
-                    product={product}
-                    isLoading={loadingProduct}
-                    selectedBumps={selectedBumps}
-                    orderBumps={orderBumps as any}
-                    appliedCoupon={appliedCoupon}
-                />
+                    <CheckoutReviews reviews={config.reviews} />
+                </div>
             </div>
+
+            <CheckoutFooter config={config.footer} />
+            <CheckoutSupportButton config={config.support_button} />
         </div>
     );
 }

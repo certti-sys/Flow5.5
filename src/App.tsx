@@ -13,7 +13,6 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { ClientLayout } from "./components/ClientLayout";
-import { ShoppingCart } from "lucide-react";
 
 // Rotas carregadas sob demanda: cada página só baixa seu bundle quando visitada.
 // Login, layouts e NotFound ficam estáticos porque aparecem na primeira dobra.
@@ -43,6 +42,7 @@ const OrdersPage = lazy(() => import("./pages/admin/Orders"));
 const SalesDashboard = lazy(() => import("./pages/admin/SalesDashboard"));
 const CustomersPage = lazy(() => import("./pages/admin/Customers"));
 const AdminDesignSandbox = lazy(() => import("./pages/admin/DesignSandbox"));
+const CheckoutBuilderPage = lazy(() => import("./pages/admin/CheckoutBuilder"));
 const OrderBumpsPage = lazy(() => import("./pages/admin/OrderBumps"));
 const AdminCouponsPage = lazy(() => import("./pages/admin/Coupons"));
 import { CheckoutLayout } from "./components/checkout/CheckoutLayout";
@@ -96,6 +96,8 @@ const App = () => (
                 {/* Checkout Routes */}
                 <Route element={<CheckoutLayout />}>
                   <Route path="/checkout/:productId" element={<CheckoutPage />} />
+                  {/* Link público de venda por slug (ex.: /c/meu-curso) */}
+                  <Route path="/c/:slug" element={<CheckoutPage />} />
                   <Route path="/checkout/obrigado/:orderId" element={<ThankYouPage />} />
                 </Route>
 
@@ -218,11 +220,7 @@ const App = () => (
                   element={
                     <AdminProtectedRoute>
                       <AdminLayout>
-                        <Placeholder
-                          title="Checkout"
-                          description="Configure sua página de checkout"
-                          icon={<ShoppingCart className="w-8 h-8 text-primary" />}
-                        />
+                        <CheckoutBuilderPage />
                       </AdminLayout>
                     </AdminProtectedRoute>
                   }

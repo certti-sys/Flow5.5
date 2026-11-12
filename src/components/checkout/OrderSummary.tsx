@@ -23,6 +23,12 @@ interface OrderSummaryProps {
     selectedBumps?: string[];
     orderBumps?: OrderBumpItem[];
     appliedCoupon?: CouponValidationResult | null;
+    /** Preço anterior (em reais) para o "de/por". */
+    previousPrice?: number | null;
+    /** Texto de desconto exibido ao lado do preço. */
+    discountText?: string;
+    /** Config `summary.show_description`. */
+    showDescription?: boolean;
 }
 
 export function OrderSummary({
@@ -30,7 +36,10 @@ export function OrderSummary({
     isLoading,
     selectedBumps = [],
     orderBumps = [],
-    appliedCoupon = null
+    appliedCoupon = null,
+    previousPrice = null,
+    discountText = "",
+    showDescription = true,
 }: OrderSummaryProps) {
     if (isLoading) {
         return <div className="animate-pulse h-64 bg-gray-200 rounded-lg"></div>;
@@ -85,10 +94,24 @@ export function OrderSummary({
                         )}
                         <div className="flex-1">
                             <h3 className="font-bold text-lg leading-tight">{product.name}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {product.description?.slice(0, 60)}...
-                            </p>
-                            <p className="text-sm font-medium text-primary mt-1">{productPrice}</p>
+                            {showDescription && product.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {product.description.slice(0, 60)}...
+                                </p>
+                            )}
+                            <div className="mt-1 flex flex-wrap items-baseline gap-2">
+                                {previousPrice != null && previousPrice > 0 && (
+                                    <span className="text-sm text-muted-foreground line-through">
+                                        R$ {previousPrice.toFixed(2).replace(".", ",")}
+                                    </span>
+                                )}
+                                <p className="text-sm font-medium text-primary">{productPrice}</p>
+                                {discountText && (
+                                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600">
+                                        {discountText}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 

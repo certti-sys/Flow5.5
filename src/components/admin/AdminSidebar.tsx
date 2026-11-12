@@ -67,6 +67,7 @@ const commercialItems = [
   { title: "Pedidos", url: "/admin/pedidos", icon: ShoppingCart },
   { title: "Clientes", url: "/admin/clientes", icon: UserCheck },
   { title: "Produtos", url: "/admin/produtos", icon: Package },
+  { title: "Checkout", url: "/admin/checkout", icon: ShoppingCart },
   { title: "Cupons", url: "/admin/cupons", icon: Tag },
   { title: "Orderbumps", url: "/admin/orderbump", icon: Layers },
 ];

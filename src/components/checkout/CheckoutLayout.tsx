@@ -4,7 +4,10 @@ import { GraduationCap, Lock } from "lucide-react";
 
 export function CheckoutLayout() {
     return (
-        <div className="min-h-screen bg-muted/40 flex flex-col">
+        <div
+            className="min-h-screen flex flex-col"
+            style={{ backgroundColor: 'var(--checkout-bg, hsl(var(--muted) / 0.4))' }}
+        >
             {/* Header Minimalista */}
             <header className="bg-background border-b py-4">
                 <div className="container max-w-6xl mx-auto px-4 flex justify-between items-center">
