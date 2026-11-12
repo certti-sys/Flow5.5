@@ -16,7 +16,7 @@ export const checkoutFormSchema = z.object({
 
     // Gateway selecionado — define se o cartão é digitado no nosso form (MP)
     // ou na página hospedada (Asaas, sem dados de cartão no cliente).
-    gateway: z.enum(["mercadopago", "stripe", "asaas"]).optional(),
+    gateway: z.enum(["mercadopago", "stripe", "asaas", "pushinpay"]).optional(),
 
     // Card Fields (Optional unless paymentMethod is credit_card)
     cardHolder: z.string().optional(),

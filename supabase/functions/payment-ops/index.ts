@@ -350,6 +350,119 @@ class StripeProvider implements PaymentProvider {
     }
 }
 
+interface PushinPayCredentials {
+    apiToken: string;
+    /** true => api-sandbox.pushinpay.com.br (credencial de teste). */
+    sandbox: boolean;
+    /** URL pública que o PushinPay chama a cada mudança de status. */
+    webhookUrl?: string;
+}
+
+/**
+ * PushinPay — PIX apenas.
+ * API: POST /pix/cashIn { value (centavos), webhook_url } com Bearer token.
+ * O QR volta em `qr_code` (copia-e-cola) e `qr_code_base64` (imagem).
+ */
+class PushinPayProvider implements PaymentProvider {
+    private apiToken: string;
+    private baseUrl: string;
+    private webhookUrl: string;
+
+    constructor(credentials: PushinPayCredentials) {
+        this.apiToken = credentials.apiToken;
+        this.baseUrl = credentials.sandbox
+            ? "https://api-sandbox.pushinpay.com.br/api"
+            : "https://api.pushinpay.com.br/api";
+        this.webhookUrl = credentials.webhookUrl || "";
+    }
+
+    private async request(endpoint: string, method: string, body?: any) {
+        const res = await fetch(`${this.baseUrl}${endpoint}`, {
+            method,
+            headers: {
+                Authorization: `Bearer ${this.apiToken}`,
+                Accept: "application/json",
+                ...(body ? { "Content-Type": "application/json" } : {}),
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = { message: rawText };
+        }
+
+        if (!res.ok) {
+            let message = data?.message || res.statusText;
+            if (Array.isArray(data?.errors) && data.errors.length > 0) {
+                const first = data.errors[0];
+                const value = typeof first === "string"
+                    ? first
+                    : Object.values(first ?? {})[0];
+                if (value) message = String(value);
+            }
+            const error: any = new Error(`PushinPay: ${message}`);
+            error.status = res.status;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async testConnection(): Promise<boolean> {
+        try {
+            const res = await fetch(`${this.baseUrl}/transactions?per_page=1`, {
+                headers: {
+                    Authorization: `Bearer ${this.apiToken}`,
+                    Accept: "application/json",
+                },
+            });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    }
+
+    async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
+        const method = String(order.metadata?.payment_method_id || "pix").toLowerCase();
+        if (method !== "pix") {
+            throw new Error("PushinPay aceita apenas PIX.");
+        }
+        if (!this.webhookUrl) {
+            throw new Error("URL de webhook do PushinPay ausente.");
+        }
+
+        // PushinPay exige valor mínimo de 50 centavos.
+        const value = Math.max(50, Math.round(Number(order.amount) || 0));
+
+        const data = await this.request("/pix/cashIn", "POST", {
+            value,
+            webhook_url: this.webhookUrl,
+        });
+
+        if (!data?.id) {
+            throw new Error("PushinPay: resposta sem identificador da transação.");
+        }
+
+        // Alguns gateways devolvem o data URI completo; a página de obrigado
+        // espera apenas o base64.
+        const qrCodeBase64 = typeof data.qr_code_base64 === "string"
+            ? data.qr_code_base64.replace(/^data:image\/[a-z]+;base64,/, "")
+            : undefined;
+
+        return {
+            external_id: String(data.id),
+            status: "pending",
+            qr_code: data.qr_code,
+            qr_code_base64: qrCodeBase64,
+            raw_response: data,
+        };
+    }
+}
+
 interface AsaasCredentials {
     apiKey: string;
     /** true => sandbox (credencial de teste), false => produção. */
@@ -693,6 +806,16 @@ function createPaymentProvider(
         return new StripeProvider({ apiKey });
     }
 
+    if (slug === 'pushinpay') {
+        const apiToken = credentials.secret_key;
+        if (!apiToken) throw new Error("API token do PushinPay ausente");
+        return new PushinPayProvider({
+            apiToken,
+            sandbox: (options?.env ?? credentials.env) === 'test',
+            webhookUrl: options?.notificationUrl,
+        });
+    }
+
     throw new Error(`Gateway '${slug}' não suportado`);
 }
 
@@ -788,9 +911,13 @@ Deno.serve(async (req) => {
                 throw new Error("Gateway desativado. Ative-o em Admin → Gateways.");
             }
 
-            const notificationUrl =
-                Deno.env.get('MERCADOPAGO_WEBHOOK_URL') ||
-                `${supabaseUrl.replace(/\/$/, '')}/functions/v1/mercadopago-webhook`;
+            // Cada gateway tem sua própria function de webhook. A env
+            // MERCADOPAGO_WEBHOOK_URL continua valendo como override apenas do MP.
+            const baseSiteUrl = supabaseUrl.replace(/\/$/, '');
+            const defaultWebhookUrl = `${baseSiteUrl}/functions/v1/${cred.gateway.slug}-webhook`;
+            const notificationUrl = cred.gateway.slug === 'mercadopago'
+                ? (Deno.env.get('MERCADOPAGO_WEBHOOK_URL') || defaultWebhookUrl)
+                : defaultWebhookUrl;
 
             const provider = createPaymentProvider(cred.gateway.slug, cred, {
                 notificationUrl,
@@ -1134,6 +1261,26 @@ Deno.serve(async (req) => {
                         logger.warn('Failed to query Asaas status', e);
                     }
                 }
+            } else if (cred && gatewaySlug === 'pushinpay') {
+                const pushinBase = cred.env === 'test'
+                    ? 'https://api-sandbox.pushinpay.com.br/api'
+                    : 'https://api.pushinpay.com.br/api';
+                try {
+                    const res = await fetch(`${pushinBase}/transactions/${payment.external_payment_id}`, {
+                        headers: {
+                            Authorization: `Bearer ${cred.secret_key}`,
+                            Accept: 'application/json',
+                        },
+                    });
+                    if (res.ok) {
+                        const pushinData = await res.json();
+                        const s = String(pushinData.status || '').toLowerCase();
+                        if (s === 'paid') realStatus = 'paid';
+                        else if (s === 'canceled' || s === 'cancelled') realStatus = 'failed';
+                    }
+                } catch (e) {
+                    logger.warn('Failed to query PushinPay status', e);
+                }
             }
 
             if (realStatus === 'failed' && order.status === 'pending') {
@@ -1238,6 +1385,13 @@ Deno.serve(async (req) => {
                 });
                 ok = await provider.testConnection();
                 if (!ok) detail = "API key rejeitada pelo Asaas (verifique também o ambiente: sandbox x produção).";
+            } else if (slug === 'pushinpay') {
+                const provider = new PushinPayProvider({
+                    apiToken: cred.secret_key,
+                    sandbox: cred.env === 'test',
+                });
+                ok = await provider.testConnection();
+                if (!ok) detail = "Token rejeitado pelo PushinPay (verifique também o ambiente: sandbox x produção).";
             } else {
                 detail = `Gateway '${slug}' não suportado para teste.`;
             }

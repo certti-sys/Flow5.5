@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
     // Stripe state
     const [currency, setCurrency] = useState<string>('BRL');
-    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas'>('mercadopago');
+    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay'>('mercadopago');
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
                 return;
             }
 
-            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas';
+            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay';
             const slugs = activeGateways.map(g => g.slug as GatewaySlug);
 
             // 1) Gateway marcado como padrão no admin vence sempre.
@@ -191,6 +191,9 @@ export default function CheckoutPage() {
                     } else {
                         setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
                     }
+                } else if (gatewaySlug === 'pushinpay') {
+                    // PushinPay é PIX-only e não usa chave pública no navegador.
+                    setAllowedMethods(['pix']);
                 }
             }
         };
@@ -647,8 +650,8 @@ export default function CheckoutPage() {
                             />
                         )}
 
-                        {/* Mercado Pago / Asaas Payment Methods */}
-                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas') && allowedMethods.length > 0 && (
+                        {/* Mercado Pago / Asaas / PushinPay Payment Methods */}
+                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay') && allowedMethods.length > 0 && (
                             <>
                                 <PaymentMethods
                                     form={form}
@@ -704,6 +707,7 @@ export default function CheckoutPage() {
                             para gerar o Payment Intent e então mostra o Element. */}
                         {(selectedGateway === 'mercadopago'
                             || selectedGateway === 'asaas'
+                            || selectedGateway === 'pushinpay'
                             || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
                             <>
                                 <Button

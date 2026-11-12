@@ -40,7 +40,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`
             : gateway?.slug === 'asaas'
                 ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asaas-webhook`
-                : null;
+                : gateway?.slug === 'pushinpay'
+                    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pushinpay-webhook`
+                    : null;
 
     const handleTestConnection = async () => {
         if (!gateway) return;
@@ -75,6 +77,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             return ["credit_card", "pix", "bolbradesco"];
         } else if (gatewaySlug === 'stripe') {
             return ["card"]; // Stripe uses 'card' not 'credit_card'
+        } else if (gatewaySlug === 'pushinpay') {
+            return ["pix"];
         }
         return ["credit_card"];
     };
@@ -87,6 +91,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                 { id: "pix", label: "Pix" },
                 { id: "bolbradesco", label: "Boleto Bancário" }
             ];
+        } else if (gatewaySlug === 'pushinpay') {
+            return [{ id: "pix", label: "Pix" }];
         } else if (gatewaySlug === 'stripe') {
             return [
                 { id: "card", label: "Cartão de Crédito" },
@@ -216,7 +222,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             <Switch checked={isActive} onCheckedChange={setIsActive} />
                         </div>
 
-                        {gateway.slug !== 'asaas' && (
+                        {gateway.slug !== 'asaas' && gateway.slug !== 'pushinpay' && (
                             <div className="space-y-2">
                                 <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
                                     {gateway.slug === 'stripe' ? 'Publishable Key' : 'Public Key'}
@@ -242,7 +248,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         ? 'Secret Key'
                                         : gateway.slug === 'asaas'
                                             ? 'API Key'
-                                            : 'Access Token / Secret Key'}
+                                            : gateway.slug === 'pushinpay'
+                                                ? 'API Token'
+                                                : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
                                     variant="ghost"
@@ -261,7 +269,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         ? 'sk_test_...'
                                         : gateway.slug === 'asaas'
                                             ? '$aact_prod_...'
-                                            : 'sk_...'
+                                            : gateway.slug === 'pushinpay'
+                                                ? 'token de API do PushinPay'
+                                                : 'sk_...'
                                 }
                                 value={secretKey}
                                 onChange={(e) => setSecretKey(e.target.value)}
@@ -274,6 +284,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? "Formato: sk_test_... (teste) ou sk_live_... (produção)"
                                     : gateway.slug === 'asaas'
                                     ? "API key da conta Asaas. No ambiente de teste use a chave do sandbox."
+                                    : gateway.slug === 'pushinpay'
+                                    ? "Token de API do PushinPay. No ambiente de teste use o token do sandbox."
                                     : "Token de acesso privado."}
                             </p>
                         </div>
@@ -284,7 +296,13 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             </Label>
                             <Input
                                 type={showSecrets ? "text" : "password"}
-                                placeholder={gateway.slug === 'asaas' ? 'token definido no painel do Asaas' : 'whsec_...'}
+                                placeholder={
+                                    gateway.slug === 'asaas'
+                                        ? 'token definido no painel do Asaas'
+                                        : gateway.slug === 'pushinpay'
+                                            ? 'segredo enviado em X-Webhook-Signature'
+                                            : 'whsec_...'
+                                }
                                 value={webhookSecret}
                                 onChange={(e) => setWebhookSecret(e.target.value)}
                                 className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
@@ -293,6 +311,12 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 <p className="text-[12px] text-white/60">
                                     O Asaas envia este valor no header <code className="font-mono">asaas-access-token</code>.
                                     Sem ele, o webhook não valida a origem.
+                                </p>
+                            )}
+                            {gateway.slug === 'pushinpay' && (
+                                <p className="text-[12px] text-white/60">
+                                    Se preenchido, o webhook exige o header <code className="font-mono">X-Webhook-Signature</code>
+                                    {" "}com <code className="font-mono">sha256=HMAC(body)</code>. Deixe vazio para não validar.
                                 </p>
                             )}
                         </div>
@@ -321,7 +345,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                 <p className="text-[12px] text-white/60">
                                     {gateway.slug === 'asaas'
                                         ? 'Cole esta URL em Integrações → Webhooks no painel do Asaas, marcando os eventos de cobrança.'
-                                        : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
+                                        : gateway.slug === 'pushinpay'
+                                            ? 'Cole esta URL no painel do PushinPay (Webhooks). Ela também é enviada automaticamente em cada cobrança PIX.'
+                                            : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
                                 </p>
                             </div>
                         )}
