@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Key, Eye, EyeOff, Settings } from "lucide-react";
+import { Loader2, Key, Eye, EyeOff, Settings, PlugZap, Copy, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface GatewayConfigModalProps {
@@ -32,6 +32,40 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     const [allowedMethods, setAllowedMethods] = useState<string[]>([]);
     const [maxInstallments, setMaxInstallments] = useState<number>(1);
+    const [testing, setTesting] = useState(false);
+    const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+    const webhookUrl =
+        gateway?.slug === 'mercadopago'
+            ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`
+            : null;
+
+    const handleTestConnection = async () => {
+        if (!gateway) return;
+        setTesting(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('payment-ops', {
+                body: { action: 'test_connection', payload: { gatewayId: gateway.id } },
+            });
+            if (error) throw error;
+            if (data?.ok) {
+                toast.success(`Conexão com ${gateway.name} OK (${data.env ?? activeTab}).`);
+            } else {
+                toast.error(data?.detail || data?.error || "Credenciais rejeitadas pelo gateway.");
+            }
+        } catch (e: any) {
+            toast.error(e?.message || "Falha ao testar conexão.");
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    const copyWebhook = async () => {
+        if (!webhookUrl) return;
+        await navigator.clipboard.writeText(webhookUrl);
+        setCopiedWebhook(true);
+        setTimeout(() => setCopiedWebhook(false), 2000);
+    };
 
     // Determine default payment methods based on gateway
     const getDefaultMethods = (gatewaySlug: string) => {
@@ -239,6 +273,34 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             />
                         </div>
 
+                        {webhookUrl && (
+                            <div className="space-y-2">
+                                <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
+                                    URL de Notificação (Webhook)
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        readOnly
+                                        value={webhookUrl}
+                                        className="bg-white/5 border-white/5 h-11 rounded-[12px] text-white/80 text-[12px] font-mono"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={copyWebhook}
+                                        className="h-11 w-11 shrink-0 glass-card border-white/10 bg-transparent hover:bg-white/5 rounded-[12px]"
+                                    >
+                                        {copiedWebhook ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/60" />}
+                                    </Button>
+                                </div>
+                                <p className="text-[12px] text-white/60">
+                                    Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago
+                                    (evento "Pagamentos").
+                                </p>
+                            </div>
+                        )}
+
                         <div className="space-y-4 p-5 rounded-[12px] bg-black/20 border border-white/5">
                             <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">Métodos de Pagamento</Label>
                             <div className="flex flex-col gap-3">
@@ -286,22 +348,33 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                     </div>
                 </Tabs>
 
-                <div className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3 rounded-b-[20px]">
-                    <Button 
-                        variant="outline" 
-                        onClick={() => onOpenChange(false)}
-                        className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
+                <div className="p-6 border-t border-white/5 bg-black/40 flex justify-between gap-3 rounded-b-[20px]">
+                    <Button
+                        variant="outline"
+                        onClick={handleTestConnection}
+                        disabled={testing}
+                        className="h-[44px] px-5 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
                     >
-                        Cancelar
+                        {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlugZap className="w-4 h-4 mr-2" />}
+                        Testar conexão
                     </Button>
-                    <Button 
-                        onClick={handleSave} 
-                        disabled={mutation.isPending}
-                        className="h-[44px] px-6 rounded-[12px] bg-blue-500 hover:bg-blue-600 text-white font-bold"
-                    >
-                        {mutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        Salvar Credenciais
-                    </Button>
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                            className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={mutation.isPending}
+                            className="h-[44px] px-6 rounded-[12px] bg-blue-500 hover:bg-blue-600 text-white font-bold"
+                        >
+                            {mutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Salvar Credenciais
+                        </Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

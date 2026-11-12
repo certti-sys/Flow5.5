@@ -9,6 +9,7 @@ import { Product } from "@/types/payment";
 import { checkoutFormSchema, CheckoutFormValues } from "@/types/checkout-form";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { CustomerForm } from "@/components/checkout/CustomerForm";
+import { BoletoAddressForm } from "@/components/checkout/BoletoAddressForm";
 import { PaymentMethods } from "@/components/checkout/PaymentMethods";
 import { CustomCardForm } from "@/components/checkout/CustomCardForm";
 import { Button } from "@/components/ui/button";
@@ -401,7 +402,17 @@ export default function CheckoutPage() {
                     orderBumps: selectedBumps,
                     couponId: appliedCoupon?.valid ? appliedCoupon.coupon?.id : null,
                     couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : null,
-                    discountAmount: couponDiscountInCents
+                    discountAmount: couponDiscountInCents,
+                    address: selectedMethod === 'bolbradesco'
+                        ? {
+                            zip_code: (data.zipCode || '').replace(/\D/g, ''),
+                            street_name: data.streetName || '',
+                            street_number: data.streetNumber || '',
+                            neighborhood: data.neighborhood || '',
+                            city: data.city || '',
+                            federal_unit: (data.federalUnit || '').toUpperCase(),
+                        }
+                        : undefined,
                 }
             };
 
@@ -646,6 +657,10 @@ export default function CheckoutPage() {
                         className="space-y-6"
                     >
                         <CustomerForm form={form} />
+
+                        {selectedMethod === 'bolbradesco' && (
+                            <BoletoAddressForm form={form} />
+                        )}
 
                         {/* Stripe Payment Element */}
                         {selectedGateway === 'stripe' && stripePublicKey && stripeClientSecret && (

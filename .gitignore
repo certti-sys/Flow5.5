@@ -48,3 +48,7 @@ verify-*.mjs
 fix-*.ps1
 *-out.txt
 audit-result.json
+
+# Referências externas (não versionar)
+Getfy/
+Lixo/

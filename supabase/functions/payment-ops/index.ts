@@ -9,7 +9,7 @@ import { z } from "https://esm.sh/zod@3.25.76";
 // --- SCHEMAS ---
 
 const PaymentOpsSchema = z.object({
-  action: z.enum(['create_paymentIntent', 'check_payment_status']),
+  action: z.enum(['create_paymentIntent', 'check_payment_status', 'test_connection']),
   payload: z.object({
     orderId: z.string().optional(),
     productId: z.string().optional(),
@@ -28,6 +28,14 @@ const PaymentOpsSchema = z.object({
     couponId: z.string().uuid().nullable().optional(),
     couponCode: z.string().nullable().optional(),
     discountAmount: z.number().optional(),
+    address: z.object({
+      zip_code: z.string(),
+      street_name: z.string(),
+      street_number: z.string(),
+      neighborhood: z.string(),
+      city: z.string(),
+      federal_unit: z.string(),
+    }).optional(),
   })
 });
 
@@ -65,16 +73,34 @@ interface PaymentIntentResult {
     raw_response: any;
 }
 
+interface MercadoPagoCredentials {
+    accessToken: string;
+    /** URL pública que o MP deve chamar quando o status mudar. */
+    notificationUrl?: string;
+    /** Limite de parcelas configurado no admin. */
+    maxInstallments?: number;
+}
+
+/** Converte Date para ISO 8601 no horário de Brasília (UTC-3). */
+function isoBrazil(date: Date): string {
+    const shifted = new Date(date.getTime() - 3 * 60 * 60 * 1000);
+    return shifted.toISOString().replace("Z", "-03:00");
+}
+
 class MercadoPagoProvider implements PaymentProvider {
     private accessToken: string;
+    private notificationUrl?: string;
+    private maxInstallments: number;
     private baseUrl = "https://api.mercadopago.com";
 
-    constructor(credentials: { accessToken: string }) {
+    constructor(credentials: MercadoPagoCredentials) {
         this.accessToken = credentials.accessToken;
+        this.notificationUrl = credentials.notificationUrl;
+        this.maxInstallments = Math.max(1, Number(credentials.maxInstallments) || 1);
     }
 
     private async request(endpoint: string, method: string, body?: any, idempotencyKey?: string) {
-        const headers: any = {
+        const headers: Record<string, string> = {
             "Authorization": `Bearer ${this.accessToken}`,
             "Content-Type": "application/json",
         };
@@ -86,77 +112,143 @@ class MercadoPagoProvider implements PaymentProvider {
         const res = await fetch(`${this.baseUrl}${endpoint}`, {
             method,
             headers,
-            body: body ? JSON.stringify(body) : undefined
+            body: body ? JSON.stringify(body) : undefined,
         });
 
-        const data = await res.json();
-        if (!res.ok) {
-            throw new Error(`Mercado Pago Error: ${data.message || res.statusText}`);
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = { message: rawText };
         }
+
+        if (!res.ok) {
+            const cause = Array.isArray(data?.cause) ? data.cause[0]?.description : data?.cause;
+            const detail = cause || data?.message || res.statusText;
+            const error: any = new Error(`Mercado Pago: ${detail}`);
+            error.status = res.status;
+            error.detail = detail;
+            throw error;
+        }
+
         return data;
     }
 
+    /** Testa as credenciais consultando o endpoint de pagamentos. */
+    async testConnection(): Promise<boolean> {
+        try {
+            const res = await fetch(`${this.baseUrl}/v1/payments/search?limit=1`, {
+                headers: { "Authorization": `Bearer ${this.accessToken}` },
+            });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    }
+
     async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
-        const paymentMethod = order.metadata?.payment_method_id || 'pix';
+        const paymentMethod = order.metadata?.payment_method_id || "pix";
+        const isCard = paymentMethod !== "pix" && paymentMethod !== "bolbradesco";
+        const isBoleto = paymentMethod === "bolbradesco";
         const idempotencyKey = order.metadata?.idempotency_key || order.id;
 
-        const payload: any = {
+        // Documento do pagador — obrigatório e validado (nunca enviar CPF fictício).
+        const document = String(order.customer.tax_id || "").replace(/\D/g, "");
+        if (document.length !== 11 && document.length !== 14) {
+            throw new Error("Mercado Pago: informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+        }
+
+        const nameParts = (order.customer.name || "Cliente").trim().split(/\s+/);
+        const firstName = nameParts[0] || "Cliente";
+        const lastName = nameParts.slice(1).join(" ") || nameParts[0] || "Cliente";
+
+        const payer: Record<string, any> = {
+            email: order.customer.email,
+            first_name: firstName,
+            last_name: lastName,
+            identification: {
+                type: document.length === 14 ? "CNPJ" : "CPF",
+                number: document,
+            },
+        };
+
+        // Endereço é exigido pelo Mercado Pago para boleto.
+        if (isBoleto) {
+            const address = order.metadata?.address;
+            if (
+                !address?.zip_code ||
+                !address?.street_name ||
+                !address?.street_number ||
+                !address?.neighborhood ||
+                !address?.city ||
+                !address?.federal_unit
+            ) {
+                throw new Error("Mercado Pago: endereço completo é obrigatório para boleto.");
+            }
+            payer.address = {
+                zip_code: String(address.zip_code).replace(/\D/g, ""),
+                street_name: String(address.street_name),
+                street_number: String(address.street_number),
+                neighborhood: String(address.neighborhood),
+                city: String(address.city),
+                federal_unit: String(address.federal_unit).toUpperCase().slice(0, 2),
+            };
+        }
+
+        const payload: Record<string, any> = {
             transaction_amount: Number((order.amount / 100).toFixed(2)),
             description: order.description,
             payment_method_id: paymentMethod,
-            payer: {
-                email: order.customer.email,
-                first_name: order.customer.name.split(" ")[0] || "Cliente",
-                last_name: order.customer.name.split(" ").slice(1).join(" ") || "Cliente",
-                identification: {
-                    type: "CPF",
-                    number: order.customer.tax_id ? order.customer.tax_id.replace(/\D/g, "") : "00000000000"
-                }
-            },
+            payer,
             external_reference: order.id,
-            metadata: { 
+            metadata: {
                 order_id: order.id,
-                user_id: order.metadata?.user_id
-            }
+                user_id: order.metadata?.user_id,
+            },
         };
 
-        if (paymentMethod !== 'pix' && paymentMethod !== 'bolbradesco') {
-            if (!order.metadata?.token) throw new Error("Token obrigatório para pagamentos com cartão");
+        if (this.notificationUrl && /^https:\/\//i.test(this.notificationUrl)) {
+            payload.notification_url = this.notificationUrl;
+        }
+
+        if (isCard) {
+            if (!order.metadata?.token) {
+                throw new Error("Token obrigatório para pagamentos com cartão");
+            }
+            const requested = Math.max(1, Number(order.metadata.installments) || 1);
             payload.token = order.metadata.token;
-            payload.installments = Number(order.metadata.installments) || 1;
-            
-            // Adicionar issuer_id se fornecido
+            payload.installments = Math.min(requested, this.maxInstallments);
             if (order.metadata.issuer_id) {
                 payload.issuer_id = order.metadata.issuer_id;
             }
         }
 
-        const data = await this.request("/v1/payments", "POST", payload, idempotencyKey);
-
-        console.log('[MercadoPago] Resposta completa:', JSON.stringify(data, null, 2));
-
-        // Diagnóstico específico para Pix
-        if (paymentMethod === 'pix') {
-            console.log('[MercadoPago PIX] Diagnóstico:');
-            console.log('  - point_of_interaction existe?', !!data.point_of_interaction);
-            console.log('  - transaction_data existe?', !!data.point_of_interaction?.transaction_data);
-            console.log('  - qr_code existe?', !!data.point_of_interaction?.transaction_data?.qr_code);
-            console.log('  - qr_code length:', data.point_of_interaction?.transaction_data?.qr_code?.length || 0);
-            console.log('  - qr_code_base64 existe?', !!data.point_of_interaction?.transaction_data?.qr_code_base64);
-            console.log('  - ticket_url existe?', !!data.point_of_interaction?.transaction_data?.ticket_url);
+        if (paymentMethod === "pix") {
+            // QR Code válido por 30 minutos.
+            payload.date_of_expiration = isoBrazil(new Date(Date.now() + 30 * 60 * 1000));
         }
 
-        let status: 'pending' | 'paid' | 'failed' = 'pending';
-        if (data.status === 'approved') status = 'paid';
-        if (data.status === 'rejected' || data.status === 'cancelled') status = 'failed';
+        if (isBoleto) {
+            // Boleto vence em 3 dias.
+            payload.date_of_expiration = isoBrazil(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
+        }
+
+        const data = await this.request("/v1/payments", "POST", payload, idempotencyKey);
+
+        let status: "pending" | "paid" | "failed" = "pending";
+        if (data.status === "approved" || data.status === "authorized") status = "paid";
+        if (["rejected", "cancelled", "refunded", "charged_back"].includes(data.status)) status = "failed";
 
         return {
-            external_id: data.id.toString(),
+            external_id: String(data.id),
             status,
             qr_code: data.point_of_interaction?.transaction_data?.qr_code,
             qr_code_base64: data.point_of_interaction?.transaction_data?.qr_code_base64,
-            ticket_url: data.point_of_interaction?.transaction_data?.ticket_url,
-            raw_response: data
+            ticket_url:
+                data.point_of_interaction?.transaction_data?.ticket_url ||
+                data.transaction_details?.external_resource_url,
+            raw_response: data,
         };
     }
 }
@@ -253,11 +345,19 @@ class StripeProvider implements PaymentProvider {
     }
 }
 
-function createPaymentProvider(slug: string, credentials: any): PaymentProvider {
+function createPaymentProvider(
+    slug: string,
+    credentials: any,
+    options?: { notificationUrl?: string; maxInstallments?: number }
+): PaymentProvider {
     if (slug === 'mercadopago') {
         const token = credentials.access_token || credentials.secret_key;
         if (!token) throw new Error("Access token do Mercado Pago ausente");
-        return new MercadoPagoProvider({ accessToken: token });
+        return new MercadoPagoProvider({
+            accessToken: token,
+            notificationUrl: options?.notificationUrl,
+            maxInstallments: options?.maxInstallments,
+        });
     }
 
     if (slug === 'stripe') {
@@ -337,18 +437,27 @@ Deno.serve(async (req) => {
             const { productId, gatewayId } = payload;
             if (!productId || !gatewayId) throw new Error("productId e gatewayId obrigatórios");
 
-            const { data: cred } = await supabaseAdmin
+            const { data: credRows } = await supabaseAdmin
                 .from('gateway_credentials')
                 .select('*, gateway:gateways(slug)')
                 .eq('gateway_id', gatewayId)
                 .eq('is_active', true)
-                .order('env', { ascending: false })
-                .limit(1)
-                .single();
+                .order('env', { ascending: true }) // 'live' antes de 'test'
+                .limit(2);
+
+            // Prefere credenciais de produção; cai para teste se for a única configurada.
+            const cred = credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0];
 
             if (!cred) throw new Error("Gateway inativo");
 
-            const provider = createPaymentProvider(cred.gateway.slug, cred);
+            const notificationUrl =
+                Deno.env.get('MERCADOPAGO_WEBHOOK_URL') ||
+                `${supabaseUrl.replace(/\/$/, '')}/functions/v1/mercadopago-webhook`;
+
+            const provider = createPaymentProvider(cred.gateway.slug, cred, {
+                notificationUrl,
+                maxInstallments: cred.max_installments,
+            });
 
             const { data: product } = await supabaseAdmin
                 .from('products')
@@ -507,7 +616,8 @@ Deno.serve(async (req) => {
                     payment_method_id: payload.payment_method_id,
                     issuer_id: payload.issuer_id,
                     user_id: user.id,
-                    idempotency_key: payload.idempotencyKey
+                    idempotency_key: payload.idempotencyKey,
+                    address: payload.address,
                 }
             };
 
@@ -543,12 +653,15 @@ Deno.serve(async (req) => {
                     .maybeSingle();
 
                 if (!existing) {
-                    await supabaseAdmin.from('user_course_access').insert({
+                    const { error: accessError } = await supabaseAdmin.from('user_course_access').insert({
                         user_id: user.id,
                         course_id: product.course_id,
                         source: 'checkout',
                         granted_by: null
                     });
+                    if (accessError) {
+                        logger.error(`Failed to grant course access for order ${order.id}`, accessError);
+                    }
                 }
             }
 
@@ -601,14 +714,15 @@ Deno.serve(async (req) => {
                 });
             }
 
-            const { data: cred } = await supabaseAdmin
+            const { data: credRows } = await supabaseAdmin
                 .from('gateway_credentials')
                 .select('*')
                 .eq('gateway_id', payment.gateway_id)
                 .eq('is_active', true)
-                .order('env', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+                .order('env', { ascending: true }) // 'live' antes de 'test'
+                .limit(2);
+
+            const cred = credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0];
 
             const gatewaySlug = (payment as any).gateway?.slug;
             let realStatus: 'pending' | 'paid' | 'failed' = payment.status as any;
@@ -665,12 +779,15 @@ Deno.serve(async (req) => {
                                 .maybeSingle();
 
                             if (!existing) {
-                                await supabaseAdmin.from('user_course_access').insert({
+                                const { error: accessError } = await supabaseAdmin.from('user_course_access').insert({
                                     user_id: order.user_id,
                                     course_id: courseId,
                                     source: 'checkout',
-                                    granted_by: 'system'
+                                    granted_by: null
                                 });
+                                if (accessError) {
+                                    logger.error(`Failed to grant course access (status check) order ${order.id}`, accessError);
+                                }
                             }
                         }
                     }
@@ -681,6 +798,54 @@ Deno.serve(async (req) => {
                 status: realStatus,
                 orderId: order.id
             }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        // --- ACTION: test_connection ---
+        if (action === 'test_connection') {
+            const gatewayId = payload.gatewayId;
+            if (!gatewayId) throw new Error("gatewayId obrigatório");
+
+            const { data: credRows } = await supabaseAdmin
+                .from('gateway_credentials')
+                .select('*, gateway:gateways(slug)')
+                .eq('gateway_id', gatewayId)
+                .order('env', { ascending: true })
+                .limit(2);
+
+            const cred = credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0];
+            if (!cred) {
+                return new Response(JSON.stringify({
+                    ok: false,
+                    error: "Nenhuma credencial configurada para este gateway",
+                }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+
+            const slug = cred.gateway?.slug;
+            let ok = false;
+            let detail = "";
+
+            if (slug === 'mercadopago') {
+                const token = cred.access_token || cred.secret_key;
+                const provider = new MercadoPagoProvider({ accessToken: token });
+                ok = await provider.testConnection();
+                if (!ok) detail = "Access token rejeitado pelo Mercado Pago.";
+            } else if (slug === 'stripe') {
+                try {
+                    const res = await fetch("https://api.stripe.com/v1/balance", {
+                        headers: { Authorization: `Bearer ${cred.secret_key}` },
+                    });
+                    ok = res.ok;
+                    if (!ok) detail = `Stripe respondeu ${res.status}.`;
+                } catch (e: any) {
+                    detail = e?.message ?? "Falha de rede ao consultar o Stripe.";
+                }
+            } else {
+                detail = `Gateway '${slug}' não suportado para teste.`;
+            }
+
+            return new Response(JSON.stringify({ ok, env: cred.env, gateway: slug, detail }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
         }

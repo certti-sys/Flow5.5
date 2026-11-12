@@ -50,5 +50,8 @@ entrypoint = "./functions/validate-coupon/index.ts"
 [functions.stripe-webhook]
 verify_jwt = false
 
+[functions.mercadopago-webhook]
+verify_jwt = false
+
 [functions.sys-health]
 verify_jwt = true

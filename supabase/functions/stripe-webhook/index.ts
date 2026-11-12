@@ -220,14 +220,18 @@ async function handlePaymentSuccess(supabase: any, paymentIntent: any) {
                     .maybeSingle();
 
                 if (!existing) {
-                    await supabase.from('user_course_access').insert({
+                    const { error: accessError } = await supabase.from('user_course_access').insert({
                         user_id: userId,
                         course_id: courseId,
                         source: 'checkout',
                         granted_by: null
                     });
 
-                    logger.info(`Access granted to course ${courseId} for user ${userId}`);
+                    if (accessError) {
+                        logger.error(`Failed to grant access to course ${courseId} for user ${userId}`, accessError);
+                    } else {
+                        logger.info(`Access granted to course ${courseId} for user ${userId}`);
+                    }
                 }
             }
         }

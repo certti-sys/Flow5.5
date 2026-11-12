@@ -20,6 +20,14 @@ export const checkoutFormSchema = z.object({
     cardExpiration: z.string().optional(),
     cardCvv: z.string().optional(),
     installments: z.string().optional(),
+
+    // Endereço (obrigatório apenas para boleto)
+    zipCode: z.string().optional(),
+    streetName: z.string().optional(),
+    streetNumber: z.string().optional(),
+    neighborhood: z.string().optional(),
+    city: z.string().optional(),
+    federalUnit: z.string().optional(),
 }).superRefine((data, ctx) => {
     // We assume the paymentMethod will be passed to the form or validated
     // If we want validation, we need to ensure paymentMethod is set in the form data
@@ -38,6 +46,27 @@ export const checkoutFormSchema = z.object({
         }
         if (!data.installments) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Selecione o parcelamento", path: ["installments"] });
+        }
+    }
+
+    if (data.paymentMethod === "bolbradesco") {
+        if (!data.zipCode || data.zipCode.replace(/\D/g, "").length !== 8) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CEP inválido", path: ["zipCode"] });
+        }
+        if (!data.streetName || data.streetName.trim().length < 3) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe a rua", path: ["streetName"] });
+        }
+        if (!data.streetNumber || data.streetNumber.trim().length === 0) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe o número", path: ["streetNumber"] });
+        }
+        if (!data.neighborhood || data.neighborhood.trim().length < 2) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe o bairro", path: ["neighborhood"] });
+        }
+        if (!data.city || data.city.trim().length < 2) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe a cidade", path: ["city"] });
+        }
+        if (!data.federalUnit || data.federalUnit.trim().length !== 2) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "UF inválida", path: ["federalUnit"] });
         }
     }
 });
