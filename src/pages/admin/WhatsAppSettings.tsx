@@ -320,6 +320,12 @@ export default function WhatsAppSettings() {
             <div className="p-6">
               {templatesLoading ? (
                 <div className="space-y-4">{[1, 2, 3].map((i) => (<Skeleton key={i} className="h-20 w-full bg-white/5 rounded-[12px]" />))}</div>
+              ) : templates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-10 text-center rounded-[12px] border border-dashed border-white/10">
+                  <FileText className="h-8 w-8 text-white/20 mb-3" />
+                  <p className="text-[14px] font-semibold text-white">Nenhum template cadastrado</p>
+                  <p className="text-[12px] text-muted-foreground mt-1">Aplique a migration de seed para carregar os templates padrão.</p>
+                </div>
               ) : (
                 <Accordion type="single" collapsible className="space-y-3">
                   {templates.map((template) => {
