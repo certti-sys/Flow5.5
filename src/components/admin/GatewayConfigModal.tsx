@@ -42,7 +42,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                 ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asaas-webhook`
                 : gateway?.slug === 'pushinpay'
                     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pushinpay-webhook`
-                    : null;
+                    : gateway?.slug === 'pagarme'
+                        ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pagarme-webhook`
+                        : null;
 
     const handleTestConnection = async () => {
         if (!gateway) return;
@@ -73,7 +75,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     // Determine default payment methods based on gateway
     const getDefaultMethods = (gatewaySlug: string) => {
-        if (gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas') {
+        if (gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas' || gatewaySlug === 'pagarme') {
             return ["credit_card", "pix", "bolbradesco"];
         } else if (gatewaySlug === 'stripe') {
             return ["card"]; // Stripe uses 'card' not 'credit_card'
@@ -85,7 +87,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     // Get available payment methods for gateway
     const getAvailableMethods = (gatewaySlug: string) => {
-        if (gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas') {
+        if (gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas' || gatewaySlug === 'pagarme') {
             return [
                 { id: "credit_card", label: "Cartão de Crédito" },
                 { id: "pix", label: "Pix" },
@@ -222,7 +224,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             <Switch checked={isActive} onCheckedChange={setIsActive} />
                         </div>
 
-                        {gateway.slug !== 'asaas' && gateway.slug !== 'pushinpay' && (
+                        {gateway.slug !== 'asaas' && gateway.slug !== 'pushinpay' && gateway.slug !== 'pagarme' && (
                             <div className="space-y-2">
                                 <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
                                     {gateway.slug === 'stripe' ? 'Publishable Key' : 'Public Key'}
@@ -250,7 +252,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             ? 'API Key'
                                             : gateway.slug === 'pushinpay'
                                                 ? 'API Token'
-                                                : 'Access Token / Secret Key'}
+                                                : gateway.slug === 'pagarme'
+                                                    ? 'Secret Key'
+                                                    : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
                                     variant="ghost"
@@ -271,7 +275,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             ? '$aact_prod_...'
                                             : gateway.slug === 'pushinpay'
                                                 ? 'token de API do PushinPay'
-                                                : 'sk_...'
+                                                : gateway.slug === 'pagarme'
+                                                    ? 'sk_test_... ou sk_live_...'
+                                                    : 'sk_...'
                                 }
                                 value={secretKey}
                                 onChange={(e) => setSecretKey(e.target.value)}
@@ -286,6 +292,8 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? "API key da conta Asaas. No ambiente de teste use a chave do sandbox."
                                     : gateway.slug === 'pushinpay'
                                     ? "Token de API do PushinPay. No ambiente de teste use o token do sandbox."
+                                    : gateway.slug === 'pagarme'
+                                    ? "Secret key do Pagar.me. No ambiente de teste use uma chave sk_test_... (sdx-api)."
                                     : "Token de acesso privado."}
                             </p>
                         </div>
@@ -347,7 +355,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                         ? 'Cole esta URL em Integrações → Webhooks no painel do Asaas, marcando os eventos de cobrança.'
                                         : gateway.slug === 'pushinpay'
                                             ? 'Cole esta URL no painel do PushinPay (Webhooks). Ela também é enviada automaticamente em cada cobrança PIX.'
-                                            : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
+                                            : gateway.slug === 'pagarme'
+                                                ? 'Cole esta URL em Configurações → Webhooks no painel do Pagar.me (eventos de pedido e cobrança).'
+                                                : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
                                 </p>
                             </div>
                         )}

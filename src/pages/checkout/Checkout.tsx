@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
     // Stripe state
     const [currency, setCurrency] = useState<string>('BRL');
-    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay'>('mercadopago');
+    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme'>('mercadopago');
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
                 return;
             }
 
-            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay';
+            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme';
             const slugs = activeGateways.map(g => g.slug as GatewaySlug);
 
             // 1) Gateway marcado como padrão no admin vence sempre.
@@ -194,6 +194,15 @@ export default function CheckoutPage() {
                 } else if (gatewaySlug === 'pushinpay') {
                     // PushinPay é PIX-only e não usa chave pública no navegador.
                     setAllowedMethods(['pix']);
+                } else if (gatewaySlug === 'pagarme') {
+                    // Pagar.me não usa chave pública no navegador: PIX e boleto
+                    // são gerados no servidor e o cartão vai para o checkout
+                    // hospedado (PCI).
+                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
+                        setAllowedMethods(gatewayConfig.allowed_methods);
+                    } else {
+                        setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
+                    }
                 }
             }
         };
@@ -650,8 +659,8 @@ export default function CheckoutPage() {
                             />
                         )}
 
-                        {/* Mercado Pago / Asaas / PushinPay Payment Methods */}
-                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay') && allowedMethods.length > 0 && (
+                        {/* Mercado Pago / Asaas / PushinPay / Pagar.me Payment Methods */}
+                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas' || selectedGateway === 'pushinpay' || selectedGateway === 'pagarme') && allowedMethods.length > 0 && (
                             <>
                                 <PaymentMethods
                                     form={form}
@@ -664,10 +673,10 @@ export default function CheckoutPage() {
                                     allowedMethods={allowedMethods}
                                 />
 
-                                {/* No Asaas o cartão é digitado na página hospedada (PCI). */}
-                                {selectedGateway === 'asaas' && selectedMethod === 'credit_card' && (
+                                {/* No Asaas e no Pagar.me o cartão é digitado na página hospedada (PCI). */}
+                                {(selectedGateway === 'asaas' || selectedGateway === 'pagarme') && selectedMethod === 'credit_card' && (
                                     <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
-                                        O cartão é processado no ambiente seguro do Asaas. Ao confirmar,
+                                        O cartão é processado no ambiente seguro do {selectedGateway === 'asaas' ? 'Asaas' : 'Pagar.me'}. Ao confirmar,
                                         você será redirecionado para concluir o pagamento.
                                     </div>
                                 )}
@@ -708,6 +717,7 @@ export default function CheckoutPage() {
                         {(selectedGateway === 'mercadopago'
                             || selectedGateway === 'asaas'
                             || selectedGateway === 'pushinpay'
+                            || selectedGateway === 'pagarme'
                             || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
                             <>
                                 <Button

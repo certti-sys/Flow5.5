@@ -77,6 +77,7 @@ export default function GatewaysPage() {
         stripe: "text-purple-400",
         asaas: "text-emerald-400",
         pushinpay: "text-pink-400",
+        pagarme: "text-cyan-400",
     };
 
     return (

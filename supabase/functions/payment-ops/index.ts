@@ -463,6 +463,332 @@ class PushinPayProvider implements PaymentProvider {
     }
 }
 
+/** Mapeia o status de uma cobrança Pagar.me para o status interno. */
+function mapPagarmeChargeStatus(charge: any): "pending" | "paid" | "failed" {
+    const status = String(charge?.status || "").toLowerCase();
+    if (status === "paid") return "paid";
+    if (["refunded", "partial_refunded", "failed", "canceled", "cancelled"].includes(status)) {
+        return "failed";
+    }
+
+    const txStatus = String(charge?.last_transaction?.status || "").toLowerCase();
+    if (["captured", "paid"].includes(txStatus)) return "paid";
+    if (["failed", "not_authorized", "voided", "refused"].includes(txStatus)) return "failed";
+
+    return "pending";
+}
+
+interface PagarmeCredentials {
+    /** Secret key (`sk_test_...` / `sk_live_...`), usada em Basic Auth. */
+    secretKey: string;
+    /** true => sdx-api.pagar.me (credencial de teste). */
+    sandbox: boolean;
+    maxInstallments?: number;
+    /** URL pública do site, usada no success_url do checkout de cartão. */
+    siteUrl?: string;
+}
+
+/**
+ * Pagar.me v5.
+ * - PIX e boleto: POST /orders (transparente), QR/linha retornam na hora.
+ * - Cartão: link de pagamento hospedado (POST /paymentlinks), mantendo os
+ *   dados do cartão fora do nosso backend (mesmo modelo do Asaas).
+ */
+class PagarmeProvider implements PaymentProvider {
+    private secretKey: string;
+    private baseUrl: string;
+    private maxInstallments: number;
+    private siteUrl: string;
+
+    constructor(credentials: PagarmeCredentials) {
+        this.secretKey = credentials.secretKey;
+        this.baseUrl = credentials.sandbox
+            ? "https://sdx-api.pagar.me/core/v5"
+            : "https://api.pagar.me/core/v5";
+        this.maxInstallments = Math.min(12, Math.max(1, Number(credentials.maxInstallments) || 1));
+        this.siteUrl = (credentials.siteUrl || "").replace(/\/$/, "");
+    }
+
+    private headers(extra: Record<string, string> = {}) {
+        return {
+            Authorization: `Basic ${btoa(`${this.secretKey}:`)}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "Flow55-Checkout/1.0",
+            ...extra,
+        };
+    }
+
+    private async request(
+        endpoint: string,
+        method: string,
+        body?: any,
+        extraHeaders: Record<string, string> = {},
+    ) {
+        const res = await fetch(`${this.baseUrl}${endpoint}`, {
+            method,
+            headers: this.headers(extraHeaders),
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = { message: rawText };
+        }
+
+        if (!res.ok) {
+            let message = data?.message || res.statusText;
+            const errors = data?.errors;
+            if (Array.isArray(errors) && errors.length > 0) {
+                const first = errors[0];
+                message = typeof first === "string"
+                    ? first
+                    : (first?.message ?? first?.description ?? JSON.stringify(first));
+            }
+            const error: any = new Error(`Pagar.me: ${message}`);
+            error.status = res.status;
+            error.detail = message;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async testConnection(): Promise<boolean> {
+        try {
+            const res = await fetch(`${this.baseUrl}/charges?size=1`, {
+                headers: this.headers(),
+            });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    }
+
+    private normalizePhone(raw: string): { area: string; number: string } | null {
+        let digits = String(raw || "").replace(/\D/g, "");
+        if (!digits) return null;
+        if (digits.length > 11 && digits.startsWith("55")) digits = digits.slice(2);
+        digits = digits.replace(/^0+/, "");
+        if (digits.length < 10) return null;
+        if (digits.length > 11) digits = digits.slice(-11);
+        if (digits.length === 10) digits = `${digits.slice(0, 2)}9${digits.slice(2)}`;
+        return { area: digits.slice(0, 2), number: digits.slice(2) };
+    }
+
+    private buildCustomer(order: OrderContext): Record<string, any> {
+        const document = String(order.customer.tax_id || "").replace(/\D/g, "");
+        const isCompany = document.length === 14;
+
+        const customer: Record<string, any> = {
+            name: (order.customer.name || "Cliente").slice(0, 64),
+            email: (order.customer.email || "").slice(0, 64),
+            type: isCompany ? "company" : "individual",
+            document: document || "00000000000",
+            document_type: isCompany ? "CNPJ" : "CPF",
+        };
+
+        const phone = this.normalizePhone(order.customer.phone || "");
+        customer.phones = phone
+            ? {
+                mobile_phone: {
+                    country_code: "55",
+                    area_code: phone.area,
+                    number: phone.number,
+                },
+            }
+            : {
+                mobile_phone: { country_code: "55", area_code: "11", number: "999999999" },
+            };
+
+        const address = order.metadata?.address;
+        if (address?.zip_code) {
+            const zip = String(address.zip_code).replace(/\D/g, "").slice(0, 8);
+            const line1 = [address.street_number, address.street_name, address.neighborhood]
+                .filter(Boolean)
+                .join(", ");
+            if (line1) {
+                customer.address = {
+                    line_1: line1.slice(0, 256),
+                    zip_code: zip,
+                    city: String(address.city || "").slice(0, 64),
+                    state: String(address.federal_unit || "").toUpperCase().slice(0, 2),
+                    country: "BR",
+                };
+            }
+        }
+
+        return customer;
+    }
+
+    private async createOrder(
+        order: OrderContext,
+        payment: Record<string, any>,
+        idempotencyKey: string,
+    ) {
+        const code = `ord_${order.id.replace(/-/g, "").slice(0, 40)}`;
+
+        const data = await this.request(
+            "/orders",
+            "POST",
+            {
+                code,
+                items: [{
+                    amount: Math.max(1, Math.round(order.amount)),
+                    description: order.description,
+                    quantity: 1,
+                    code: order.id,
+                }],
+                payments: [payment],
+                customer: this.buildCustomer(order),
+                closed: true,
+            },
+            { "Idempotency-Key": idempotencyKey.slice(0, 64) },
+        );
+
+        const charge = Array.isArray(data?.charges) ? data.charges[0] : null;
+        if (!charge?.id) {
+            throw new Error("Pagar.me: pedido sem cobrança na resposta.");
+        }
+        return charge;
+    }
+
+    private mapChargeStatus(charge: any): "pending" | "paid" | "failed" {
+        return mapPagarmeChargeStatus(charge);
+    }
+
+    private async createHostedCardCheckout(order: OrderContext): Promise<PaymentIntentResult> {
+        const name = `Pedido ${order.id.slice(0, 8)}`;
+        const body: Record<string, any> = {
+            type: "order",
+            name,
+            order_code: order.id,
+            expires_in: 60,
+            payment_settings: {
+                accepted_payment_methods: ["credit_card"],
+                credit_card_settings: {
+                    operation_type: "auth_and_capture",
+                    installments_setup: {
+                        max_installments: this.maxInstallments,
+                        amount: Math.max(1, Math.round(order.amount)),
+                    },
+                },
+            },
+            customer_settings: { customer: this.buildCustomer(order) },
+            cart_settings: {
+                items: [{
+                    name: order.description.slice(0, 100),
+                    description: order.description.slice(0, 255),
+                    amount: Math.max(1, Math.round(order.amount)),
+                    default_quantity: 1,
+                }],
+            },
+        };
+
+        if (this.siteUrl) {
+            body.flow_settings = {
+                success_url: `${this.siteUrl}/checkout/obrigado/${order.id}?method=card`,
+            };
+        }
+
+        const link = await this.request(
+            "/paymentlinks",
+            "POST",
+            body,
+            { "Idempotency-Key": `cardlink-${order.id}`.slice(0, 64) },
+        );
+
+        if (!link?.url) {
+            throw new Error("Pagar.me: não foi possível gerar o link de pagamento do cartão.");
+        }
+
+        return {
+            external_id: `paymentlink:${link.id}`,
+            status: "pending",
+            redirect_url: link.url,
+            raw_response: link,
+        };
+    }
+
+    private async createPix(order: OrderContext): Promise<PaymentIntentResult> {
+        const charge = await this.createOrder(
+            order,
+            {
+                payment_method: "pix",
+                amount: Math.max(1, Math.round(order.amount)),
+                pix: { expires_in: 86400 },
+            },
+            `pix-${order.id}`,
+        );
+
+        const tx = charge.last_transaction ?? {};
+        return {
+            external_id: String(charge.id),
+            status: this.mapChargeStatus(charge),
+            qr_code: tx.qr_code,
+            ticket_url: tx.qr_code_url,
+            raw_response: charge,
+        };
+    }
+
+    private async createBoleto(order: OrderContext): Promise<PaymentIntentResult> {
+        const dueAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 19);
+
+        const charge = await this.createOrder(
+            order,
+            {
+                payment_method: "boleto",
+                amount: Math.max(1, Math.round(order.amount)),
+                boleto: {
+                    instructions: `Pedido ${order.id}`.slice(0, 255),
+                    due_at: dueAt,
+                },
+            },
+            `boleto-${order.id}`,
+        );
+
+        const tx = charge.last_transaction ?? {};
+        let barcode = "";
+        for (const key of ["line", "digitable_line", "barcode", "boleto_barcode"]) {
+            if (typeof tx[key] === "string" && tx[key]) {
+                barcode = tx[key].replace(/\D/g, "") || tx[key];
+                break;
+            }
+        }
+        let pdfUrl = "";
+        for (const key of ["pdf", "url", "pdf_url", "boleto_pdf", "boleto_url"]) {
+            if (typeof tx[key] === "string" && tx[key].startsWith("http")) {
+                pdfUrl = tx[key];
+                break;
+            }
+        }
+
+        return {
+            external_id: String(charge.id),
+            status: this.mapChargeStatus(charge),
+            ticket_url: pdfUrl || undefined,
+            raw_response: { ...charge, _barcode: barcode },
+        };
+    }
+
+    async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
+        const method = String(order.metadata?.payment_method_id || "pix").toLowerCase();
+
+        if (method === "credit_card") {
+            return this.createHostedCardCheckout(order);
+        }
+        if (method === "bolbradesco") {
+            return this.createBoleto(order);
+        }
+        return this.createPix(order);
+    }
+}
+
 interface AsaasCredentials {
     apiKey: string;
     /** true => sandbox (credencial de teste), false => produção. */
@@ -813,6 +1139,17 @@ function createPaymentProvider(
             apiToken,
             sandbox: (options?.env ?? credentials.env) === 'test',
             webhookUrl: options?.notificationUrl,
+        });
+    }
+
+    if (slug === 'pagarme') {
+        const secretKey = credentials.secret_key;
+        if (!secretKey) throw new Error("Secret key do Pagar.me ausente");
+        return new PagarmeProvider({
+            secretKey,
+            sandbox: (options?.env ?? credentials.env) === 'test',
+            maxInstallments: options?.maxInstallments,
+            siteUrl: options?.siteUrl,
         });
     }
 
@@ -1281,6 +1618,30 @@ Deno.serve(async (req) => {
                 } catch (e) {
                     logger.warn('Failed to query PushinPay status', e);
                 }
+            } else if (cred && gatewaySlug === 'pagarme') {
+                // Ids com prefixo "paymentlink:" são links de cartão, não cobranças.
+                if (!payment.external_payment_id.startsWith('paymentlink:')) {
+                    const pagarmeBase = cred.env === 'test'
+                        ? 'https://sdx-api.pagar.me/core/v5'
+                        : 'https://api.pagar.me/core/v5';
+                    try {
+                        const res = await fetch(`${pagarmeBase}/charges/${payment.external_payment_id}`, {
+                            headers: {
+                                Authorization: `Basic ${btoa(`${cred.secret_key}:`)}`,
+                                Accept: 'application/json',
+                                'User-Agent': 'Flow55-Checkout/1.0',
+                            },
+                        });
+                        if (res.ok) {
+                            const charge = await res.json();
+                            const mapped = mapPagarmeChargeStatus(charge);
+                            if (mapped === 'paid') realStatus = 'paid';
+                            else if (mapped === 'failed') realStatus = 'failed';
+                        }
+                    } catch (e) {
+                        logger.warn('Failed to query Pagar.me status', e);
+                    }
+                }
             }
 
             if (realStatus === 'failed' && order.status === 'pending') {
@@ -1392,6 +1753,13 @@ Deno.serve(async (req) => {
                 });
                 ok = await provider.testConnection();
                 if (!ok) detail = "Token rejeitado pelo PushinPay (verifique também o ambiente: sandbox x produção).";
+            } else if (slug === 'pagarme') {
+                const provider = new PagarmeProvider({
+                    secretKey: cred.secret_key,
+                    sandbox: cred.env === 'test',
+                });
+                ok = await provider.testConnection();
+                if (!ok) detail = "Secret key rejeitada pelo Pagar.me (verifique também o ambiente: teste x produção).";
             } else {
                 detail = `Gateway '${slug}' não suportado para teste.`;
             }

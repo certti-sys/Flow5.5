@@ -59,5 +59,8 @@ verify_jwt = false
 [functions.pushinpay-webhook]
 verify_jwt = false
 
+[functions.pagarme-webhook]
+verify_jwt = false
+
 [functions.sys-health]
 verify_jwt = true
