@@ -306,6 +306,16 @@ export default function ThankYouPage() {
                         )}
                     </div>
 
+                    {isPaid && (
+                        <p className="text-xs text-muted-foreground">
+                            Primeiro acesso? Entre com seu e-mail e use{" "}
+                            <Link to="/login" className="underline">
+                                Esqueci minha senha
+                            </Link>{" "}
+                            para definir a senha.
+                        </p>
+                    )}
+
                     {isPaid && redirectAfterPurchase && /^https?:\/\//i.test(redirectAfterPurchase) && (
                         <p className="text-xs text-muted-foreground">
                             Você será redirecionado automaticamente em instantes.

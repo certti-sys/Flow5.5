@@ -11,6 +11,8 @@ const EmailRequestSchema = z.object({
   subject: z.string().optional(),
   html: z.string().optional(),
   variables: z.record(z.string()).optional().default({}),
+  // Apelido legado: payment-ops e webhook-payment enviavam `data`.
+  data: z.record(z.string()).optional(),
 });
 
 type EmailRequest = z.infer<typeof EmailRequestSchema>;
@@ -142,7 +144,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados inválidos' }), { status: 400, headers: corsHeaders });
     }
 
-    const { to, toName, type, subject, html, variables } = resultValidation.data;
+    const { to, toName, type, subject, html, data } = resultValidation.data;
+    const variables = { ...resultValidation.data.variables, ...(data ?? {}) };
 
     // --- RATE LIMITING ---
     const rateLimit = await checkRateLimit(supabase, to, 'send-email', 15, 3600);
@@ -175,12 +178,12 @@ Deno.serve(async (req) => {
     let fSubject = subject || ''
     let fHtml = html || ''
 
-    if (type === 'welcome') {
+    if (type === 'welcome' && eSettings.welcome_template) {
       fSubject = eSettings.welcome_subject || 'Bem-vindo!'
-      fHtml = replaceVariables(eSettings.welcome_template || '', { ...variables, login_url: variables.login_url || '' })
+      fHtml = replaceVariables(eSettings.welcome_template, { ...variables, login_url: variables.login_url || '' })
     } else if (templates[type]) {
       const template = templates[type];
-      fSubject = replaceVariables(template.subject || '', variables);
+      fSubject = replaceVariables(template.subject || eSettings.welcome_subject || '', variables);
       const greeting = replaceVariables(template.greeting || '', variables);
       const message = replaceVariables(template.message || '', variables);
       
@@ -193,6 +196,29 @@ Deno.serve(async (req) => {
       });
       
       fHtml = replaceVariables(fHtml, variables);
+    }
+
+    // Sem template configurado (ex.: instalação nova) o e-mail sairia vazio.
+    if (!fHtml.trim()) {
+      fSubject = fSubject || eSettings.welcome_subject || 'Bem-vindo!'
+      fHtml = getBrandedWrapper(
+        replaceVariables(
+          'Sua conta foi criada.\n\nE-mail: {{user_email}}\nSenha temporária: {{temp_password}}\n\nRecomendamos alterar a senha no primeiro acesso.',
+          variables,
+        ),
+        {
+          logo_url: logoUrl,
+          platform_name: platformName,
+          primary_color: platform?.gradient_end_color || '#fbbf24',
+          subject: fSubject,
+          greeting: `Olá, ${variables.user_name || ''}`.trim(),
+        },
+      )
+      fHtml = replaceVariables(fHtml, variables)
+    }
+
+    if (!eSettings.brevo_api_key) {
+      return new Response(JSON.stringify({ success: false, error: 'brevo_api_key não configurada em email_settings' }), { status: 503, headers: corsHeaders })
     }
 
     let result = await sendViaBrevo(eSettings.brevo_api_key!, eSettings.from_email, eSettings.from_name, to, toName, fSubject, fHtml)

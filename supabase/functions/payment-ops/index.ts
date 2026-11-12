@@ -2118,7 +2118,7 @@ function generateTempPassword(): string {
 async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: string): Promise<void> {
     try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2128,7 +2128,7 @@ async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: 
                 type: 'welcome',
                 to: email,
                 toName: name,
-                data: {
+                variables: {
                     user_name: name,
                     user_email: email,
                     temp_password: tempPassword,
@@ -2136,6 +2136,13 @@ async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: 
                 },
             }),
         });
+        if (!res.ok) {
+            // Visitante sem a senha temporária não consegue entrar; deixa o
+            // motivo explícito no log em vez de falhar silenciosamente.
+            logger.error(
+                `E-mail de boas-vindas falhou (${res.status}) para ${email}: ${await res.text()}`,
+            );
+        }
     } catch (error) {
         // O e-mail é conveniência: nunca deve derrubar a compra.
         logger.error('Falha ao enviar e-mail de boas-vindas do checkout', error);
@@ -2573,27 +2580,7 @@ Deno.serve(async (req) => {
                 orderUpdate.paid_at = new Date().toISOString();
             }
             await supabaseAdmin.from('orders').update(orderUpdate).eq('id', order.id);
-
-            if (result.status === 'paid' && product.course_id) {
-                const { data: existing } = await supabaseAdmin
-                    .from('user_course_access')
-                    .select('id')
-                    .eq('user_id', checkoutUser.id)
-                    .eq('course_id', product.course_id)
-                    .maybeSingle();
-
-                if (!existing) {
-                    const { error: accessError } = await supabaseAdmin.from('user_course_access').insert({
-                        user_id: checkoutUser.id,
-                        course_id: product.course_id,
-                        source: 'checkout',
-                        granted_by: null
-                    });
-                    if (accessError) {
-                        logger.error(`Failed to grant course access for order ${order.id}`, accessError);
-                    }
-                }
-            }
+            // O acesso é concedido pelo trigger `grant_order_access` em orders.
 
             return new Response(JSON.stringify({
                 ...result,
@@ -2805,39 +2792,9 @@ Deno.serve(async (req) => {
 
             if (realStatus === 'paid' && order.status !== 'paid') {
                 const paidAt = new Date().toISOString();
+                // O trigger `grant_order_access` libera o acesso nesta transição.
                 await supabaseAdmin.from('orders').update({ status: 'paid', paid_at: paidAt }).eq('id', order.id);
                 await supabaseAdmin.from('payments').update({ status: 'paid', paid_at: paidAt }).eq('id', payment.id);
-
-                const { data: items } = await supabaseAdmin
-                    .from('order_items')
-                    .select('product_id, products:product_id(course_id)')
-                    .eq('order_id', order.id);
-
-                if (items) {
-                    for (const item of items) {
-                        const courseId = (item.products as any)?.course_id;
-                        if (courseId) {
-                            const { data: existing } = await supabaseAdmin
-                                .from('user_course_access')
-                                .select('id')
-                                .eq('user_id', order.user_id)
-                                .eq('course_id', courseId)
-                                .maybeSingle();
-
-                            if (!existing) {
-                                const { error: accessError } = await supabaseAdmin.from('user_course_access').insert({
-                                    user_id: order.user_id,
-                                    course_id: courseId,
-                                    source: 'checkout',
-                                    granted_by: null
-                                });
-                                if (accessError) {
-                                    logger.error(`Failed to grant course access (status check) order ${order.id}`, accessError);
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             return new Response(JSON.stringify({
