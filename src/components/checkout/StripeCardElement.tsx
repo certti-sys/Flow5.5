@@ -6,6 +6,7 @@ import { Loader2, CreditCard, Lock } from 'lucide-react';
 interface StripeCardElementProps {
     publicKey: string;
     clientSecret: string;
+    orderId?: string;
     amount: number;
     currency: string;
     onSuccess: (paymentIntentId: string) => void;
@@ -15,6 +16,7 @@ interface StripeCardElementProps {
 export function StripeCardElement({
     publicKey,
     clientSecret,
+    orderId,
     amount,
     currency,
     onSuccess,
@@ -67,8 +69,8 @@ export function StripeCardElement({
         };
     }, [stripe, clientSecret]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.MouseEvent) => {
+        e?.preventDefault();
 
         if (!stripe || !elements) {
             onError('Stripe não está pronto. Tente novamente.');
@@ -81,7 +83,11 @@ export function StripeCardElement({
             const { error, paymentIntent } = await stripe.confirmPayment({
                 elements,
                 confirmParams: {
-                    return_url: `${window.location.origin}/checkout/success`,
+                    // Retorna para a página do pedido (não para uma rota inexistente),
+                    // usada quando o método exige redirecionamento/3DS.
+                    return_url: orderId
+                        ? `${window.location.origin}/checkout/obrigado/${orderId}?method=card`
+                        : `${window.location.origin}/`,
                 },
                 redirect: 'if_required'
             });
@@ -133,8 +139,9 @@ export function StripeCardElement({
                 </div>
             </div>
 
-            {/* Formulário */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Formulário — div, não form: já estamos dentro do form do checkout
+                (form aninhado é HTML inválido e o submit interno não dispara). */}
+            <div className="space-y-4">
                 {/* Stripe Payment Element */}
                 <div className="relative">
                     <div
@@ -168,7 +175,8 @@ export function StripeCardElement({
 
                 {/* Botão de Pagamento */}
                 <button
-                    type="submit"
+                    type="button"
+                    onClick={handleSubmit}
                     disabled={!stripe || !ready || processing}
                     className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
@@ -194,7 +202,7 @@ export function StripeCardElement({
                         <img src="/images/cards/amex.svg" alt="American Express" className="h-6" />
                     </div>
                 </div>
-            </form>
+            </div>
 
             {/* Informações Adicionais */}
             <div className="text-xs text-gray-500 space-y-1">

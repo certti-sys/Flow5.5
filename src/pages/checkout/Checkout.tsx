@@ -47,7 +47,7 @@ export default function CheckoutPage() {
     const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas'>('mercadopago');
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
-    const [isCreatingPaymentIntent, setIsCreatingPaymentIntent] = useState(false);
+    const [stripeOrderId, setStripeOrderId] = useState<string | null>(null);
 
     // 1. Fetch Product
     const { data: product, isLoading: loadingProduct, error: productError, refetch: refetchProduct } = useQuery({
@@ -199,15 +199,8 @@ export default function CheckoutPage() {
         }
     }, [selectedGateway]);
 
-    // Create Stripe Payment Intent when ready
-    useEffect(() => {
-        if (selectedGateway === 'stripe' && gatewayId && product && !isCreatingPaymentIntent && !stripeClientSecret) {
-            console.log('🎯 Conditions met for PI creation:', { gatewayId, productPrice: product.price });
-            setIsCreatingPaymentIntent(true);
-            createStripePaymentIntent(gatewayId);
-        }
-    }, [selectedGateway, gatewayId, product, isCreatingPaymentIntent, stripeClientSecret]);
-
+    // O Payment Intent do Stripe é criado só no submit (handleStripePayment).
+    // Criá-lo no mount gerava um pedido órfão a cada abertura do checkout.
     // Reset Stripe PI when bumps or coupon change to ensure correct amount
     useEffect(() => {
         if (stripeClientSecret) {
@@ -493,56 +486,6 @@ export default function CheckoutPage() {
     };
 
 
-    const createStripePaymentIntent = async (gatewayIdParam: string) => {
-        try {
-            console.log('💳 Creating Stripe Payment Intent...');
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                console.warn('User not authenticated yet');
-                setIsCreatingPaymentIntent(false);
-                return;
-            }
-            const basePrice = product?.price || 1000;
-            const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
-                const bump = orderBumps?.find((b: any) => b.id === bumpId);
-                if (bump?.offer_product) {
-                    const offerProduct = bump.offer_product as any;
-                    const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
-                    return acc + discounted;
-                }
-                return acc;
-            }, 0);
-            const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
-            const finalAmountInCents = Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
-            const { data: result, error } = await supabase.functions.invoke('payment-ops', {
-                body: {
-                    action: 'create_paymentIntent',
-                    payload: {
-                        productId: productId,
-                        gatewayId: gatewayIdParam,
-                        amount: finalAmountInCents,
-                        orderBumps: selectedBumps,
-                        couponId: appliedCoupon?.valid ? appliedCoupon.coupon?.id : null,
-                        couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : null,
-                        discountAmount: couponDiscountInCents
-                    }
-                }
-            });
-            if (error) {
-                console.error('❌ Error creating PI:', error);
-                setIsCreatingPaymentIntent(false);
-                return;
-            }
-            if (result?.client_secret) {
-                console.log('✅ PI created successfully');
-                setStripeClientSecret(result.client_secret);
-                setIsCreatingPaymentIntent(false);
-            }
-        } catch (e: any) {
-            console.error('❌ Exception creating PI:', e);
-            setIsCreatingPaymentIntent(false);
-        }
-    };
     const handleStripePayment = async (data: CheckoutFormValues) => {
         try {
             // 1. Verify user is authenticated
@@ -616,6 +559,8 @@ export default function CheckoutPage() {
             // 4. Set client secret to render Stripe Elements
             if (result.client_secret) {
                 setStripeClientSecret(result.client_secret);
+                // A página de obrigado precisa do id do PEDIDO (não do PaymentIntent).
+                setStripeOrderId(result.orderId ?? null);
             } else {
                 throw new Error("Client secret não retornado pelo backend");
             }
@@ -626,10 +571,14 @@ export default function CheckoutPage() {
         }
     };
 
-    const handleStripeSuccess = async (paymentIntentId: string) => {
+    const handleStripeSuccess = async (_paymentIntentId: string) => {
         toast.success("Pagamento aprovado! 🎉");
-        // Redirect to thank you page
-        window.location.href = `/checkout/obrigado/${paymentIntentId}?method=card`;
+        if (!stripeOrderId) {
+            // Sem o pedido não há como consultar o status na página de obrigado.
+            window.location.href = "/";
+            return;
+        }
+        window.location.href = `/checkout/obrigado/${stripeOrderId}?method=card`;
     };
 
     const handleStripeError = (error: string) => {
@@ -677,6 +626,7 @@ export default function CheckoutPage() {
                             <StripeCardElement
                                 publicKey={stripePublicKey}
                                 clientSecret={stripeClientSecret}
+                                orderId={stripeOrderId ?? undefined}
                                 amount={(() => {
                                     const basePrice = product?.price || 1000;
                                     const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
@@ -750,8 +700,11 @@ export default function CheckoutPage() {
                             </div>
                         )}
 
-                        {/* Submit Button - Only show for Mercado Pago and Asaas, Stripe has its own button */}
-                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas') && (
+                        {/* Submit Button — MP/Asaas pagam; Stripe usa este botão só
+                            para gerar o Payment Intent e então mostra o Element. */}
+                        {(selectedGateway === 'mercadopago'
+                            || selectedGateway === 'asaas'
+                            || (selectedGateway === 'stripe' && !stripeClientSecret)) && (
                             <>
                                 <Button
                                     type="submit"
@@ -766,21 +719,25 @@ export default function CheckoutPage() {
                                     ) : (
                                         <>
                                             <Lock className="mr-2 h-5 w-5" />
-                                            Pagar R$ {(() => {
-                                                const basePrice = product?.price || 1000;
-                                                const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
-                                                    const bump = orderBumps?.find((b: any) => b.id === bumpId);
-                                                    if (bump?.offer_product) {
-                                                        const offerProduct = bump.offer_product as any;
-                                                        const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
-                                                        return acc + discounted;
-                                                    }
-                                                    return acc;
-                                                }, 0);
-                                                const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
-                                                const finalAmountInCents = Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
-                                                return (finalAmountInCents / 100).toFixed(2).replace('.', ',');
-                                            })()}
+                                            {selectedGateway === 'stripe' ? (
+                                                "Continuar para pagamento"
+                                            ) : (
+                                                <>Pagar R$ {(() => {
+                                                    const basePrice = product?.price || 1000;
+                                                    const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
+                                                        const bump = orderBumps?.find((b: any) => b.id === bumpId);
+                                                        if (bump?.offer_product) {
+                                                            const offerProduct = bump.offer_product as any;
+                                                            const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
+                                                            return acc + discounted;
+                                                        }
+                                                        return acc;
+                                                    }, 0);
+                                                    const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
+                                                    const finalAmountInCents = Math.max(0, basePrice + bumpsTotal - couponDiscountInCents);
+                                                    return (finalAmountInCents / 100).toFixed(2).replace('.', ',');
+                                                })()}</>
+                                            )}
                                         </>
                                     )}
                                 </Button>
