@@ -36,6 +36,8 @@ const PaymentOpsSchema = z.object({
       city: z.string(),
       federal_unit: z.string(),
     }).optional(),
+    // Usado apenas em test_connection para escolher o ambiente.
+    env: z.enum(['test', 'live']).optional(),
   })
 });
 
@@ -53,6 +55,7 @@ interface OrderContext {
         email: string;
         name: string;
         tax_id?: string;
+        phone?: string;
     };
     items: Array<{
         id: string;
@@ -70,6 +73,8 @@ interface PaymentIntentResult {
     ticket_url?: string;
     qr_code?: string;
     qr_code_base64?: string;
+    /** Quando o cliente precisa concluir o pagamento numa página do gateway. */
+    redirect_url?: string;
     raw_response: any;
 }
 
@@ -345,10 +350,321 @@ class StripeProvider implements PaymentProvider {
     }
 }
 
+interface AsaasCredentials {
+    apiKey: string;
+    /** true => sandbox (credencial de teste), false => produção. */
+    sandbox: boolean;
+    maxInstallments?: number;
+    /** URL pública do site, usada nos callbacks do checkout hospedado. */
+    siteUrl?: string;
+}
+
+/** Data no formato YYYY-MM-DD (Asaas só aceita data, sem hora). */
+function isoDate(date: Date): string {
+    return date.toISOString().slice(0, 10);
+}
+
+const ASAAS_PAID_STATUSES = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
+const ASAAS_FAILED_STATUSES = new Set([
+    "REFUSED",
+    "DECLINED",
+    "CANCELLED",
+    "DELETED",
+    "REFUNDED",
+    "REFUND_REQUESTED",
+    "REFUND_IN_PROGRESS",
+    "CHARGEBACK_REQUESTED",
+    "CHARGEBACK_DISPUTE",
+    "AWAITING_CHARGEBACK_REVERSAL",
+]);
+
+class AsaasProvider implements PaymentProvider {
+    private apiKey: string;
+    private baseUrl: string;
+    private maxInstallments: number;
+    private siteUrl: string;
+
+    constructor(credentials: AsaasCredentials) {
+        this.apiKey = credentials.apiKey;
+        this.baseUrl = credentials.sandbox
+            ? "https://api-sandbox.asaas.com/v3"
+            : "https://api.asaas.com/v3";
+        this.maxInstallments = Math.min(12, Math.max(1, Number(credentials.maxInstallments) || 1));
+        this.siteUrl = (credentials.siteUrl || "").replace(/\/$/, "");
+    }
+
+    private async request(endpoint: string, method: string, body?: any) {
+        const res = await fetch(`${this.baseUrl}${endpoint}`, {
+            method,
+            headers: {
+                access_token: this.apiKey,
+                "Content-Type": "application/json",
+                "User-Agent": "Flow55-Checkout/1.0",
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = { message: rawText };
+        }
+
+        if (!res.ok) {
+            const firstError = Array.isArray(data?.errors) ? data.errors[0] : null;
+            const detail = firstError?.description || data?.message || res.statusText;
+            const error: any = new Error(`Asaas: ${detail}`);
+            error.status = res.status;
+            error.detail = detail;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async testConnection(): Promise<boolean> {
+        try {
+            const res = await fetch(`${this.baseUrl}/customers?limit=1`, {
+                headers: {
+                    access_token: this.apiKey,
+                    "User-Agent": "Flow55-Checkout/1.0",
+                },
+            });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    }
+
+    /** Asaas exige celular com 11 dígitos (DDD + 9 + 8). */
+    private normalizePhone(raw: string): string {
+        let digits = String(raw || "").replace(/\D/g, "");
+        if (!digits) return "";
+        if (digits.length > 11 && digits.startsWith("55")) digits = digits.slice(2);
+        digits = digits.replace(/^0+/, "");
+        if (digits.length > 11) digits = digits.slice(-11);
+        if (digits.length < 10) return "";
+        if (digits.length === 10) digits = `${digits.slice(0, 2)}9${digits.slice(2)}`;
+        return digits;
+    }
+
+    /** Reaproveita o cliente pelo CPF/CNPJ; cria um novo se não existir. */
+    private async ensureCustomer(order: OrderContext): Promise<string> {
+        const document = String(order.customer.tax_id || "").replace(/\D/g, "");
+        if (document.length !== 11 && document.length !== 14) {
+            throw new Error("Asaas: informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+        }
+
+        try {
+            const existing = await this.request(`/customers?cpfCnpj=${document}&limit=1`, "GET");
+            const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+            if (found?.id) return String(found.id);
+        } catch (e: any) {
+            // Falha na busca não impede a criação.
+            console.warn("[Asaas] busca de cliente falhou:", e?.message);
+        }
+
+        const body: Record<string, any> = {
+            name: order.customer.name || "Cliente",
+            cpfCnpj: document,
+            email: order.customer.email,
+            externalReference: order.id,
+        };
+
+        const phone = this.normalizePhone(order.customer.phone || "");
+        if (phone) body.mobilePhone = phone;
+
+        const address = order.metadata?.address;
+        if (address?.zip_code) {
+            body.postalCode = String(address.zip_code).replace(/\D/g, "").slice(0, 8);
+            if (address.street_name) body.address = String(address.street_name);
+            if (address.street_number) body.addressNumber = String(address.street_number);
+            if (address.neighborhood) body.province = String(address.neighborhood);
+            if (address.city) body.city = String(address.city);
+            if (address.federal_unit) {
+                body.state = String(address.federal_unit).toUpperCase().slice(0, 2);
+            }
+        }
+
+        const created = await this.request("/customers", "POST", body);
+        if (!created?.id) throw new Error("Asaas: resposta sem ID do cliente.");
+        return String(created.id);
+    }
+
+    private mapStatus(asaasStatus: string): "pending" | "paid" | "failed" {
+        const s = (asaasStatus || "").toUpperCase();
+        if (ASAAS_PAID_STATUSES.has(s)) return "paid";
+        if (ASAAS_FAILED_STATUSES.has(s)) return "failed";
+        return "pending";
+    }
+
+    /**
+     * Cartão NUNCA passa pelo nosso servidor (escopo PCI). Usamos o checkout
+     * hospedado do Asaas, com fatura como fallback caso o Checkout não esteja
+     * habilitado na conta.
+     */
+    private async createHostedCheckout(
+        order: OrderContext,
+        customerId: string,
+    ): Promise<PaymentIntentResult> {
+        const value = Number((order.amount / 100).toFixed(2));
+        const successUrl = `${this.siteUrl}/checkout/obrigado/${order.id}?method=card`;
+        const cancelUrl = `${this.siteUrl}/checkout/obrigado/${order.id}?method=card&status=cancelled`;
+
+        // O Asaas exige URLs absolutas nos callbacks. Sem siteUrl conhecida,
+        // pulamos o checkout hospedado e usamos a fatura (que não tem callback).
+        if (this.siteUrl) {
+            try {
+                const checkout = await this.request("/checkouts", "POST", {
+                    billingTypes: ["CREDIT_CARD"],
+                    chargeTypes: ["DETACHED"],
+                    minutesToExpire: 60,
+                    externalReference: order.id,
+                    callback: { successUrl, cancelUrl, expiredUrl: cancelUrl },
+                    items: [
+                        {
+                            name: order.description,
+                            description: order.description,
+                            quantity: 1,
+                            value,
+                        },
+                    ],
+                    customer: customerId,
+                    installment: { maxInstallmentCount: this.maxInstallments },
+                });
+
+                if (checkout?.link) {
+                    return {
+                        external_id: `checkout:${checkout.id}`,
+                        status: "pending",
+                        redirect_url: checkout.link,
+                        raw_response: checkout,
+                    };
+                }
+            } catch (e: any) {
+                console.warn("[Asaas] checkout hospedado indisponível, usando fatura:", e?.message);
+            }
+        }
+
+        const invoice = await this.request("/payments", "POST", {
+            customer: customerId,
+            billingType: "UNDEFINED",
+            value,
+            dueDate: isoDate(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+            description: order.description,
+            externalReference: order.id,
+        });
+
+        if (!invoice?.invoiceUrl) {
+            throw new Error("Asaas: não foi possível gerar a página de pagamento.");
+        }
+
+        return {
+            external_id: String(invoice.id),
+            status: "pending",
+            redirect_url: invoice.invoiceUrl,
+            raw_response: invoice,
+        };
+    }
+
+    private async buildResult(payment: any, method: string): Promise<PaymentIntentResult> {
+        const id = String(payment.id);
+        const status = this.mapStatus(payment.status);
+        let qrCode: string | undefined;
+        let qrCodeBase64: string | undefined;
+        let ticketUrl: string | undefined;
+
+        if (method === "pix") {
+            // O QR pode levar alguns instantes para ser gerado no Asaas.
+            for (let attempt = 0; attempt < 2 && !qrCode; attempt++) {
+                try {
+                    const qr = await this.request(`/payments/${id}/pixQrCode`, "GET");
+                    qrCode = qr?.payload;
+                    qrCodeBase64 = qr?.encodedImage;
+                } catch (e: any) {
+                    console.warn(`[Asaas] QR Code indisponível (tentativa ${attempt + 1}):`, e?.message);
+                    if (attempt === 0) await new Promise((r) => setTimeout(r, 1200));
+                }
+            }
+        }
+
+        if (method === "bolbradesco") {
+            ticketUrl = payment.bankSlipUrl;
+            if (!ticketUrl) {
+                try {
+                    const fresh = await this.request(`/payments/${id}`, "GET");
+                    ticketUrl = fresh?.bankSlipUrl;
+                } catch {
+                    // segue sem link; a fatura também aparece no painel do Asaas
+                }
+            }
+        }
+
+        return {
+            external_id: id,
+            status,
+            qr_code: qrCode,
+            qr_code_base64: qrCodeBase64,
+            ticket_url: ticketUrl,
+            raw_response: payment,
+        };
+    }
+
+    async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
+        const method = order.metadata?.payment_method_id || "pix";
+        const customerId = await this.ensureCustomer(order);
+
+        // Idempotência: se já existe cobrança para este pedido, reaproveita.
+        try {
+            const existing = await this.request(
+                `/payments?externalReference=${encodeURIComponent(order.id)}&limit=1`,
+                "GET",
+            );
+            const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+            if (found?.id) {
+                return this.buildResult(found, method);
+            }
+        } catch (e: any) {
+            console.warn("[Asaas] busca por cobrança existente falhou:", e?.message);
+        }
+
+        if (method === "credit_card") {
+            return this.createHostedCheckout(order, customerId);
+        }
+
+        const isPix = method === "pix";
+        const dueDate = isoDate(
+            new Date(Date.now() + (isPix ? 1 : 3) * 24 * 60 * 60 * 1000),
+        );
+
+        const payment = await this.request("/payments", "POST", {
+            customer: customerId,
+            billingType: isPix ? "PIX" : "BOLETO",
+            value: Number((order.amount / 100).toFixed(2)),
+            dueDate,
+            description: order.description,
+            externalReference: order.id,
+        });
+
+        if (!payment?.id) {
+            throw new Error("Asaas: resposta sem identificador do pagamento.");
+        }
+
+        return this.buildResult(payment, method);
+    }
+}
+
 function createPaymentProvider(
     slug: string,
     credentials: any,
-    options?: { notificationUrl?: string; maxInstallments?: number }
+    options?: {
+        notificationUrl?: string;
+        maxInstallments?: number;
+        env?: string;
+        siteUrl?: string;
+    }
 ): PaymentProvider {
     if (slug === 'mercadopago') {
         const token = credentials.access_token || credentials.secret_key;
@@ -357,6 +673,17 @@ function createPaymentProvider(
             accessToken: token,
             notificationUrl: options?.notificationUrl,
             maxInstallments: options?.maxInstallments,
+        });
+    }
+
+    if (slug === 'asaas') {
+        const apiKey = credentials.secret_key;
+        if (!apiKey) throw new Error("API key do Asaas ausente");
+        return new AsaasProvider({
+            apiKey,
+            sandbox: (options?.env ?? credentials.env) === 'test',
+            maxInstallments: options?.maxInstallments,
+            siteUrl: options?.siteUrl,
         });
     }
 
@@ -384,6 +711,11 @@ Deno.serve(async (req) => {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+        // Origem pública do site, usada em callbacks de gateways com página
+        // hospedada (ex.: checkout de cartão do Asaas).
+        const siteUrl = (Deno.env.get('SITE_URL') || req.headers.get('origin') || '')
+            .replace(/\/$/, '');
 
         const authHeader = req.headers.get('Authorization');
         const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -463,6 +795,8 @@ Deno.serve(async (req) => {
             const provider = createPaymentProvider(cred.gateway.slug, cred, {
                 notificationUrl,
                 maxInstallments: cred.max_installments,
+                env: cred.env,
+                siteUrl,
             });
 
             const { data: product } = await supabaseAdmin
@@ -608,7 +942,8 @@ Deno.serve(async (req) => {
                 customer: {
                     email: user.email!,
                     name: payload.name || user.user_metadata?.name || "Cliente",
-                    tax_id: payload.cpf || user.user_metadata?.cpf
+                    tax_id: payload.cpf || user.user_metadata?.cpf,
+                    phone: payload.phone || user.user_metadata?.phone
                 },
                 items: itemsToInsert.map(it => ({
                     id: it.product_id,
@@ -627,7 +962,22 @@ Deno.serve(async (req) => {
                 }
             };
 
-            const result = await provider.createPaymentIntent(orderContext);
+            let result;
+            try {
+                result = await provider.createPaymentIntent(orderContext);
+            } catch (providerError: any) {
+                // Sem isso o pedido ficaria "pending" para sempre e o cupom já
+                // teria sido consumido, mesmo sem cobrança criada.
+                logger.error(`Falha ao criar cobrança no gateway (order ${order.id})`, providerError);
+                await supabaseAdmin
+                    .from('orders')
+                    .update({
+                        status: 'failed',
+                        error_message: providerError?.detail || providerError?.message || 'Falha ao criar cobrança',
+                    })
+                    .eq('id', order.id);
+                throw providerError;
+            }
             logger.info(`Payment intent created: ${result.external_id}`, { status: result.status });
 
             const { data: paymentRecord } = await supabaseAdmin.from('payments').insert({
@@ -761,6 +1111,36 @@ Deno.serve(async (req) => {
                 } catch (e) {
                     logger.warn('Failed to query Stripe status', e);
                 }
+            } else if (cred && gatewaySlug === 'asaas') {
+                // Ids com prefixo "checkout:" são sessões hospedadas, não cobranças.
+                if (!payment.external_payment_id.startsWith('checkout:')) {
+                    const asaasBase = cred.env === 'test'
+                        ? 'https://api-sandbox.asaas.com/v3'
+                        : 'https://api.asaas.com/v3';
+                    try {
+                        const res = await fetch(`${asaasBase}/payments/${payment.external_payment_id}`, {
+                            headers: {
+                                access_token: cred.secret_key,
+                                'User-Agent': 'Flow55-Checkout/1.0',
+                            },
+                        });
+                        if (res.ok) {
+                            const asaasData = await res.json();
+                            const s = String(asaasData.status || '').toUpperCase();
+                            if (ASAAS_PAID_STATUSES.has(s)) realStatus = 'paid';
+                            else if (ASAAS_FAILED_STATUSES.has(s)) realStatus = 'failed';
+                        }
+                    } catch (e) {
+                        logger.warn('Failed to query Asaas status', e);
+                    }
+                }
+            }
+
+            if (realStatus === 'failed' && order.status === 'pending') {
+                await supabaseAdmin
+                    .from('orders')
+                    .update({ status: 'failed', error_message: 'Cobrança recusada no gateway' })
+                    .eq('id', order.id);
             }
 
             if (realStatus === 'paid' && order.status !== 'paid') {
@@ -820,11 +1200,15 @@ Deno.serve(async (req) => {
                 .order('env', { ascending: true })
                 .limit(2);
 
-            const cred = credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0];
+            const cred = payload.env
+                ? credRows?.find((c: any) => c.env === payload.env)
+                : (credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0]);
             if (!cred) {
                 return new Response(JSON.stringify({
                     ok: false,
-                    error: "Nenhuma credencial configurada para este gateway",
+                    error: payload.env
+                        ? `Nenhuma credencial salva no ambiente "${payload.env}".`
+                        : "Nenhuma credencial configurada para este gateway",
                 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
 
@@ -847,6 +1231,13 @@ Deno.serve(async (req) => {
                 } catch (e: any) {
                     detail = e?.message ?? "Falha de rede ao consultar o Stripe.";
                 }
+            } else if (slug === 'asaas') {
+                const provider = new AsaasProvider({
+                    apiKey: cred.secret_key,
+                    sandbox: cred.env === 'test',
+                });
+                ok = await provider.testConnection();
+                if (!ok) detail = "API key rejeitada pelo Asaas (verifique também o ambiente: sandbox x produção).";
             } else {
                 detail = `Gateway '${slug}' não suportado para teste.`;
             }

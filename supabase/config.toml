@@ -53,5 +53,8 @@ verify_jwt = false
 [functions.mercadopago-webhook]
 verify_jwt = false
 
+[functions.asaas-webhook]
+verify_jwt = false
+
 [functions.sys-health]
 verify_jwt = true

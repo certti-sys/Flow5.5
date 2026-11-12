@@ -228,6 +228,15 @@ serve(async (req) => {
     return json({ ok: true, ignored: "already processed" });
   }
 
+  // Nunca rebaixa um pedido já pago com eventos tardios (pendente/recusado).
+  const isRefund = mpStatus === "refunded" || mpStatus === "charged_back";
+  if (order.status === "paid" && internalStatus === "pending") {
+    return json({ ok: true, ignored: "paid order, pending event" });
+  }
+  if (order.status === "paid" && internalStatus === "failed" && !isRefund) {
+    return json({ ok: true, ignored: "paid order, non-refund failure event" });
+  }
+
   const paidAt = internalStatus === "paid" ? new Date().toISOString() : null;
   const orderUpdate: Record<string, any> = {
     status: internalStatus === "paid" ? "paid" : internalStatus === "failed" ? "failed" : "pending",

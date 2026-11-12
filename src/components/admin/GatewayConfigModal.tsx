@@ -38,14 +38,16 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
     const webhookUrl =
         gateway?.slug === 'mercadopago'
             ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`
-            : null;
+            : gateway?.slug === 'asaas'
+                ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asaas-webhook`
+                : null;
 
     const handleTestConnection = async () => {
         if (!gateway) return;
         setTesting(true);
         try {
             const { data, error } = await supabase.functions.invoke('payment-ops', {
-                body: { action: 'test_connection', payload: { gatewayId: gateway.id } },
+                body: { action: 'test_connection', payload: { gatewayId: gateway.id, env: activeTab } },
             });
             if (error) throw error;
             if (data?.ok) {
@@ -69,7 +71,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     // Determine default payment methods based on gateway
     const getDefaultMethods = (gatewaySlug: string) => {
-        if (gatewaySlug === 'mercadopago') {
+        if (gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas') {
             return ["credit_card", "pix", "bolbradesco"];
         } else if (gatewaySlug === 'stripe') {
             return ["card"]; // Stripe uses 'card' not 'credit_card'
@@ -79,7 +81,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     // Get available payment methods for gateway
     const getAvailableMethods = (gatewaySlug: string) => {
-        if (gatewaySlug === 'mercadopago') {
+        if (gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas') {
             return [
                 { id: "credit_card", label: "Cartão de Crédito" },
                 { id: "pix", label: "Pix" },
@@ -97,7 +99,7 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
 
     // Check if gateway supports installments
     const supportsInstallments = (gatewaySlug: string) => {
-        return gatewaySlug === 'mercadopago'; // Stripe only supports in Mexico/Japan
+        return gatewaySlug === 'mercadopago' || gatewaySlug === 'asaas';
     };
 
     // Fetch existing credentials for the selected environment
@@ -214,27 +216,33 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             <Switch checked={isActive} onCheckedChange={setIsActive} />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
-                                {gateway.slug === 'stripe' ? 'Publishable Key' : 'Public Key'}
-                            </Label>
-                            <Input
-                                placeholder={gateway.slug === 'stripe' ? 'pk_test_...' : 'pk_...'}
-                                value={publicKey}
-                                onChange={(e) => setPublicKey(e.target.value)}
-                                className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
-                            />
-                            {gateway.slug === 'stripe' && (
-                                <p className="text-[12px] text-white/60">
-                                    Formato: pk_test_... (teste) ou pk_live_... (produção)
-                                </p>
-                            )}
-                        </div>
+                        {gateway.slug !== 'asaas' && (
+                            <div className="space-y-2">
+                                <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
+                                    {gateway.slug === 'stripe' ? 'Publishable Key' : 'Public Key'}
+                                </Label>
+                                <Input
+                                    placeholder={gateway.slug === 'stripe' ? 'pk_test_...' : 'pk_...'}
+                                    value={publicKey}
+                                    onChange={(e) => setPublicKey(e.target.value)}
+                                    className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
+                                />
+                                {gateway.slug === 'stripe' && (
+                                    <p className="text-[12px] text-white/60">
+                                        Formato: pk_test_... (teste) ou pk_live_... (produção)
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
-                                    {gateway.slug === 'stripe' ? 'Secret Key' : 'Access Token / Secret Key'}
+                                    {gateway.slug === 'stripe'
+                                        ? 'Secret Key'
+                                        : gateway.slug === 'asaas'
+                                            ? 'API Key'
+                                            : 'Access Token / Secret Key'}
                                 </Label>
                                 <Button
                                     variant="ghost"
@@ -248,7 +256,13 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                             </div>
                             <Input
                                 type={showSecrets ? "text" : "password"}
-                                placeholder={gateway.slug === 'stripe' ? 'sk_test_...' : 'sk_...'}
+                                placeholder={
+                                    gateway.slug === 'stripe'
+                                        ? 'sk_test_...'
+                                        : gateway.slug === 'asaas'
+                                            ? '$aact_prod_...'
+                                            : 'sk_...'
+                                }
                                 value={secretKey}
                                 onChange={(e) => setSecretKey(e.target.value)}
                                 className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
@@ -258,19 +272,29 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     ? "Chave salva oculta. Digite para substituir."
                                     : gateway.slug === 'stripe'
                                     ? "Formato: sk_test_... (teste) ou sk_live_... (produção)"
+                                    : gateway.slug === 'asaas'
+                                    ? "API key da conta Asaas. No ambiente de teste use a chave do sandbox."
                                     : "Token de acesso privado."}
                             </p>
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">Webhook Secret (Opcional)</Label>
+                            <Label className="text-[12px] uppercase tracking-widest font-bold text-white/60">
+                                {gateway.slug === 'asaas' ? 'Token do Webhook (Opcional)' : 'Webhook Secret (Opcional)'}
+                            </Label>
                             <Input
                                 type={showSecrets ? "text" : "password"}
-                                placeholder="whsec_..."
+                                placeholder={gateway.slug === 'asaas' ? 'token definido no painel do Asaas' : 'whsec_...'}
                                 value={webhookSecret}
                                 onChange={(e) => setWebhookSecret(e.target.value)}
                                 className="bg-white/5 border-white/5 h-12 rounded-[12px] focus:bg-white/[0.08] transition-all text-white"
                             />
+                            {gateway.slug === 'asaas' && (
+                                <p className="text-[12px] text-white/60">
+                                    O Asaas envia este valor no header <code className="font-mono">asaas-access-token</code>.
+                                    Sem ele, o webhook não valida a origem.
+                                </p>
+                            )}
                         </div>
 
                         {webhookUrl && (
@@ -295,8 +319,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                     </Button>
                                 </div>
                                 <p className="text-[12px] text-white/60">
-                                    Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago
-                                    (evento "Pagamentos").
+                                    {gateway.slug === 'asaas'
+                                        ? 'Cole esta URL em Integrações → Webhooks no painel do Asaas, marcando os eventos de cobrança.'
+                                        : 'Cole esta URL em Suas integrações → Webhooks no painel do Mercado Pago (evento "Pagamentos").'}
                                 </p>
                             </div>
                         )}

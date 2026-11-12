@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
     // Stripe state
     const [currency, setCurrency] = useState<string>('BRL');
-    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe'>('mercadopago');
+    const [selectedGateway, setSelectedGateway] = useState<'mercadopago' | 'stripe' | 'asaas'>('mercadopago');
     const [stripePublicKey, setStripePublicKey] = useState<string | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [isCreatingPaymentIntent, setIsCreatingPaymentIntent] = useState(false);
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
             // Buscar gateways ativos
             const { data: activeGateways, error } = await supabase
                 .from('gateways')
-                .select('slug')
+                .select('slug, is_default')
                 .eq('is_active', true);
 
             if (error) {
@@ -115,32 +115,22 @@ export default function CheckoutPage() {
                 return;
             }
 
-            // Se houver apenas 1 gateway ativo, usar ele
-            if (activeGateways.length === 1) {
-                const gateway = activeGateways[0].slug as 'mercadopago' | 'stripe';
-                console.log('✅ Single gateway mode:', gateway);
-                setSelectedGateway(gateway);
-                // Definir moeda baseada no gateway
-                setCurrency(gateway === 'mercadopago' ? 'BRL' : 'USD');
-                return;
-            }
+            type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas';
+            const slugs = activeGateways.map(g => g.slug as GatewaySlug);
 
-            // Se houver múltiplos gateways, usar detecção por locale
+            // 1) Gateway marcado como padrão no admin vence sempre.
+            // 2) Depois, tenta casar a moeda detectada com o gateway conhecido.
+            // 3) Por último, usa o primeiro gateway ativo.
+            const defaultSlug = activeGateways.find(g => g.is_default)?.slug as GatewaySlug | undefined;
             const detectedCurrency = detectUserCurrency();
-            setCurrency(detectedCurrency);
-            const gateway = selectGatewayByCurrency(detectedCurrency);
-            console.log('🌍 Multi-gateway mode - Currency:', detectedCurrency, '→ Gateway:', gateway);
+            const currencySlug = selectGatewayByCurrency(detectedCurrency) as GatewaySlug;
 
-            // Verificar se o gateway selecionado está ativo
-            const isGatewayActive = activeGateways.some(g => g.slug === gateway);
-            if (isGatewayActive) {
-                setSelectedGateway(gateway);
-            } else {
-                // Fallback para o primeiro gateway ativo
-                const fallbackGateway = activeGateways[0].slug as 'mercadopago' | 'stripe';
-                console.warn('⚠️ Selected gateway not active, using fallback:', fallbackGateway);
-                setSelectedGateway(fallbackGateway);
-            }
+            const gateway: GatewaySlug = defaultSlug
+                ?? (slugs.includes(currencySlug) ? currencySlug : slugs[0]);
+
+            console.log('✅ Gateway selecionado:', gateway, { defaultSlug, detectedCurrency });
+            setSelectedGateway(gateway);
+            setCurrency(gateway === 'stripe' ? 'USD' : 'BRL');
         };
 
         fetchActiveGateways();
@@ -193,6 +183,14 @@ export default function CheckoutPage() {
                         setAllowedMethods(['card']);
                     }
                     // Payment Intent will be created by useEffect when product is ready
+                } else if (gatewaySlug === 'asaas') {
+                    // Asaas não usa chave pública no navegador: PIX/boleto são
+                    // gerados no servidor e o cartão vai para a página hospedada.
+                    if (gatewayConfig.allowed_methods && gatewayConfig.allowed_methods.length > 0) {
+                        setAllowedMethods(gatewayConfig.allowed_methods);
+                    } else {
+                        setAllowedMethods(['credit_card', 'pix', 'bolbradesco']);
+                    }
                 }
             }
         };
@@ -276,7 +274,11 @@ export default function CheckoutPage() {
     const handlePaymentSubmit = async (data: CheckoutFormValues) => {
         setIsProcessing(true);
         try {
-          const validation = checkoutFormSchema.safeParse(data);
+          const validation = checkoutFormSchema.safeParse({
+            ...data,
+            gateway: selectedGateway,
+            paymentMethod: (data.paymentMethod ?? selectedMethod) as any,
+          });
           if (!validation.success) {
             validation.error.issues.forEach((err) => {
               if (err.path[0]) {
@@ -307,7 +309,7 @@ export default function CheckoutPage() {
             let issuerId: string | null = null;
             let installments = 1;
 
-            if (selectedMethod === 'credit_card') {
+            if (selectedGateway === 'mercadopago' && selectedMethod === 'credit_card') {
                 if (!mpPublicKey) throw new Error("Chave do MP não carregada.");
 
                 // Verificar se SDK foi carregado
@@ -463,6 +465,14 @@ export default function CheckoutPage() {
             }
             if (result.ticket_url) {
                 redirectUrl += `&ticket=${encodeURIComponent(result.ticket_url)}`;
+            }
+
+            // Gateways com página hospedada (ex.: cartão no Asaas) devolvem a URL
+            // onde o cliente conclui o pagamento.
+            if (result.redirect_url) {
+                toast.success("Redirecionando para o ambiente seguro de pagamento...");
+                window.location.href = result.redirect_url;
+                return;
             }
 
             // Se aprovado imediatamente (cartão), mostrar sucesso e redirecionar
@@ -687,17 +697,30 @@ export default function CheckoutPage() {
                             />
                         )}
 
-                        {/* Mercado Pago Payment Methods */}
-                        {selectedGateway === 'mercadopago' && allowedMethods.length > 0 && (
+                        {/* Mercado Pago / Asaas Payment Methods */}
+                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas') && allowedMethods.length > 0 && (
                             <>
                                 <PaymentMethods
                                     form={form}
-                                    onMethodChange={(m) => setSelectedMethod(m)}
+                                    onMethodChange={(m) => {
+                                        setSelectedMethod(m);
+                                        // Mantém o formulário sincronizado para que a
+                                        // validação condicional (cartão/boleto) rode no submit.
+                                        form.setValue('paymentMethod', m, { shouldValidate: false });
+                                    }}
                                     allowedMethods={allowedMethods}
                                 />
 
-                                {/* Renderiza Formulário Customizado APENAS para Cartão */}
-                                {selectedMethod === 'credit_card' && (
+                                {/* No Asaas o cartão é digitado na página hospedada (PCI). */}
+                                {selectedGateway === 'asaas' && selectedMethod === 'credit_card' && (
+                                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/[0.06] p-4 text-sm text-muted-foreground">
+                                        O cartão é processado no ambiente seguro do Asaas. Ao confirmar,
+                                        você será redirecionado para concluir o pagamento.
+                                    </div>
+                                )}
+
+                                {/* Renderiza Formulário Customizado APENAS para Cartão no Mercado Pago. */}
+                                {selectedMethod === 'credit_card' && selectedGateway === 'mercadopago' && (
                                     <CustomCardForm
                                         form={form}
                                         installmentOptions={installmentOptions}
@@ -727,8 +750,8 @@ export default function CheckoutPage() {
                             </div>
                         )}
 
-                        {/* Submit Button - Only show for Mercado Pago, Stripe has its own button */}
-                        {selectedGateway === 'mercadopago' && (
+                        {/* Submit Button - Only show for Mercado Pago and Asaas, Stripe has its own button */}
+                        {(selectedGateway === 'mercadopago' || selectedGateway === 'asaas') && (
                             <>
                                 <Button
                                     type="submit"
