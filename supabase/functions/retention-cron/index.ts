@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'x-requested-with': 'XMLHttpRequest'
           },
           body: JSON.stringify({
             to: profile.email,
@@ -70,9 +71,9 @@ Deno.serve(async (req) => {
       if (profile?.whatsapp) {
         await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           },
           body: JSON.stringify({
             phone: profile.whatsapp,

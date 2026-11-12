@@ -12,6 +12,7 @@
 // pois chamadas vindas dos servidores do Stripe não carregam JWT do Supabase.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyOrderPaid } from "../_shared/notify-order.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 
@@ -368,6 +369,8 @@ async function handlePaymentSuccess(admin: any, gatewayId: string, paymentIntent
     if (order.user_id) {
         await grantCourseAccess(admin, orderId, order.user_id);
     }
+
+    await notifyOrderPaid(admin, orderId);
 }
 
 /** payment_intent.payment_failed */

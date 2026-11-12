@@ -8,6 +8,7 @@
 // pois chamadas vindas dos servidores do Mercado Pago não carregam JWT.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyOrderPaid } from "../_shared/notify-order.ts";
 
 type InternalStatus = "pending" | "paid" | "failed";
 
@@ -255,6 +256,10 @@ serve(async (req) => {
   if (updateError) {
     console.error("[mercadopago-webhook] erro ao atualizar pedido", updateError);
     return json({ ok: false, error: "order update failed" }, 500);
+  }
+
+  if (internalStatus === "paid") {
+    await notifyOrderPaid(admin, order.id);
   }
 
   // Atualiza (ou cria) o registro em payments — webhook pode chegar antes do insert.

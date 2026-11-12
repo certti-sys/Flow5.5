@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, validateCSRF } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { notifyOrderPaid } from "../_shared/notify-order.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
 
 // --- SCHEMAS ---
@@ -2115,9 +2116,17 @@ function generateTempPassword(): string {
     return `${random}Aa1!`;
 }
 
-async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: string): Promise<void> {
+async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: string, phone?: string): Promise<void> {
     try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const loginUrl = `${(Deno.env.get('SITE_URL') || supabaseUrl).replace(/\/$/, '')}/login`;
+        const variables = {
+            user_name: name,
+            user_email: email,
+            temp_password: tempPassword,
+            login_url: loginUrl,
+        };
+
         const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
             method: 'POST',
             headers: {
@@ -2127,17 +2136,7 @@ async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: 
                 // chamada interna leva 403 e o comprador nunca recebe a senha.
                 'x-requested-with': 'XMLHttpRequest',
             },
-            body: JSON.stringify({
-                type: 'welcome',
-                to: email,
-                toName: name,
-                variables: {
-                    user_name: name,
-                    user_email: email,
-                    temp_password: tempPassword,
-                    login_url: `${(Deno.env.get('SITE_URL') || supabaseUrl).replace(/\/$/, '')}/login`,
-                },
-            }),
+            body: JSON.stringify({ type: 'welcome', to: email, toName: name, variables }),
         });
         if (!res.ok) {
             // Visitante sem a senha temporária não consegue entrar; deixa o
@@ -2145,6 +2144,18 @@ async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: 
             logger.error(
                 `E-mail de boas-vindas falhou (${res.status}) para ${email}: ${await res.text()}`,
             );
+        }
+
+        // Mesmo aviso por WhatsApp, quando o comprador informou telefone.
+        if (phone) {
+            await fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({ phone, templateKey: 'welcome_new_user', variables }),
+            }).catch((error) => logger.error('Falha no WhatsApp de boas-vindas', error));
         }
     } catch (error) {
         // O e-mail é conveniência: nunca deve derrubar a compra.
@@ -2213,7 +2224,7 @@ async function resolveCheckoutUser(
         throw new Error(`Não foi possível criar a conta do comprador: ${createError?.message || 'erro desconhecido'}`);
     }
 
-    await sendGuestWelcomeEmail(normalizedEmail, name, tempPassword);
+    await sendGuestWelcomeEmail(normalizedEmail, name, tempPassword, phone);
     return { id: created.user.id, email: normalizedEmail, metadata: { name, phone, cpf } };
 }
 
@@ -2584,6 +2595,9 @@ Deno.serve(async (req) => {
             }
             await supabaseAdmin.from('orders').update(orderUpdate).eq('id', order.id);
             // O acesso é concedido pelo trigger `grant_order_access` em orders.
+            if (result.status === 'paid') {
+                await notifyOrderPaid(supabaseAdmin, order.id);
+            }
 
             return new Response(JSON.stringify({
                 ...result,
@@ -2798,6 +2812,7 @@ Deno.serve(async (req) => {
                 // O trigger `grant_order_access` libera o acesso nesta transição.
                 await supabaseAdmin.from('orders').update({ status: 'paid', paid_at: paidAt }).eq('id', order.id);
                 await supabaseAdmin.from('payments').update({ status: 'paid', paid_at: paidAt }).eq('id', payment.id);
+                await notifyOrderPaid(supabaseAdmin, order.id);
             }
 
             return new Response(JSON.stringify({

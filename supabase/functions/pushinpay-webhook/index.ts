@@ -10,6 +10,7 @@
 // IMPORTANTE: esta função roda com `verify_jwt = false` (ver config.toml).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyOrderPaid } from "../_shared/notify-order.ts";
 
 type InternalStatus = "pending" | "paid" | "failed";
 
@@ -222,6 +223,10 @@ serve(async (req) => {
     if (updateError) {
         console.error("[pushinpay-webhook] erro ao atualizar pedido", updateError);
         return json({ ok: false, error: "order update failed" }, 500);
+    }
+
+    if (internalStatus === "paid") {
+        await notifyOrderPaid(admin, order.id);
     }
 
     const amountCents = Number.isFinite(transaction?.value)

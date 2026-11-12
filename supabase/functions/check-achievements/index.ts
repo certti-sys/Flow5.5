@@ -115,7 +115,8 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'x-requested-with': 'XMLHttpRequest'
         },
         body: JSON.stringify(payload)
       }).catch(e => logger.error('Email dispatch error', e));
@@ -131,7 +132,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           },
           body: JSON.stringify(waPayload)
         }).catch(e => logger.error('WhatsApp dispatch error', e));

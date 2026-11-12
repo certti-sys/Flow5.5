@@ -108,17 +108,34 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // --- CSRF PROTECTION ---
-  const csrfError = validateCSRF(req);
-  if (csrfError) return csrfError;
-
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+  // Chamadas de outras functions (webhooks, cron) não têm navegador: CSRF e
+  // sessão de usuário não se aplicam. A assinatura do token já foi validada
+  // pelo gateway (`verify_jwt = true` em supabase/config.toml), então basta
+  // identificar a credencial de serviço pelo claim `role`.
+  const authHeader = req.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+
+  const isServiceRole = (() => {
+    if (!token) return false;
+    if (token === supabaseServiceKey) return true;
+    try {
+      const segment = (token.split('.')[1] || '').replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(atob(segment))?.role === 'service_role';
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!isServiceRole) {
+    const csrfError = validateCSRF(req);
+    if (csrfError) return csrfError;
+  }
+
   try {
-    const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: 'Não autorizado. Token necessário.' }),
@@ -126,13 +143,15 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-    if (authError || !user) {
-      logger.error('Auth error in send-whatsapp', authError)
-      return new Response(
-        JSON.stringify({ success: false, error: 'Token inválido ou expirado.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (!isServiceRole) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+      if (authError || !user) {
+        logger.error('Auth error in send-whatsapp', authError)
+        return new Response(
+          JSON.stringify({ success: false, error: 'Token inválido ou expirado.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     logger.info(`WhatsApp request received`);
