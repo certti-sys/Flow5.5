@@ -123,8 +123,15 @@ async function verifyStripeSignature(
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-    // Comparar assinaturas
-    if (expectedSigHex !== sig) {
+    // Comparar assinaturas (timing-safe)
+    if (expectedSigHex.length !== sig.length) {
+        throw new Error('Invalid signature');
+    }
+    let mismatch = 0;
+    for (let i = 0; i < expectedSigHex.length; i++) {
+        mismatch |= expectedSigHex.charCodeAt(i) ^ sig.charCodeAt(i);
+    }
+    if (mismatch !== 0) {
         throw new Error('Invalid signature');
     }
 
@@ -139,6 +146,18 @@ async function handlePaymentSuccess(supabase: any, paymentIntent: any) {
 
     if (!orderId) {
         logger.warn('Payment intent without order_id', { paymentIntentId: paymentIntent.id });
+        return;
+    }
+
+    // Idempotência: verificar se já processado
+    const { data: currentOrder } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', orderId)
+        .maybeSingle();
+
+    if (currentOrder?.status === 'paid') {
+        logger.info(`Order ${orderId} already marked as paid. Skipping redundant processing.`);
         return;
     }
 

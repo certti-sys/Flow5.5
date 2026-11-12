@@ -209,6 +209,13 @@ export default function CheckoutPage() {
         }
     }, [selectedGateway, gatewayId, product, isCreatingPaymentIntent, stripeClientSecret]);
 
+    // Reset Stripe PI when bumps or coupon change to ensure correct amount
+    useEffect(() => {
+        if (stripeClientSecret) {
+            setStripeClientSecret(null);
+        }
+    }, [selectedBumps, appliedCoupon]);
+
     const form = useForm<CheckoutFormValues>({
         defaultValues: {
             name: "",

@@ -11,6 +11,7 @@ import { z } from "https://esm.sh/zod@3.25.76";
 const PaymentOpsSchema = z.object({
   action: z.enum(['create_paymentIntent', 'check_payment_status']),
   payload: z.object({
+    orderId: z.string().optional(),
     productId: z.string().optional(),
     gatewayId: z.string().optional(),
     amount: z.number().optional(),
@@ -242,9 +243,9 @@ class StripeProvider implements PaymentProvider {
             case 'requires_confirmation':
             case 'requires_action':
             case 'processing':
+            case 'requires_capture':
                 return 'pending';
             case 'canceled':
-            case 'requires_capture':
                 return 'failed';
             default:
                 return 'pending';
@@ -357,10 +358,77 @@ Deno.serve(async (req) => {
 
             if (!product) throw new Error("Produto não encontrado");
 
-            // O preço final vem do frontend (que já considerou Order Bumps e Cupons),
-            // mas deveríamos validar no backend em um cenário real complexo.
-            // Para simplificar, confiaremos no payload.amount se ele for razoável, senão base price
-            const price = payload.amount ?? product.price ?? 0;
+            // Cálculo server-side do valor esperado (protege contra manipulação de preço no cliente)
+            let baseTotal = product.price || 0;
+            const itemsToInsert: Array<{
+                product_id: string;
+                unit_amount: number;
+                total_amount: number;
+                kind: string;
+            }> = [{
+                product_id: productId,
+                unit_amount: product.price || 0,
+                total_amount: product.price || 0,
+                kind: 'main'
+            }];
+
+            // Validar Order Bumps se houver
+            if (payload.orderBumps && payload.orderBumps.length > 0) {
+                const { data: bumps } = await supabaseAdmin
+                    .from('order_bumps')
+                    .select('id, offer_product_id, discount_percent, products:offer_product_id(id, name, price)')
+                    .in('id', payload.orderBumps)
+                    .eq('is_active', true);
+
+                if (bumps) {
+                    for (const bump of bumps) {
+                        const bumpProduct: any = bump.products;
+                        if (bumpProduct && bumpProduct.price != null) {
+                            const discount = bump.discount_percent || 0;
+                            const bumpPrice = Math.round(bumpProduct.price * (1 - discount / 100));
+                            baseTotal += bumpPrice;
+                            itemsToInsert.push({
+                                product_id: bumpProduct.id,
+                                unit_amount: bumpPrice,
+                                total_amount: bumpPrice,
+                                kind: 'order_bump'
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Validar Cupom se houver
+            let discountApplied = 0;
+            if (payload.couponId) {
+                const { data: coupon } = await supabaseAdmin
+                    .from('coupons')
+                    .select('*')
+                    .eq('id', payload.couponId)
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                if (coupon) {
+                    const now = new Date();
+                    const isValidDate = (!coupon.valid_from || new Date(coupon.valid_from) <= now) &&
+                                        (!coupon.valid_until || new Date(coupon.valid_until) >= now);
+                    const hasUses = !coupon.max_uses || (coupon.uses_count || 0) < coupon.max_uses;
+
+                    if (isValidDate && hasUses) {
+                        if (coupon.discount_type === 'percent') {
+                            discountApplied = Math.round((baseTotal * coupon.discount_value) / 100);
+                        } else {
+                            discountApplied = Math.round(coupon.discount_value);
+                        }
+                        baseTotal = Math.max(0, baseTotal - discountApplied);
+                    }
+                }
+            }
+
+            // Se o payload.amount vier muito abaixo do calculado (ex: manipulação), força o valor calculado
+            const price = (payload.amount != null && payload.amount >= baseTotal * 0.95)
+                ? payload.amount
+                : baseTotal;
 
             // Determinar moeda baseada no gateway
             const currency = cred.gateway.slug === 'stripe' ? 'USD' : 'BRL';
@@ -377,13 +445,13 @@ Deno.serve(async (req) => {
             }).select('*').single();
 
             // Insert coupon usage if applied
-            if (payload.couponId && payload.discountAmount) {
+            if (payload.couponId && (discountApplied > 0 || payload.discountAmount)) {
                 try {
                     await supabaseAdmin.from('coupon_usage').insert({
                         coupon_id: payload.couponId,
                         order_id: order.id,
                         user_id: user.id,
-                        discount_applied: payload.discountAmount
+                        discount_applied: discountApplied || payload.discountAmount || 0
                     });
 
                     // Increment uses_count (using rpc is better but update works for low volume)
@@ -405,12 +473,17 @@ Deno.serve(async (req) => {
                 }
             }
 
-            await supabaseAdmin.from('order_items').insert({
-                order_id: order.id,
-                product_id: productId,
-                quantity: 1,
-                unit_amount: price
-            });
+            // Inserir order_items com unit_amount E total_amount
+            for (const item of itemsToInsert) {
+                await supabaseAdmin.from('order_items').insert({
+                    order_id: order.id,
+                    product_id: item.product_id,
+                    quantity: 1,
+                    unit_amount: item.unit_amount,
+                    total_amount: item.total_amount,
+                    kind: item.kind
+                });
+            }
 
             const orderContext: OrderContext = {
                 id: order.id,
@@ -422,12 +495,12 @@ Deno.serve(async (req) => {
                     name: payload.name || user.user_metadata?.name || "Cliente",
                     tax_id: payload.cpf || user.user_metadata?.cpf
                 },
-                items: [{
-                    id: productId,
-                    title: product.name,
-                    unit_price: price,
+                items: itemsToInsert.map(it => ({
+                    id: it.product_id,
+                    title: it.product_id === productId ? product.name : 'Order Bump',
+                    unit_price: it.unit_amount,
                     quantity: 1
-                }],
+                })),
                 metadata: {
                     token: payload.token,
                     installments: payload.installments || 1,
@@ -453,25 +526,29 @@ Deno.serve(async (req) => {
                 paid_at: result.status === 'paid' ? new Date().toISOString() : null
             }).select('id').single();
 
+            // Atualizar status e external_id em orders
+            const orderUpdate: Record<string, any> = { external_id: result.external_id };
             if (result.status === 'paid') {
-                await supabaseAdmin.from('orders').update({ status: 'paid' }).eq('id', order.id);
+                orderUpdate.status = 'paid';
+                orderUpdate.paid_at = new Date().toISOString();
+            }
+            await supabaseAdmin.from('orders').update(orderUpdate).eq('id', order.id);
 
-                if (product.course_id) {
-                    const { data: existing } = await supabaseAdmin
-                        .from('user_course_access')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .eq('course_id', product.course_id)
-                        .maybeSingle();
+            if (result.status === 'paid' && product.course_id) {
+                const { data: existing } = await supabaseAdmin
+                    .from('user_course_access')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('course_id', product.course_id)
+                    .maybeSingle();
 
-                    if (!existing) {
-                        await supabaseAdmin.from('user_course_access').insert({
-                            user_id: user.id,
-                            course_id: product.course_id,
-                            source: 'checkout',
-                            granted_by: null
-                        });
-                    }
+                if (!existing) {
+                    await supabaseAdmin.from('user_course_access').insert({
+                        user_id: user.id,
+                        course_id: product.course_id,
+                        source: 'checkout',
+                        granted_by: null
+                    });
                 }
             }
 
@@ -479,6 +556,130 @@ Deno.serve(async (req) => {
                 ...result,
                 orderId: order.id,
                 internalPaymentId: paymentRecord?.id
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        // --- ACTION: check_payment_status ---
+        if (action === 'check_payment_status') {
+            const orderId = payload.orderId;
+            if (!orderId) throw new Error("orderId obrigatório");
+
+            const { data: order } = await supabaseAdmin
+                .from('orders')
+                .select('id, status, total_amount, currency, user_id, paid_at')
+                .eq('id', orderId)
+                .single();
+
+            if (!order) throw new Error("Pedido não encontrado");
+
+            if (order.status === 'paid') {
+                return new Response(JSON.stringify({
+                    status: 'paid',
+                    orderId: order.id,
+                    paid_at: order.paid_at
+                }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+
+            const { data: payment } = await supabaseAdmin
+                .from('payments')
+                .select('id, external_payment_id, gateway_id, status, gateway:gateways(slug)')
+                .eq('order_id', orderId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (!payment || !payment.external_payment_id) {
+                return new Response(JSON.stringify({
+                    status: order.status,
+                    orderId: order.id
+                }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+
+            const { data: cred } = await supabaseAdmin
+                .from('gateway_credentials')
+                .select('*')
+                .eq('gateway_id', payment.gateway_id)
+                .eq('is_active', true)
+                .order('env', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            const gatewaySlug = (payment as any).gateway?.slug;
+            let realStatus: 'pending' | 'paid' | 'failed' = payment.status as any;
+
+            if (cred && gatewaySlug === 'mercadopago') {
+                const token = cred.access_token || cred.secret_key;
+                try {
+                    const res = await fetch(`https://api.mercadopago.com/v1/payments/${payment.external_payment_id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const mpData = await res.json();
+                        if (mpData.status === 'approved') realStatus = 'paid';
+                        else if (['rejected', 'cancelled'].includes(mpData.status)) realStatus = 'failed';
+                    }
+                } catch (e) {
+                    logger.warn('Failed to query MercadoPago status', e);
+                }
+            } else if (cred && gatewaySlug === 'stripe') {
+                const apiKey = cred.secret_key;
+                try {
+                    const res = await fetch(`https://api.stripe.com/v1/payment_intents/${payment.external_payment_id}`, {
+                        headers: { 'Authorization': `Bearer ${apiKey}` }
+                    });
+                    if (res.ok) {
+                        const stripeData = await res.json();
+                        if (stripeData.status === 'succeeded') realStatus = 'paid';
+                        else if (stripeData.status === 'canceled') realStatus = 'failed';
+                    }
+                } catch (e) {
+                    logger.warn('Failed to query Stripe status', e);
+                }
+            }
+
+            if (realStatus === 'paid' && order.status !== 'paid') {
+                const paidAt = new Date().toISOString();
+                await supabaseAdmin.from('orders').update({ status: 'paid', paid_at: paidAt }).eq('id', order.id);
+                await supabaseAdmin.from('payments').update({ status: 'paid', paid_at: paidAt }).eq('id', payment.id);
+
+                const { data: items } = await supabaseAdmin
+                    .from('order_items')
+                    .select('product_id, products:product_id(course_id)')
+                    .eq('order_id', order.id);
+
+                if (items) {
+                    for (const item of items) {
+                        const courseId = (item.products as any)?.course_id;
+                        if (courseId) {
+                            const { data: existing } = await supabaseAdmin
+                                .from('user_course_access')
+                                .select('id')
+                                .eq('user_id', order.user_id)
+                                .eq('course_id', courseId)
+                                .maybeSingle();
+
+                            if (!existing) {
+                                await supabaseAdmin.from('user_course_access').insert({
+                                    user_id: order.user_id,
+                                    course_id: courseId,
+                                    source: 'checkout',
+                                    granted_by: 'system'
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return new Response(JSON.stringify({
+                status: realStatus,
+                orderId: order.id
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });

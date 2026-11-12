@@ -54,7 +54,7 @@ async function validateWooCommerceSignature(
   signature: string | null,
   secret: string
 ): Promise<boolean> {
-  if (!signature || !secret) return true;
+  if (!signature || !secret) return false;
   try {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -153,7 +153,7 @@ async function validateKiwifySignature(
 }
 
 function validateHotmartSignature(payload: any, token: string | undefined): boolean {
-  if (!token) return true; // Se não configurado, ignora (não recomendado)
+  if (!token) return false;
   return payload.hottok === token;
 }
 
@@ -165,14 +165,16 @@ async function findOrCreateUser(
   name: string,
   phone?: string
 ): Promise<{ userId: string; isNew: boolean; tempPassword?: string }> {
-  const { data: { users } } = await supabase.auth.admin.listUsers();
-  const existingUser = users?.find(
-    (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-  );
+  // Buscar no profiles primeiro (rápido, indexado e sem limite de 50 de listUsers)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
   
-  if (existingUser) {
-    if (phone) await supabase.from("profiles").update({ whatsapp: phone }).eq("id", existingUser.id).is("whatsapp", null);
-    return { userId: existingUser.id, isNew: false };
+  if (profile) {
+    if (phone) await supabase.from("profiles").update({ whatsapp: phone }).eq("id", profile.id).is("whatsapp", null);
+    return { userId: profile.id, isNew: false };
   }
   
   const tempPassword = generateTempPassword();
@@ -492,16 +494,32 @@ Deno.serve(async (req) => {
       if (res.isNew) await sendWelcomeEmail(supabase, normalizedData.customerEmail, normalizedData.customerName, res.tempPassword!);
       procRes = { success: true, action: "granted" };
     } else if (["refunded", "cancelled"].includes(normalizedData.status)) {
-      const { data: { users } } = await supabase.auth.admin.listUsers();
-      const u = users?.find((u: any) => u.email?.toLowerCase() === normalizedData!.customerEmail.toLowerCase());
-      if (u) {
-        userId = u.id;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("email", normalizedData!.customerEmail)
+        .maybeSingle();
+      if (profile) {
+        userId = profile.id;
         await revokeAccess(supabase, userId, mapping.course_id, mapping.category);
         procRes = { success: true, action: "revoked" };
       }
     }
 
-    await supabase.from("webhook_transactions").insert({ platform_id: platform.id, external_transaction_id: normalizedData.transactionId, external_product_id: normalizedData.productId, customer_email: normalizedData.customerEmail, status: normalizedData.status, event_type: normalizedData.eventType, raw_payload: payload, user_id: userId, course_id: mapping.course_id, processed_at: new Date().toISOString(), processing_result: procRes });
+    await supabase.from("webhook_transactions").insert({
+      platform_id: platform.id,
+      external_transaction_id: normalizedData.transactionId,
+      external_product_id: normalizedData.productId,
+      customer_email: normalizedData.customerEmail,
+      customer_name: normalizedData.customerName || null,
+      status: normalizedData.status,
+      event_type: normalizedData.eventType,
+      raw_payload: payload,
+      user_id: userId,
+      course_id: mapping.course_id,
+      processed_at: new Date().toISOString(),
+      processing_result: procRes
+    });
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {

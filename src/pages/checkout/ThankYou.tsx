@@ -49,6 +49,38 @@ export default function ThankYouPage() {
         fetchOrder();
     }, [orderId]);
 
+    // Polling de verificação de pagamento (reconfirma status no PSP a cada 3s enquanto pendente)
+    useEffect(() => {
+        if (!orderId) return;
+        if (order?.status === "paid" || order?.payments?.[0]?.status === "paid") return;
+
+        let cancelled = false;
+        const interval = setInterval(async () => {
+            if (cancelled) return;
+            try {
+                const { data, error } = await supabase.functions.invoke("payment-ops", {
+                    body: {
+                        action: "check_payment_status",
+                        payload: { orderId }
+                    }
+                });
+
+                if (!error && data?.status === "paid" && !cancelled) {
+                    setOrder((prev: any) => prev ? { ...prev, status: "paid" } : prev);
+                    toast.success("Pagamento confirmado! Acesso liberado. 🎉");
+                    clearInterval(interval);
+                }
+            } catch {
+                // Silêncio em erros transitórios de rede no polling
+            }
+        }, 3000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [orderId, order?.status, order?.payments]);
+
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
         setCopied(true);
