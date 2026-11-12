@@ -45,7 +45,7 @@ const notificationTypes = [
 ];
 
 export default function EmailSettings() {
-  const { settings, isLoading, error, updateSettings, isUpdating, testConnection, isTesting } = useEmailSettings();
+  const { settings, isLoading, error, updateSettings, isUpdating, testConnectionAsync, isTesting } = useEmailSettings();
   const { data: logs, isLoading: isLoadingLogs } = useEmailLogs({ limit: 50 });
 
   const [provider, setProvider] = useState<"smtp" | "brevo">("brevo");
@@ -61,6 +61,7 @@ export default function EmailSettings() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [notificationToggles, setNotificationToggles] = useState<Record<string, boolean>>({
     new_sale_admin: true, course_access: true, lesson_reminder: true, payment_approved: true,
@@ -146,11 +147,17 @@ export default function EmailSettings() {
     });
   };
 
-  const handleTest = () => {
+  const handleTest = async () => {
     if (!testEmail) { toast.error("Digite um email de destino para o teste"); return; }
-    testConnection({ provider, brevo_api_key: brevoApiKey || null, smtp_host: smtpHost || null,
-      smtp_port: parseInt(smtpPort) || 587, smtp_user: smtpUser || null, smtp_password: smtpPassword || null,
-      smtp_secure: smtpSecure, from_email: fromEmail, from_name: fromName, testRecipient: testEmail });
+    setTestResult(null);
+    try {
+      await testConnectionAsync({ provider, brevo_api_key: brevoApiKey || null, smtp_host: smtpHost || null,
+        smtp_port: parseInt(smtpPort) || 587, smtp_user: smtpUser || null, smtp_password: smtpPassword || null,
+        smtp_secure: smtpSecure, from_email: fromEmail, from_name: fromName, testRecipient: testEmail });
+      setTestResult({ ok: true, message: `E-mail de teste entregue ao Brevo para ${testEmail}.` });
+    } catch (e: any) {
+      setTestResult({ ok: false, message: e?.message || "Falha ao enviar o e-mail de teste." });
+    }
   };
 
   if (isLoading) {
@@ -366,6 +373,33 @@ export default function EmailSettings() {
                   <Button onClick={handleTest} disabled={isTesting || !testEmail || (provider === "brevo" && !brevoApiKey) || (provider === "smtp" && !smtpHost)} className="w-full h-[44px] bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-[12px] transition-all font-bold text-[13px]">
                     {isTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />} Disparar Teste
                   </Button>
+
+                  {isTesting && (
+                    <p className="text-[12px] text-center text-muted-foreground">Enviando e-mail de teste...</p>
+                  )}
+
+                  {!isTesting && testResult && (
+                    <div
+                      role="status"
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-[12px] border text-[13px]",
+                        testResult.ok
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                          : "bg-red-500/10 border-red-500/30 text-red-300",
+                      )}
+                    >
+                      {testResult.ok ? (
+                        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                      ) : (
+                        <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      )}
+                      <div className="space-y-1">
+                        <p className="font-bold">{testResult.ok ? "Envio confirmado" : "Falha no envio"}</p>
+                        <p className="text-[12px] leading-relaxed break-words">{testResult.message}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <p className="text-[12px] text-center text-muted-foreground mt-2">Um email de teste será enviado da conta do remetente para verificar a validação SPF/DKIM do servidor.</p>
                 </div>
               </div>

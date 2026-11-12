@@ -195,6 +195,7 @@ export function useEmailSettings() {
     updateSettings: updateMutation.mutate,
     isUpdating: updateMutation.isPending,
     testConnection: testSMTPMutation.mutate,
+    testConnectionAsync: testSMTPMutation.mutateAsync,
     isTesting: testSMTPMutation.isPending,
     sendEmail: sendEmailMutation.mutateAsync,
     isSending: sendEmailMutation.isPending,
