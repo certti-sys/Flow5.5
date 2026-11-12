@@ -2123,6 +2123,9 @@ async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: 
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                // `send-email` exige este header (validateCSRF); sem ele a
+                // chamada interna leva 403 e o comprador nunca recebe a senha.
+                'x-requested-with': 'XMLHttpRequest',
             },
             body: JSON.stringify({
                 type: 'welcome',
