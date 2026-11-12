@@ -25,6 +25,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
 import { normalizeCheckoutConfig } from "@/types/checkout-config";
 import { CheckoutContentBlocks, CheckoutYoutube } from "@/components/checkout/CheckoutContentBlocks";
+import { CheckoutTimer } from "@/components/checkout/CheckoutTimer";
 import { CheckoutReviews } from "@/components/checkout/CheckoutReviews";
 import { CheckoutSupportButton } from "@/components/checkout/CheckoutSupportButton";
 import { CheckoutFooter } from "@/components/checkout/CheckoutFooter";
@@ -753,6 +754,11 @@ export default function CheckoutPage() {
 
     return (
         <div className="space-y-8">
+            <CheckoutTimer
+                config={config.timer}
+                storageKey={`checkout-timer:${resolvedProductId ?? slug ?? "produto"}`}
+            />
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Coluna Esquerda: Formulários */}
                 <div className="lg:col-span-7 space-y-6">

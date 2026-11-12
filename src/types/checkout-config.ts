@@ -73,6 +73,15 @@ export interface CheckoutConfig {
 
     reviews: CheckoutReview[];
 
+    timer: {
+        enabled: boolean;
+        text: string;
+        minutes: number;
+        background_color: string;
+        text_color: string;
+        sticky: boolean;
+    };
+
     youtube_url: string;
     youtube_position: 'top' | 'bottom';
     redirect_after_purchase: string;
@@ -143,6 +152,14 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         coupon: true,
     },
     reviews: [],
+    timer: {
+        enabled: false,
+        text: 'Oferta expira em',
+        minutes: 15,
+        background_color: '#DC2626',
+        text_color: '#FFFFFF',
+        sticky: true,
+    },
     youtube_url: '',
     youtube_position: 'top',
     redirect_after_purchase: '',
@@ -281,6 +298,13 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
     config.youtube_url = asString(config.youtube_url);
     config.youtube_position = config.youtube_position === 'bottom' ? 'bottom' : 'top';
     config.redirect_after_purchase = asString(config.redirect_after_purchase);
+
+    config.timer.text = asString(config.timer.text, 'Oferta expira em');
+    config.timer.minutes = Math.min(720, Math.max(1, Number(config.timer.minutes) || 15));
+    config.timer.background_color = asString(config.timer.background_color, '#DC2626');
+    config.timer.text_color = asString(config.timer.text_color, '#FFFFFF');
+    config.timer.enabled = asBoolean(config.timer.enabled, false);
+    config.timer.sticky = asBoolean(config.timer.sticky, true);
 
     config.support_button.url = asString(config.support_button.url);
     config.support_button.text = asString(config.support_button.text, 'Suporte');

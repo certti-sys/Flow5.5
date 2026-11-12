@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
     Copy, ExternalLink, Eye, Image as ImageIcon, Loader2, Plus,
-    Save, ShoppingCart, Trash2, Type,
+    Save, ShoppingCart, Trash2, Type, Clock,
 } from "lucide-react";
 
 interface BuilderProduct {
@@ -138,15 +138,15 @@ export default function CheckoutBuilder() {
         toast.success("Link copiado");
     };
 
-    const addBlock = (type: "image" | "text") => {
+    const addBlock = (type: "image" | "text", placement: "main" | "sidebar" = "main") => {
         const block: CheckoutContentBlock = type === "text"
             ? { id: newCheckoutBlockId(), type: "text", title: "", body: "", align: "center" }
             : {
                 id: newCheckoutBlockId(),
                 type: "image",
                 url: "",
-                format: "wide",
-                placement: "main",
+                format: placement === "sidebar" ? "portrait" : "wide",
+                placement,
                 link: "",
                 alt: "",
             };
@@ -434,6 +434,123 @@ export default function CheckoutBuilder() {
                             </div>
                         </SectionCard>
 
+                        <SectionCard title="Contador de urgência" description="Faixa fixa no topo da página com tempo restante">
+                            <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+                                <div>
+                                    <p className="text-[13px] font-medium text-white/80">Exibir contador</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        O tempo reinicia para cada visitante (15 min por padrão).
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={config.timer.enabled}
+                                    onCheckedChange={(checked) =>
+                                        patch((current) => ({
+                                            ...current,
+                                            timer: { ...current.timer, enabled: checked },
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[12px] text-white/70">Texto</Label>
+                                    <Input
+                                        value={config.timer.text}
+                                        onChange={(event) =>
+                                            patch((current) => ({
+                                                ...current,
+                                                timer: { ...current.timer, text: event.target.value },
+                                            }))
+                                        }
+                                        placeholder="Oferta expira em"
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[12px] text-white/70">Duração (minutos)</Label>
+                                    <Input
+                                        inputMode="numeric"
+                                        value={String(config.timer.minutes)}
+                                        onChange={(event) => {
+                                            const minutes = parseInt(event.target.value.replace(/\D/g, ""), 10) || 0;
+                                            patch((current) => ({
+                                                ...current,
+                                                timer: { ...current.timer, minutes },
+                                            }));
+                                        }}
+                                        placeholder="15"
+                                        className={inputClass}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {[
+                                    { key: "background_color", label: "Cor de fundo" },
+                                    { key: "text_color", label: "Cor do texto" },
+                                ].map((field) => (
+                                    <div key={field.key} className="space-y-1.5">
+                                        <Label className="text-[12px] text-white/70">{field.label}</Label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="color"
+                                                value={config.timer[field.key as "background_color" | "text_color"]}
+                                                onChange={(event) =>
+                                                    patch((current) => ({
+                                                        ...current,
+                                                        timer: { ...current.timer, [field.key]: event.target.value },
+                                                    }))
+                                                }
+                                                className="h-11 w-12 shrink-0 cursor-pointer rounded-md border border-white/10 bg-transparent"
+                                            />
+                                            <Input
+                                                value={config.timer[field.key as "background_color" | "text_color"]}
+                                                onChange={(event) =>
+                                                    patch((current) => ({
+                                                        ...current,
+                                                        timer: { ...current.timer, [field.key]: event.target.value },
+                                                    }))
+                                                }
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+                                <div>
+                                    <p className="text-[13px] font-medium text-white/80">Fixar ao rolar</p>
+                                    <p className="text-[11px] text-muted-foreground">A faixa acompanha a rolagem da página.</p>
+                                </div>
+                                <Switch
+                                    checked={config.timer.sticky}
+                                    onCheckedChange={(checked) =>
+                                        patch((current) => ({
+                                            ...current,
+                                            timer: { ...current.timer, sticky: checked },
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            {config.timer.enabled && (
+                                <div
+                                    className="flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-bold"
+                                    style={{
+                                        backgroundColor: config.timer.background_color,
+                                        color: config.timer.text_color,
+                                    }}
+                                >
+                                    <Clock className="h-4 w-4" />
+                                    {config.timer.text || "Oferta expira em"}{" "}
+                                    <span className="font-mono tabular-nums">14:59</span>
+                                </div>
+                            )}
+                        </SectionCard>
+
                         <SectionCard title="Resumo do pedido" description="Preço anterior e selo de desconto">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-1.5">
@@ -538,127 +655,159 @@ export default function CheckoutBuilder() {
                             </div>
                         </SectionCard>
 
-                        <SectionCard
-                            title="Blocos de conteúdo"
-                            description="Imagens e textos exibidos ao lado do formulário"
-                        >
-                            <div className="flex flex-wrap gap-2">
-                                <Button type="button" variant="outline" onClick={() => addBlock("image")} className="rounded-lg border-white/10 bg-white/[0.03]">
-                                    <ImageIcon className="mr-2 h-4 w-4" /> Imagem
-                                </Button>
-                                <Button type="button" variant="outline" onClick={() => addBlock("text")} className="rounded-lg border-white/10 bg-white/[0.03]">
-                                    <Type className="mr-2 h-4 w-4" /> Texto
-                                </Button>
-                            </div>
+                        {(["main", "sidebar"] as const).map((placement) => {
+                            const isMain = placement === "main";
+                            // Textos sempre ocupam a coluna principal; imagens
+                            // escolhem onde aparecem — as duas colunas coexistem.
+                            const blocks = config.appearance.content_blocks
+                                .map((block, index) => ({ block, index }))
+                                .filter(({ block }) =>
+                                    isMain
+                                        ? block.type === "text" || block.placement === "main"
+                                        : block.type === "image" && block.placement === "sidebar"
+                                );
 
-                            {config.appearance.content_blocks.length === 0 && (
-                                <p className="rounded-lg border border-dashed border-white/10 p-6 text-center text-sm text-muted-foreground">
-                                    Nenhum bloco adicionado.
-                                </p>
-                            )}
-
-                            <div className="space-y-4">
-                                {config.appearance.content_blocks.map((block, index) => (
-                                    <div key={block.id} className="space-y-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                                {block.type === "image" ? `Imagem ${index + 1}` : `Texto ${index + 1}`}
-                                            </span>
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(block.id)}>
-                                                <Trash2 className="h-4 w-4 text-red-400" />
+                            return (
+                                <SectionCard
+                                    key={placement}
+                                    title={isMain ? "Blocos principais" : "Blocos laterais"}
+                                    description={
+                                        isMain
+                                            ? "Acima do formulário, na coluna principal."
+                                            : "Na coluna do resumo do pedido (abaixo do total)."
+                                    }
+                                >
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => addBlock("image", placement)}
+                                            className="rounded-lg border-white/10 bg-white/[0.03]"
+                                        >
+                                            <ImageIcon className="mr-2 h-4 w-4" /> Imagem
+                                        </Button>
+                                        {isMain && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => addBlock("text", "main")}
+                                                className="rounded-lg border-white/10 bg-white/[0.03]"
+                                            >
+                                                <Type className="mr-2 h-4 w-4" /> Texto
                                             </Button>
-                                        </div>
-
-                                        {block.type === "image" ? (
-                                            <>
-                                                <Input
-                                                    value={block.url}
-                                                    onChange={(event) => updateBlock(block.id, { url: event.target.value })}
-                                                    placeholder="URL da imagem"
-                                                    className={inputClass}
-                                                />
-                                                <div className="grid gap-3 sm:grid-cols-3">
-                                                    <Select
-                                                        value={block.format}
-                                                        onValueChange={(value) => updateBlock(block.id, { format: value as any })}
-                                                    >
-                                                        <SelectTrigger className={inputClass}>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {CHECKOUT_IMAGE_FORMATS.map((format) => (
-                                                                <SelectItem key={format.id} value={format.id}>
-                                                                    {format.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Select
-                                                        value={block.placement}
-                                                        onValueChange={(value) => updateBlock(block.id, { placement: value as any })}
-                                                    >
-                                                        <SelectTrigger className={inputClass}>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="main">Principal</SelectItem>
-                                                            <SelectItem value="sidebar">Lateral</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Input
-                                                        value={block.alt}
-                                                        onChange={(event) => updateBlock(block.id, { alt: event.target.value })}
-                                                        placeholder="Texto alternativo"
-                                                        className={inputClass}
-                                                    />
-                                                </div>
-                                                <Input
-                                                    value={block.link}
-                                                    onChange={(event) => updateBlock(block.id, { link: event.target.value })}
-                                                    placeholder="Link ao clicar (opcional)"
-                                                    className={inputClass}
-                                                />
-                                                {block.url && (
-                                                    <img
-                                                        src={block.url}
-                                                        alt={block.alt || "Prévia"}
-                                                        className="max-h-48 w-full rounded-lg border border-white/5 object-cover"
-                                                    />
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Input
-                                                    value={block.title}
-                                                    onChange={(event) => updateBlock(block.id, { title: event.target.value })}
-                                                    placeholder="Título"
-                                                    className={inputClass}
-                                                />
-                                                <Textarea
-                                                    value={block.body}
-                                                    onChange={(event) => updateBlock(block.id, { body: event.target.value })}
-                                                    placeholder="Texto do bloco"
-                                                    className="min-h-24 bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
-                                                />
-                                                <Select
-                                                    value={block.align}
-                                                    onValueChange={(value) => updateBlock(block.id, { align: value as any })}
-                                                >
-                                                    <SelectTrigger className={inputClass}>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="left">Esquerda</SelectItem>
-                                                        <SelectItem value="center">Centro</SelectItem>
-                                                        <SelectItem value="right">Direita</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </>
                                         )}
                                     </div>
-                                ))}
-                            </div>
-                        </SectionCard>
+
+                                    {blocks.length === 0 && (
+                                        <p className="rounded-lg border border-dashed border-white/10 p-6 text-center text-sm text-muted-foreground">
+                                            Nenhum bloco nesta coluna.
+                                        </p>
+                                    )}
+
+                                    <div className="space-y-4">
+                                        {blocks.map(({ block, index }) => (
+                                            <div key={block.id} className="space-y-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                        {block.type === "image" ? `Imagem ${index + 1}` : `Texto ${index + 1}`}
+                                                    </span>
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(block.id)}>
+                                                        <Trash2 className="h-4 w-4 text-red-400" />
+                                                    </Button>
+                                                </div>
+
+                                                {block.type === "image" ? (
+                                                    <>
+                                                        <Input
+                                                            value={block.url}
+                                                            onChange={(event) => updateBlock(block.id, { url: event.target.value })}
+                                                            placeholder="URL da imagem"
+                                                            className={inputClass}
+                                                        />
+                                                        <div className="grid gap-3 sm:grid-cols-3">
+                                                            <Select
+                                                                value={block.format}
+                                                                onValueChange={(value) => updateBlock(block.id, { format: value as any })}
+                                                            >
+                                                                <SelectTrigger className={inputClass}>
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {CHECKOUT_IMAGE_FORMATS.map((format) => (
+                                                                        <SelectItem key={format.id} value={format.id}>
+                                                                            {format.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <Select
+                                                                value={block.placement}
+                                                                onValueChange={(value) => updateBlock(block.id, { placement: value as any })}
+                                                            >
+                                                                <SelectTrigger className={inputClass}>
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="main">Principal</SelectItem>
+                                                                    <SelectItem value="sidebar">Lateral</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <Input
+                                                                value={block.alt}
+                                                                onChange={(event) => updateBlock(block.id, { alt: event.target.value })}
+                                                                placeholder="Texto alternativo"
+                                                                className={inputClass}
+                                                            />
+                                                        </div>
+                                                        <Input
+                                                            value={block.link}
+                                                            onChange={(event) => updateBlock(block.id, { link: event.target.value })}
+                                                            placeholder="Link ao clicar (opcional)"
+                                                            className={inputClass}
+                                                        />
+                                                        {block.url && (
+                                                            <img
+                                                                src={block.url}
+                                                                alt={block.alt || "Prévia"}
+                                                                className="max-h-48 w-full rounded-lg border border-white/5 object-cover"
+                                                            />
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Input
+                                                            value={block.title}
+                                                            onChange={(event) => updateBlock(block.id, { title: event.target.value })}
+                                                            placeholder="Título"
+                                                            className={inputClass}
+                                                        />
+                                                        <Textarea
+                                                            value={block.body}
+                                                            onChange={(event) => updateBlock(block.id, { body: event.target.value })}
+                                                            placeholder="Texto do bloco"
+                                                            className="min-h-24 bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
+                                                        />
+                                                        <Select
+                                                            value={block.align}
+                                                            onValueChange={(value) => updateBlock(block.id, { align: value as any })}
+                                                        >
+                                                            <SelectTrigger className={inputClass}>
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="left">Esquerda</SelectItem>
+                                                                <SelectItem value="center">Centro</SelectItem>
+                                                                <SelectItem value="right">Direita</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </SectionCard>
+                            );
+                        })}
                     </TabsContent>
 
                     {/* CAMPOS */}
