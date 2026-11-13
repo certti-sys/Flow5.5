@@ -1,7 +1,10 @@
-const ALLOWED_ORIGINS = [
+const DEFAULT_ORIGINS = [
   'https://neovidyastream.com',
   'https://app.neovidyastream.com',
   'https://admin.neovidyastream.com',
+  'https://flowmembers.app',
+  'https://v5.flowmembers.app',
+  'https://pay.flowmembers.app',
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
@@ -12,6 +15,15 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5174',
   'http://127.0.0.1:8080',
   'http://127.0.0.1:8081',
+];
+
+// ALLOWED_ORIGINS (env, separado por virgula) permite dominios novos sem redeploy
+const ALLOWED_ORIGINS = [
+  ...DEFAULT_ORIGINS,
+  ...(Deno.env.get('ALLOWED_ORIGINS') || '')
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean),
 ];
 
 export const getCorsHeaders = (origin: string | null) => {
