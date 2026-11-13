@@ -1,14 +1,16 @@
 import { logger } from "./logger.ts";
+import { scheduleWebhookDispatch } from "./webhook-dispatch.ts";
 
 /**
- * Notificações de WhatsApp do fluxo de compra.
+ * Efeitos colaterais do pedido pago: notificação por WhatsApp e entrega dos
+ * webhooks de saída.
  *
- * Os 8 webhooks de gateway marcam `orders.status = 'paid'` cada um no seu
- * formato; em vez de repetir a lógica de destinatários e variáveis em cada um,
- * todos chamam este helper depois da transição.
+ * Os 8 webhooks de gateway e o `payment-ops` marcam `orders.status = 'paid'`
+ * cada um no seu formato; em vez de repetir destinatários, variáveis e
+ * drenagem de fila em cada um, todos chamam este helper depois da transição.
  *
- * Nunca lança: notificação é conveniência e não pode desfazer a confirmação de
- * pagamento (mesma regra do trigger `grant_order_access`).
+ * Nunca lança: notificação e integração são conveniência e não podem desfazer
+ * a confirmação de pagamento (mesma regra do trigger `grant_order_access`).
  */
 
 type OrderRow = {
@@ -31,6 +33,10 @@ function formatBRL(amountInCents: number | null, currency: string | null): strin
 }
 
 export async function notifyOrderPaid(supabase: any, orderId: string): Promise<void> {
+    // Fila de webhooks de saída é independente: drena mesmo sem WhatsApp
+    // configurado. As linhas já foram criadas pelo trigger em `orders`.
+    scheduleWebhookDispatch(supabase);
+
     try {
         // Sem provider configurado nada é enviado: sai cedo para não poluir log
         // com um erro por compra.

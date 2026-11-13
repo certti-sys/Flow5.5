@@ -13,11 +13,12 @@ import { cn } from "@/lib/utils";
 import {
   Copy, Plus, Eye, Settings, Zap, Database, ArrowRight,
   FlaskConical, Package, ToggleLeft, BarChart3, RefreshCw,
-  Globe, Shield, ChevronRight, ActivitySquare
+  Globe, Shield, ChevronRight, ActivitySquare, Send
 } from "lucide-react";
 import { WebhookSchemaViewer } from "@/components/admin/webhook/WebhookSchemaViewer";
 import { FieldMappingEditor } from "@/components/admin/webhook/FieldMappingEditor";
 import { WebhookTransactionsList } from "@/components/admin/webhook/WebhookTransactionsList";
+import { WebhookOutbound } from "@/components/admin/webhook/WebhookOutbound";
 import { PlatformConfigModal } from "@/components/admin/webhook/PlatformConfigModal";
 import { WebhookTestPanel } from "@/components/admin/webhook/WebhookTestPanel";
 import { ProductMappingsEditor } from "@/components/admin/webhook/ProductMappingsEditor";
@@ -33,7 +34,7 @@ const container = {
   show: { opacity: 1, transition: { staggerChildren: 0.05 } }
 };
 
-const WEBHOOK_URL = `https://lznckhxqbkqldedlmbfb.supabase.co/functions/v1/webhooks-ingest`;
+const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhooks-ingest`;
 
 export default function WebhookHub() {
   const [activeTab, setActiveTab] = useState("platforms");
@@ -161,6 +162,7 @@ export default function WebhookHub() {
         <div className="glass-card border border-white/10 rounded-[16px] p-[6px] mb-6">
           <TabsList className="!flex w-full overflow-x-auto scrollbar-none bg-transparent gap-1">
             {[
+              { value: "outbound", label: "Saída", icon: Send },
               { value: "platforms", label: "Visão Geral", icon: Globe },
               { value: "history", label: "Histórico e Logs", icon: BarChart3 },
               { value: "rules", label: "Regras de Acesso", icon: Package },
@@ -174,6 +176,11 @@ export default function WebhookHub() {
             ))}
           </TabsList>
         </div>
+
+        {/* 0. SAÍDA (Flow → integrador) */}
+        <TabsContent value="outbound" className="space-y-6">
+          <WebhookOutbound />
+        </TabsContent>
 
         {/* 1. VISÃO GERAL (Plataformas + Guias) */}
         <TabsContent value="platforms" className="space-y-6">

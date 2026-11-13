@@ -3,6 +3,12 @@ project_id = "nrcmksrtatvghxueatno"
 [functions.webhooks-ingest]
 verify_jwt = false
 
+# Drenagem da fila de webhooks de saída. `verify_jwt = false` porque o
+# agendador (pg_cron via pg_net) manda o service role no header, e a function
+# valida por conta própria (service role ou admin).
+[functions.dispatch-webhooks]
+verify_jwt = false
+
 [functions.delete-user]
 verify_jwt = true
 
