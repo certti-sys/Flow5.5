@@ -36,6 +36,8 @@ export interface NewNotification {
   audience_id?: string | null;
   publish_at?: string;
   expires_at?: string | null;
+  /** Além do sino, enfileira no WhatsApp dos destinatários com telefone. */
+  send_whatsapp?: boolean;
 }
 
 /**
@@ -137,6 +139,8 @@ export const useNotifications = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      // WhatsApp sai pelo cron de minuto (`dispatch-notifications`): o admin não
+      // espera o envio, e a fila sobrevive a rate limit do provider.
       toast.success("Notificação enviada com sucesso!");
     },
     onError: (error) => {

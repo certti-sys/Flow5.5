@@ -9,6 +9,11 @@ verify_jwt = false
 [functions.dispatch-webhooks]
 verify_jwt = false
 
+# Drenagem da fila de notificações no WhatsApp. Mesmo desenho: valida
+# service role ou admin por conta própria.
+[functions.dispatch-notifications]
+verify_jwt = false
+
 [functions.delete-user]
 verify_jwt = true
 

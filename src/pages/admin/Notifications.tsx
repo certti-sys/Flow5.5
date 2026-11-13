@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 export default function Notifications() {
   const { notifications, createNotification, deleteNotification, isCreating, isError, refetch } = useNotifications();
@@ -37,6 +38,7 @@ export default function Notifications() {
   const [audienceId, setAudienceId] = useState("");
   const [publishAt, setPublishAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [sendWhatsapp, setSendWhatsapp] = useState(false);
   const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
@@ -84,6 +86,7 @@ export default function Notifications() {
         audience_id: audience === "all" ? null : audienceId,
         publish_at: toIso(publishAt) ?? undefined,
         expires_at: toIso(expiresAt),
+        send_whatsapp: sendWhatsapp,
       },
       {
         onSuccess: () => {
@@ -95,6 +98,7 @@ export default function Notifications() {
           setAudienceId("");
           setPublishAt("");
           setExpiresAt("");
+          setSendWhatsapp(false);
         },
       }
     );
@@ -374,6 +378,22 @@ export default function Notifications() {
               <p className="text-[12px] text-white/40 -mt-2">
                 Em branco: publica agora e não expira.
               </p>
+
+              <div className="flex items-start justify-between gap-4 p-4 rounded-[12px] border border-white/10 bg-black/20">
+                <div className="space-y-1">
+                  <Label htmlFor="send_whatsapp" className="text-white/80 font-medium text-[13px]">
+                    Enviar também no WhatsApp
+                  </Label>
+                  <p className="text-[12px] text-white/40">
+                    Sai pelo número configurado em WhatsApp, apenas para quem tem telefone no perfil.
+                  </p>
+                </div>
+                <Switch
+                  id="send_whatsapp"
+                  checked={sendWhatsapp}
+                  onCheckedChange={setSendWhatsapp}
+                />
+              </div>
 
               <div className="pt-2">
                 <Button
