@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { HeroBanner } from "@/components/HeroBanner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, ChevronLeft, Play, User } from "lucide-react";
+import { ChevronRight, ChevronLeft, Play } from "lucide-react";
 import { useDragToScroll } from "@/hooks/useDragToScroll";
 import { CarouselIndicators } from "@/components/CarouselIndicators";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { DynamicCarousel } from "@/components/DynamicCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
-import { AdminHeader } from "@/components/admin/AdminHeader";
 import { motion } from "framer-motion";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -190,23 +189,6 @@ const Dashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full px-4 md:px-6 lg:px-8 pt-4 pb-8 md:pt-6 md:pb-12 space-y-8"
       >
-        <AdminHeader
-          title="Meu Dashboard"
-          description="Continue de onde parou e descubra novos cursos para acelerar seu aprendizado."
-          showSearch={false}
-          actionButton={
-            <Link to="/perfil">
-              <Button
-                variant="outline"
-                className="glass-card border-white/10 hover:bg-white/5 h-[44px] px-6 rounded-[12px] font-semibold text-[13px] tracking-tight"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Meu Perfil
-              </Button>
-            </Link>
-          }
-        />
-
         {/* Continue Watching Section */}
         {coursesInProgress.length > 0 && (
           <div className="glass-card rounded-[24px] border-white/10 p-5 md:p-6">
