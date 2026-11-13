@@ -2,7 +2,8 @@ import { Bell, CheckCircle, AlertTriangle, XCircle, Info, CheckCheck, Check, Tra
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -17,9 +18,11 @@ export const NotificationBell = () => {
     markAllAsRead,
     deleteNotification 
   } = useNotifications();
+  // Excluir é do admin (RLS); para o aluno o botão só geraria erro.
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     // Mark as read
     const isRead = readNotifications.some((read) => read.notification_id === notification.id);
     if (!isRead) {
@@ -138,7 +141,7 @@ export const NotificationBell = () => {
                           {notification.message}
                         </p>
                         <p className="text-[12px] text-muted-foreground/70 mt-1.5">
-                          {formatDistanceToNow(new Date(notification.created_at), {
+                          {formatDistanceToNow(new Date(notification.publish_at), {
                             addSuffix: true,
                             locale: ptBR,
                           })}
@@ -160,16 +163,18 @@ export const NotificationBell = () => {
                           <Check className="w-4 h-4 text-muted-foreground" />
                         </button>
                       )}
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          deleteNotification(notification.id); 
-                        }}
-                        className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
-                        title="Deletar"
-                      >
-                        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-                      </button>
+                      {isAdmin && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            deleteNotification(notification.id); 
+                          }}
+                          className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
+                          title="Deletar"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

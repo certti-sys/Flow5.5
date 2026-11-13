@@ -3,13 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 
+export type NotificationType = "info" | "warning" | "success" | "error";
+export type NotificationAudience = "all" | "user" | "course" | "product";
+
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "info" | "warning" | "success" | "error";
-  link?: string;
-  created_by?: string;
+  type: NotificationType;
+  link?: string | null;
+  audience: NotificationAudience;
+  audience_id: string | null;
+  publish_at: string;
+  expires_at: string | null;
+  created_by?: string | null;
   created_at: string;
 }
 
@@ -20,28 +27,52 @@ export interface NotificationRead {
   read_at: string;
 }
 
+export interface NewNotification {
+  title: string;
+  message: string;
+  type: NotificationType;
+  link?: string;
+  audience: NotificationAudience;
+  audience_id?: string | null;
+  publish_at?: string;
+  expires_at?: string | null;
+}
+
+/**
+ * Notificações do usuário logado.
+ *
+ * Quem pode ver o quê é decidido na policy de RLS (`audience`), não aqui — o
+ * cliente não filtra audiência, senão a regra viveria em dois lugares e o
+ * primeiro `select` sem filtro vazaria aviso de outro curso.
+ *
+ * O sino não tem push nem websocket: um refetch por minuto é suficiente para
+ * um aviso de manutenção e não custa uma conexão Realtime por aba aberta.
+ */
 export const useNotifications = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch all notifications
-  const { data: notifications = [], isLoading: isLoadingNotifications, isError: notificationsError, refetch: refetchNotifications } = useQuery({
-    queryKey: ["notifications"],
+  const {
+    data: notifications = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["notifications", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
+        .order("publish_at", { ascending: false })
+        .limit(30);
       if (error) throw error;
-      return data as Notification[];
+      return data as unknown as Notification[];
     },
     enabled: !!user,
+    refetchInterval: 60_000,
   });
 
-  // Fetch user's read notifications
-  const { data: readNotifications = [], isLoading: isLoadingReads } = useQuery({
+  const { data: readNotifications = [] } = useQuery({
     queryKey: ["notificationReads", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -49,31 +80,26 @@ export const useNotifications = () => {
         .from("notification_reads")
         .select("*")
         .eq("user_id", user.id);
-
       if (error) throw error;
       return data as NotificationRead[];
     },
     enabled: !!user,
+    refetchInterval: 60_000,
   });
 
-  // Calculate unread notifications
-  const unreadCount = notifications.filter(
-    (notification) =>
-      !readNotifications.some((read) => read.notification_id === notification.id)
-  ).length;
+  const readIds = new Set(readNotifications.map((r) => r.notification_id));
+  const unreadCount = notifications.filter((n) => !readIds.has(n.id)).length;
 
-  // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       if (!user) throw new Error("User not authenticated");
-
+      // `ignoreDuplicates`: clicar duas vezes não pode estourar o unique.
       const { error } = await supabase
         .from("notification_reads")
-        .insert({
-          notification_id: notificationId,
-          user_id: user.id,
-        });
-
+        .upsert(
+          { notification_id: notificationId, user_id: user.id },
+          { onConflict: "notification_id,user_id", ignoreDuplicates: true },
+        );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -81,28 +107,17 @@ export const useNotifications = () => {
     },
   });
 
-  // Mark all notifications as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("User not authenticated");
-
-      // Get unread notification IDs
-      const unreadIds = notifications.filter(
-        (n) => !readNotifications.some((r) => r.notification_id === n.id)
-      ).map((n) => n.id);
-
+      const unreadIds = notifications.filter((n) => !readIds.has(n.id)).map((n) => n.id);
       if (unreadIds.length === 0) return;
-
-      // Insert read records for all unread notifications
       const { error } = await supabase
         .from("notification_reads")
-        .insert(
-          unreadIds.map((notificationId) => ({
-            notification_id: notificationId,
-            user_id: user.id,
-          }))
+        .upsert(
+          unreadIds.map((id) => ({ notification_id: id, user_id: user.id })),
+          { onConflict: "notification_id,user_id", ignoreDuplicates: true },
         );
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -110,21 +125,14 @@ export const useNotifications = () => {
     },
   });
 
-  // Create notification (admin only)
   const createNotificationMutation = useMutation({
-    mutationFn: async (notification: {
-      title: string;
-      message: string;
-      type: "info" | "warning" | "success" | "error";
-      link?: string;
-    }) => {
+    mutationFn: async (notification: NewNotification) => {
       if (!user) throw new Error("User not authenticated");
-
       const { error } = await supabase.from("notifications").insert({
         ...notification,
+        audience_id: notification.audience === "all" ? null : notification.audience_id,
         created_by: user.id,
       });
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -136,14 +144,9 @@ export const useNotifications = () => {
     },
   });
 
-  // Delete notification (admin only)
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("notifications")
-        .delete()
-        .eq("id", notificationId);
-
+      const { error } = await supabase.from("notifications").delete().eq("id", notificationId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -158,10 +161,11 @@ export const useNotifications = () => {
   return {
     notifications,
     readNotifications,
+    readIds,
     unreadCount,
-    isLoading: isLoadingNotifications || isLoadingReads,
-    isError: notificationsError,
-    refetch: refetchNotifications,
+    isLoading,
+    isError,
+    refetch,
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
     createNotification: createNotificationMutation.mutate,

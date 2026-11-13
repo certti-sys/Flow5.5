@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useEffect, useState } from "react";
+import { useNotifications, type Notification, type NotificationAudience } from "@/hooks/useNotifications";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { toast } from "sonner";
 
 export default function Notifications() {
   const { notifications, createNotification, deleteNotification, isCreating, isError, refetch } = useNotifications();
@@ -31,15 +33,57 @@ export default function Notifications() {
   const [message, setMessage] = useState("");
   const [type, setType] = useState<"info" | "warning" | "success" | "error">("info");
   const [link, setLink] = useState("");
+  const [audience, setAudience] = useState<NotificationAudience>("all");
+  const [audienceId, setAudienceId] = useState("");
+  const [publishAt, setPublishAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
+
+  // Opções do seletor de audiência. Carregadas uma vez, sob demanda do alvo —
+  // não vale pagar três queries para quem só manda aviso global.
+  useEffect(() => {
+    if (audience === "course" && courses.length === 0) {
+      supabase.from("courses").select("id, title").order("title").then(({ data }) => {
+        setCourses((data as { id: string; title: string }[]) ?? []);
+      });
+    }
+    if (audience === "product" && products.length === 0) {
+      supabase.from("products").select("id, name").order("name").then(({ data }) => {
+        setProducts((data as { id: string; name: string }[]) ?? []);
+      });
+    }
+    if (audience === "user" && users.length === 0) {
+      supabase
+        .from("profiles")
+        .select("id, name, email")
+        .order("name")
+        .limit(500)
+        .then(({ data }) => {
+          setUsers((data as { id: string; name: string; email: string }[]) ?? []);
+        });
+    }
+  }, [audience]);
+
+  const toIso = (value: string) => (value ? new Date(value).toISOString() : null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (audience !== "all" && !audienceId) {
+      toast.error("Escolha o destinatário da notificação.");
+      return;
+    }
     createNotification(
       {
         title,
         message,
         type,
         link: link || undefined,
+        audience,
+        audience_id: audience === "all" ? null : audienceId,
+        publish_at: toIso(publishAt) ?? undefined,
+        expires_at: toIso(expiresAt),
       },
       {
         onSuccess: () => {
@@ -47,6 +91,10 @@ export default function Notifications() {
           setMessage("");
           setType("info");
           setLink("");
+          setAudience("all");
+          setAudienceId("");
+          setPublishAt("");
+          setExpiresAt("");
         },
       }
     );
@@ -76,6 +124,25 @@ export default function Notifications() {
       default:
         return "border-blue-500/50 bg-blue-500/20 text-blue-500";
     }
+  };
+
+  const getAudienceLabel = (notification: Notification) => {
+    const name =
+      notification.audience === "course"
+        ? courses.find((c) => c.id === notification.audience_id)?.title
+        : notification.audience === "product"
+          ? products.find((p) => p.id === notification.audience_id)?.name
+          : notification.audience === "user"
+            ? users.find((u) => u.id === notification.audience_id)?.name ||
+              users.find((u) => u.id === notification.audience_id)?.email
+            : null;
+    if (notification.audience === "all") return "Todos";
+    if (name) return name;
+    return notification.audience === "course"
+      ? "Curso"
+      : notification.audience === "product"
+        ? "Produto"
+        : "Usuário";
   };
 
   const stats = {
@@ -229,6 +296,85 @@ export default function Notifications() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-white/80 font-medium text-[13px]">Destinatários</Label>
+                <Select
+                  value={audience}
+                  onValueChange={(value: NotificationAudience) => {
+                    setAudience(value);
+                    setAudienceId("");
+                  }}
+                >
+                  <SelectTrigger className="bg-black/20 border-white/10 text-white h-[44px] rounded-[12px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card border-white/10 bg-black/90 backdrop-blur-xl rounded-[12px]">
+                    <SelectItem value="all">Todos os usuários</SelectItem>
+                    <SelectItem value="course">Alunos de um curso</SelectItem>
+                    <SelectItem value="product">Compradores de um produto</SelectItem>
+                    <SelectItem value="user">Um usuário específico</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {audience !== "all" && (
+                  <Select value={audienceId} onValueChange={setAudienceId}>
+                    <SelectTrigger className="bg-black/20 border-white/10 text-white h-[44px] rounded-[12px]">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent className="glass-card border-white/10 bg-black/90 backdrop-blur-xl rounded-[12px]">
+                      {audience === "course" &&
+                        courses.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.title}
+                          </SelectItem>
+                        ))}
+                      {audience === "product" &&
+                        products.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      {audience === "user" &&
+                        users.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name || u.email}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="publish_at" className="text-white/80 font-medium text-[13px]">
+                    Agendar para
+                  </Label>
+                  <Input
+                    id="publish_at"
+                    type="datetime-local"
+                    value={publishAt}
+                    onChange={(e) => setPublishAt(e.target.value)}
+                    className="bg-black/20 border-white/10 text-white h-[44px] rounded-[12px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expires_at" className="text-white/80 font-medium text-[13px]">
+                    Retirar do ar em
+                  </Label>
+                  <Input
+                    id="expires_at"
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className="bg-black/20 border-white/10 text-white h-[44px] rounded-[12px]"
+                  />
+                </div>
+              </div>
+              <p className="text-[12px] text-white/40 -mt-2">
+                Em branco: publica agora e não expira.
+              </p>
+
               <div className="pt-2">
                 <Button
                   type="submit"
@@ -305,9 +451,22 @@ export default function Notifications() {
                                 >
                                   {notification.type}
                                 </Badge>
+                                <Badge variant="outline" className="text-[12px] px-1.5 py-0 uppercase tracking-wider font-bold shrink-0 border-white/10 text-white/60">
+                                  {getAudienceLabel(notification)}
+                                </Badge>
+                                {new Date(notification.publish_at) > new Date() && (
+                                  <Badge variant="outline" className="text-[12px] px-1.5 py-0 uppercase tracking-wider font-bold shrink-0 bg-blue-500/10 border-blue-500/20 text-blue-400">
+                                    Agendado
+                                  </Badge>
+                                )}
+                                {notification.expires_at && new Date(notification.expires_at) <= new Date() && (
+                                  <Badge variant="outline" className="text-[12px] px-1.5 py-0 uppercase tracking-wider font-bold shrink-0 bg-red-500/10 border-red-500/20 text-red-400">
+                                    Expirado
+                                  </Badge>
+                                )}
                              </div>
                              <p className="text-[12px] text-muted-foreground whitespace-nowrap shrink-0">
-                                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
+                                {formatDistanceToNow(new Date(notification.publish_at), { addSuffix: true, locale: ptBR })}
                              </p>
                           </div>
 
