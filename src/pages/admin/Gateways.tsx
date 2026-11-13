@@ -165,19 +165,14 @@ export default function GatewaysPage() {
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-6 relative z-10">
                                     <div className="flex items-center gap-3">
-                                        <div className={cn(
-                                            "w-12 h-12 rounded-[14px] flex items-center justify-center border overflow-hidden",
-                                            gateway.is_active
-                                                ? "bg-white border-white/10"
-                                                : "bg-black/40 border-white/5"
-                                        )}>
+                                        <div className="w-12 h-12 rounded-[14px] flex items-center justify-center border border-white/10 overflow-hidden bg-white">
                                             {gatewayLogo(gateway.slug) ? (
                                                 <img
                                                     src={gatewayLogo(gateway.slug)!}
                                                     alt={gateway.name}
                                                     className={cn(
-                                                        "w-full h-full object-contain p-1.5",
-                                                        !gateway.is_active && "opacity-40 grayscale"
+                                                        "w-full h-full object-contain p-1.5 transition-opacity",
+                                                        !gateway.is_active && "opacity-60"
                                                     )}
                                                 />
                                             ) : (
