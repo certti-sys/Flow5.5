@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.supabase
+*.log
+.env
+.env.local
+Getfy
+Lixo
