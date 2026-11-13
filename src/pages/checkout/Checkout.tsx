@@ -916,11 +916,6 @@ export default function CheckoutPage() {
 
                 {/* Coluna Direita: Resumo (Sticky) */}
                 <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-4">
-                    <CheckoutContentBlocks
-                        blocks={config.appearance.content_blocks}
-                        placement="sidebar"
-                    />
-
                     {showCouponField && (
                         <div className="bg-card border rounded-lg p-6 shadow-sm">
                             <CouponInput
@@ -953,6 +948,13 @@ export default function CheckoutPage() {
                         previousPrice={config.summary.previous_price ? config.summary.previous_price / 100 : null}
                         discountText={config.summary.discount_text}
                         showDescription={config.summary.show_description}
+                    />
+
+                    {/* Blocos laterais ficam abaixo do resumo: no topo eles
+                        empurravam o pedido para fora da primeira dobra. */}
+                    <CheckoutContentBlocks
+                        blocks={config.appearance.content_blocks}
+                        placement="sidebar"
                     />
 
                     <CheckoutReviews reviews={config.reviews} />
