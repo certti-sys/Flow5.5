@@ -23,6 +23,7 @@ import {
 } from "@/types/checkout-config";
 import { cn } from "@/lib/utils";
 import { fetchCheckoutGateways, type CheckoutGatewayOption } from "@/lib/checkout-gateways";
+import { gatewayLogo, METHOD_ICONS } from "@/lib/gateway-brand";
 import { toast } from "sonner";
 import {
     Copy, ExternalLink, Eye, Image as ImageIcon, Loader2, Plus,
@@ -843,7 +844,10 @@ export default function CheckoutBuilder() {
                                     return (
                                         <div key={key} className="space-y-1.5 rounded-xl border border-white/5 bg-white/[0.02] p-4">
                                             <div className="flex items-center justify-between">
-                                                <Label className="text-[13px] font-medium text-white/80">{label}</Label>
+                                                <Label className="flex items-center gap-2 text-[13px] font-medium text-white/80">
+                                                    <img src={METHOD_ICONS[method]} alt="" className="h-4 w-4 object-contain" />
+                                                    {label}
+                                                </Label>
                                                 {supported.length === 0 && (
                                                     <span className="text-[11px] text-muted-foreground">Nenhum gateway suporta</span>
                                                 )}
@@ -867,7 +871,16 @@ export default function CheckoutBuilder() {
                                                     <SelectItem value="__default__">Padrão do sistema</SelectItem>
                                                     {supported.map((gateway) => (
                                                         <SelectItem key={gateway.slug} value={gateway.slug}>
-                                                            {gateway.name}
+                                                            <span className="flex items-center gap-2">
+                                                                {gatewayLogo(gateway.slug) && (
+                                                                    <img
+                                                                        src={gatewayLogo(gateway.slug)!}
+                                                                        alt=""
+                                                                        className="h-4 w-4 rounded object-contain"
+                                                                    />
+                                                                )}
+                                                                {gateway.name}
+                                                            </span>
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>

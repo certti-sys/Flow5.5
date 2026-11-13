@@ -197,9 +197,9 @@ export function StripeCardElement({
                 <div className="flex items-center justify-center gap-3 pt-2">
                     <p className="text-xs text-gray-500">Aceitamos:</p>
                     <div className="flex gap-2">
-                        <img src="/images/cards/visa.svg" alt="Visa" className="h-6" />
-                        <img src="/images/cards/mastercard.svg" alt="Mastercard" className="h-6" />
-                        <img src="/images/cards/amex.svg" alt="American Express" className="h-6" />
+                        <img src="/images/gateways/cards/visa.svg" alt="Visa" className="h-6" />
+                        <img src="/images/gateways/cards/mastercard.svg" alt="Mastercard" className="h-6" />
+                        <img src="/images/gateways/cards/amex.svg" alt="American Express" className="h-6" />
                     </div>
                 </div>
             </div>

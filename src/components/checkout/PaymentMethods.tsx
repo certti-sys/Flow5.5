@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { CheckoutFormValues } from "@/types/checkout-form";
-import { CreditCard, QrCode, Barcode, Lock } from "lucide-react";
+import { CreditCard, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { METHOD_ICONS } from "@/lib/gateway-brand";
 
 interface PaymentMethodsProps {
     form: UseFormReturn<CheckoutFormValues>;
@@ -61,7 +62,7 @@ export function PaymentMethods({ form, onMethodChange, allowedMethods = ["credit
                             method === 'credit_card' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-white/[0.08] bg-card"
                         )}
                     >
-                        <CreditCard className="w-6 h-6 text-muted-foreground mb-2" />
+                        <img src={METHOD_ICONS.credit_card} alt="" className="w-7 h-7 object-contain mb-2" />
                         <span className="text-sm font-medium">Cartão</span>
                     </button>
                 )}
@@ -75,7 +76,7 @@ export function PaymentMethods({ form, onMethodChange, allowedMethods = ["credit
                             method === 'pix' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-white/[0.08] bg-card"
                         )}
                     >
-                        <QrCode className="w-6 h-6 text-muted-foreground mb-2" />
+                        <img src={METHOD_ICONS.pix} alt="" className="w-7 h-7 object-contain mb-2" />
                         <span className="text-sm font-medium">Pix</span>
                     </button>
                 )}
@@ -89,7 +90,7 @@ export function PaymentMethods({ form, onMethodChange, allowedMethods = ["credit
                             method === 'bolbradesco' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-white/[0.08] bg-card"
                         )}
                     >
-                        <Barcode className="w-6 h-6 text-muted-foreground mb-2" />
+                        <img src={METHOD_ICONS.bolbradesco} alt="" className="w-7 h-7 object-contain mb-2" />
                         <span className="text-sm font-medium">Boleto</span>
                     </button>
                 )}

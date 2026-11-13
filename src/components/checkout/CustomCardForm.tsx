@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Calendar, Lock, ChevronDown } from "lucide-react";
 import { cardUtils } from "@/lib/card-utils";
+import { cardBrandLogo } from "@/lib/gateway-brand";
 
 interface CustomCardFormProps {
     form: UseFormReturn<CheckoutFormValues>;
@@ -35,7 +36,7 @@ export function CustomCardForm({ form, installmentOptions = [], onCardNumberChan
                             <div className="relative">
                                 <Input
                                     placeholder="0000 0000 0000 0000"
-                                    className="pl-4 h-11 bg-background"
+                                    className="pl-4 pr-12 h-11 bg-background"
                                     {...field}
                                     onChange={(e) => {
                                         const val = cardUtils.maskCardNumber(e.target.value);
@@ -45,6 +46,11 @@ export function CustomCardForm({ form, installmentOptions = [], onCardNumberChan
                                         }
                                     }}
                                     maxLength={19}
+                                />
+                                <img
+                                    src={cardBrandLogo(field.value || "")}
+                                    alt=""
+                                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-6 w-9 object-contain"
                                 />
                             </div>
                         </FormControl>

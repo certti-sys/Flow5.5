@@ -16,6 +16,7 @@ import {
   Wallet, CheckCircle2, XCircle
 } from "lucide-react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { gatewayLogo, gatewayCountry } from "@/lib/gateway-brand";
 
 export default function GatewaysPage() {
     const queryClient = useQueryClient();
@@ -70,17 +71,6 @@ export default function GatewaysPage() {
         total: gateways?.length ?? 0,
         active: gateways?.filter(g => g.is_active).length ?? 0,
         defaultGw: gateways?.find(g => g.is_default)?.name ?? "—",
-    };
-
-    const gatewayColor: Record<string, string> = {
-        mercadopago: "text-blue-400",
-        stripe: "text-purple-400",
-        asaas: "text-emerald-400",
-        pushinpay: "text-pink-400",
-        pagarme: "text-cyan-400",
-        paypal: "text-sky-400",
-        efi: "text-orange-400",
-        cajupay: "text-lime-400",
     };
 
     return (
@@ -176,19 +166,37 @@ export default function GatewaysPage() {
                                 <div className="flex items-center justify-between mb-6 relative z-10">
                                     <div className="flex items-center gap-3">
                                         <div className={cn(
-                                            "w-12 h-12 rounded-[14px] flex items-center justify-center border",
+                                            "w-12 h-12 rounded-[14px] flex items-center justify-center border overflow-hidden",
                                             gateway.is_active
-                                                ? "bg-gradient-to-br from-primary/20 to-secondary/20 border-white/10"
+                                                ? "bg-white border-white/10"
                                                 : "bg-black/40 border-white/5"
                                         )}>
-                                            <CreditCard className={cn(
-                                                "w-5 h-5",
-                                                gatewayColor[gateway.slug] || "text-primary"
-                                            )} />
+                                            {gatewayLogo(gateway.slug) ? (
+                                                <img
+                                                    src={gatewayLogo(gateway.slug)!}
+                                                    alt={gateway.name}
+                                                    className={cn(
+                                                        "w-full h-full object-contain p-1.5",
+                                                        !gateway.is_active && "opacity-40 grayscale"
+                                                    )}
+                                                />
+                                            ) : (
+                                                <CreditCard className="w-5 h-5 text-primary" />
+                                            )}
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-[15px] text-white capitalize">{gateway.name}</h4>
-                                            <p className="text-[12px] font-mono text-white/60">{gateway.slug}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="text-[12px] font-mono text-white/60">{gateway.slug}</p>
+                                                {gatewayCountry(gateway.slug) && (
+                                                    <img
+                                                        src={gatewayCountry(gateway.slug)!.flag}
+                                                        alt={gatewayCountry(gateway.slug)!.name}
+                                                        title={gatewayCountry(gateway.slug)!.name}
+                                                        className="w-4 h-4 rounded-full object-cover border border-white/20"
+                                                    />
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 

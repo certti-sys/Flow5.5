@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, Key, Eye, EyeOff, Settings, PlugZap, Copy, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { gatewayLogo, gatewayCountry, METHOD_ICONS } from "@/lib/gateway-brand";
 
 interface GatewayConfigModalProps {
     gateway: Gateway | null;
@@ -265,11 +266,29 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
             <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-lg p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
                 <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30 shrink-0">
-                            <Settings className="w-5 h-5 text-blue-500" />
+                        <div className="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center border border-white/10 shrink-0 overflow-hidden">
+                            {gatewayLogo(gateway.slug) ? (
+                                <img
+                                    src={gatewayLogo(gateway.slug)!}
+                                    alt={gateway.name}
+                                    className="w-full h-full object-contain p-1.5"
+                                />
+                            ) : (
+                                <Settings className="w-5 h-5 text-blue-500" />
+                            )}
                         </div>
                         <div className="text-left space-y-1">
                             <DialogTitle className="text-[20px] font-bold text-white tracking-tight">Configurar {gateway.name}</DialogTitle>
+                            {gatewayCountry(gateway.slug) && (
+                                <div className="flex items-center gap-1.5 text-[12px] text-white/60">
+                                    <img
+                                        src={gatewayCountry(gateway.slug)!.flag}
+                                        alt={gatewayCountry(gateway.slug)!.name}
+                                        className="w-4 h-4 rounded-full object-cover border border-white/20"
+                                    />
+                                    {gatewayCountry(gateway.slug)!.name}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </DialogHeader>
@@ -592,6 +611,9 @@ export function GatewayConfigModal({ gateway, open, onOpenChange }: GatewayConfi
                                             }}
                                             className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                                         />
+                                        {METHOD_ICONS[method.id] && (
+                                            <img src={METHOD_ICONS[method.id]} alt="" className="h-5 w-5 object-contain" />
+                                        )}
                                         <Label htmlFor={`method_${method.id}`} className="font-medium text-white/80 cursor-pointer text-[14px]">
                                             {method.label}
                                         </Label>
