@@ -19,7 +19,7 @@ import { UserPlus } from "lucide-react";
 const formSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
-  whatsapp: z.string().optional(),
+  whatsapp: z.string().refine((v) => v.replace(/\D/g, "").length >= 10, "WhatsApp inválido ou incompleto"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
@@ -115,9 +115,9 @@ export function CreateStudentModal({ open, onOpenChange }: CreateStudentModalPro
                   name="whatsapp"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white/80 font-medium">WhatsApp (opcional)</FormLabel>
+                      <FormLabel className="text-white/80 font-medium">WhatsApp</FormLabel>
                       <FormControl>
-                        <Input placeholder="+55 11 99999-9999" {...field} className={modalFieldClass} />
+                        <Input type="tel" placeholder="+55 11 99999-9999" {...field} className={modalFieldClass} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

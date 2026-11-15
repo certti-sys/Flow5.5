@@ -8,7 +8,7 @@ const createUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(2),
-  whatsapp: z.string().optional(),
+  whatsapp: z.string().min(10, "WhatsApp inválido"),
   role: z.enum(['admin', 'student']).default('student'),
   courseIds: z.array(z.string().uuid()).optional().default([])
 })

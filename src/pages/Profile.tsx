@@ -34,7 +34,10 @@ const Profile = () => {
 
   // Fetch user profile
   const { data: profile, isError: profileError, refetch: refetchProfile } = useQuery({
-    queryKey: ["profile", user?.id],
+    // Chave própria: `["profile", id]` é usada por ContentHeader/Navbar/AdminSidebar
+    // com `select("name, avatar_url")`, e a primeira a responder envenenava o cache
+    // (whatsapp/email chegavam vazios no modal de edição).
+    queryKey: ["profileFull", user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase

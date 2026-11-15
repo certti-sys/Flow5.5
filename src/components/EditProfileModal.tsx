@@ -28,10 +28,14 @@ import { ImageCropper } from "@/components/ImageCropper";
 import { readFileAsDataURL } from "@/lib/imageUtils";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 
+const phoneField = z
+  .string()
+  .refine((v) => v.replace(/\D/g, "").length >= 10, "WhatsApp inválido ou incompleto");
+
 const profileSchema = z.object({
   name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres").max(100),
   email: z.string().email("Email inválido").max(255),
-  whatsapp: z.string().min(10, "WhatsApp inválido").max(20).optional().or(z.literal("")),
+  whatsapp: phoneField,
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -161,6 +165,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
       // Invalidate queries to update avatar everywhere
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profileFull"] });
 
       toast.success("Foto atualizada com sucesso!");
     } catch (error) {
@@ -200,6 +205,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
       // Invalidate queries to update avatar everywhere
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profileFull"] });
 
       toast.success("Foto removida com sucesso!");
     } catch (error) {
@@ -239,6 +245,7 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
       // Invalidate queries to update profile everywhere
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profileFull"] });
 
       toast.success("Perfil atualizado com sucesso!");
       onOpenChange(false);
@@ -393,6 +400,8 @@ export const EditProfileModal = ({ open, onOpenChange, profile }: EditProfileMod
                         <FormLabel className="text-white/80 font-medium text-sm">WhatsApp</FormLabel>
                         <FormControl>
                           <Input
+                            type="tel"
+                            inputMode="tel"
                             placeholder="+55 11 99999-9999"
                             {...field}
                             className="bg-black/20 border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/70 h-[44px] rounded-[10px]"

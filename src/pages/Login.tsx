@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Mail, Lock, User, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { GraduationCap, Mail, Lock, User, Eye, EyeOff, ShieldCheck, Phone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { z } from "zod";
@@ -21,8 +21,13 @@ const loginSchema = z.object({
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
+const phoneField = z
+  .string()
+  .refine((v) => v.replace(/\D/g, "").length >= 10, "WhatsApp inválido ou incompleto");
+
 const signupSchema = loginSchema.extend({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  whatsapp: phoneField,
 });
 
 const Login = () => {
@@ -36,6 +41,7 @@ const Login = () => {
     name: "",
     email: "",
     password: "",
+    whatsapp: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -70,7 +76,7 @@ const Login = () => {
           return;
         }
 
-        const { error } = await signUp(formData.email, formData.password, formData.name);
+        const { error } = await signUp(formData.email, formData.password, formData.name, formData.whatsapp);
         if (!error) {
           navigate("/dashboard");
         }
@@ -183,6 +189,28 @@ const Login = () => {
                   />
                 </div>
                 {errors.name && <p role="alert" className="text-xs text-red-400 font-medium">{errors.name}</p>}
+              </div>
+            )}
+
+            {isSignup && (
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                  WhatsApp
+                </Label>
+                <div className="relative flex items-center">
+                  <Phone className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
+                  <Input
+                    id="whatsapp"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="(21) 98117-2399"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                    className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
+                    disabled={loading}
+                  />
+                </div>
+                {errors.whatsapp && <p role="alert" className="text-xs text-red-400 font-medium">{errors.whatsapp}</p>}
               </div>
             )}
 

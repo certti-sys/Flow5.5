@@ -26,7 +26,7 @@ import { Loader2, User } from "lucide-react";
 const formSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
-  whatsapp: z.string().optional(),
+  whatsapp: z.string().refine((v) => v.replace(/\D/g, "").length >= 10, "WhatsApp inválido ou incompleto"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -173,9 +173,10 @@ export function EditStudentModal({ open, onOpenChange, student }: EditStudentMod
                   name="whatsapp"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white/80 font-medium">WhatsApp (opcional)</FormLabel>
+                      <FormLabel className="text-white/80 font-medium">WhatsApp</FormLabel>
                       <FormControl>
                         <Input 
+                          type="tel"
                           placeholder="+55 11 99999-9999" 
                           {...field} 
                           className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white placeholder:text-muted-foreground/80 h-[44px]"
