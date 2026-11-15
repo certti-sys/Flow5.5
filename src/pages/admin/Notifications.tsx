@@ -39,6 +39,7 @@ export default function Notifications() {
   const [publishAt, setPublishAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [sendWhatsapp, setSendWhatsapp] = useState(false);
+  const [sendPush, setSendPush] = useState(false);
   const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
@@ -87,6 +88,7 @@ export default function Notifications() {
         publish_at: toIso(publishAt) ?? undefined,
         expires_at: toIso(expiresAt),
         send_whatsapp: sendWhatsapp,
+        send_push: sendPush,
       },
       {
         onSuccess: () => {
@@ -99,6 +101,7 @@ export default function Notifications() {
           setPublishAt("");
           setExpiresAt("");
           setSendWhatsapp(false);
+          setSendPush(false);
         },
       }
     );
@@ -378,6 +381,22 @@ export default function Notifications() {
               <p className="text-[12px] text-white/40 -mt-2">
                 Em branco: publica agora e não expira.
               </p>
+
+              <div className="flex items-start justify-between gap-4 p-4 rounded-[12px] border border-white/10 bg-black/20">
+                <div className="space-y-1">
+                  <Label htmlFor="send_push" className="text-white/80 font-medium text-[13px]">
+                    Push no celular
+                  </Label>
+                  <p className="text-[12px] text-white/40">
+                    Chega como notificação do sistema em quem liberou os avisos no aparelho.
+                  </p>
+                </div>
+                <Switch
+                  id="send_push"
+                  checked={sendPush}
+                  onCheckedChange={setSendPush}
+                />
+              </div>
 
               <div className="flex items-start justify-between gap-4 p-4 rounded-[12px] border border-white/10 bg-black/20">
                 <div className="space-y-1">

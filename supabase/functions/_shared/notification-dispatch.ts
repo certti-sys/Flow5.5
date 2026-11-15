@@ -1,16 +1,18 @@
 import { logger } from "./logger.ts";
+import { sendPushToUser } from "./push-dispatch.ts";
 
 /**
- * Entrega das notificações internas no WhatsApp.
+ * Entrega das notificações internas (WhatsApp e Web Push).
  *
- * A fila é `notification_deliveries`: uma linha por aviso/destinatário, criada
- * pelo trigger `enqueue_notification_deliveries`. Diferente dos webhooks, o
- * envio só faz sentido enquanto o aviso está no ar — aviso agendado não sai
+ * A fila é `notification_deliveries`: uma linha por aviso/destinatário/canal,
+ * criada pelo trigger `enqueue_notification_deliveries`. Diferente dos webhooks,
+ * o envio só faz sentido enquanto o aviso está no ar — aviso agendado não sai
  * antes de `publish_at`, aviso expirado não sai.
  *
- * `send-whatsapp` limita 5 mensagens/hora por número e responde 429. Aqui isso
- * é tratado como "tenta de novo depois", não como falha definitiva: o
- * destinatário pode ter recebido outros avisos legítimos.
+ * Cada canal tem seu motivo de falha: o WhatsApp responde 429 (rate limit de 5
+ * mensagens/hora por número), o push responde 410 quando a inscrição daquele
+ * aparelho morreu. Ambos são tratados por canal, e o `channel` da linha decide
+ * o ramo — é por isso que a chave da fila inclui o canal.
  *
  * Nunca lança: aviso interno não pode derrubar o fluxo que o criou.
  */
@@ -23,7 +25,8 @@ type Delivery = {
     id: string;
     notification_id: string;
     user_id: string;
-    phone: string;
+    channel: "whatsapp" | "push";
+    phone: string | null;
     attempts: number;
 };
 
@@ -34,9 +37,11 @@ type Notification = {
     link: string | null;
     publish_at: string;
     expires_at: string | null;
+    send_whatsapp: boolean;
+    send_push: boolean;
 };
 
-/** 2min, 8min, 30min, 2h — o 429 some sozinho, não precisa de mais. */
+/** 2min, 8min, 30min, 2h — o 429/5xx some sozinho, não precisa de mais. */
 function nextAttemptDelay(attempt: number): number {
     return Math.min(120 * Math.pow(4, attempt - 1), 7200) * 1000;
 }
@@ -61,7 +66,7 @@ export async function dispatchPendingNotifications(
     try {
         const { data: rows, error } = await supabase
             .from("notification_deliveries")
-            .select("id, notification_id, user_id, phone, attempts")
+            .select("id, notification_id, user_id, channel, phone, attempts")
             .eq("status", "pending")
             .lte("next_attempt_at", new Date().toISOString())
             .order("next_attempt_at", { ascending: true })
@@ -76,11 +81,11 @@ export async function dispatchPendingNotifications(
         const ids = [...new Set(rows.map((r: Delivery) => r.notification_id))];
         const { data: notifications } = await supabase
             .from("notifications")
-            .select("id, title, message, link, publish_at, expires_at, send_whatsapp")
+            .select("id, title, message, link, publish_at, expires_at, send_whatsapp, send_push")
             .in("id", ids);
 
-        const byId = new Map<string, Notification & { send_whatsapp: boolean }>(
-            (notifications ?? []).map((n: Notification & { send_whatsapp: boolean }) => [n.id, n]),
+        const byId = new Map<string, Notification>(
+            (notifications ?? []).map((n: Notification) => [n.id, n]),
         );
 
         const now = Date.now();
@@ -92,14 +97,15 @@ export async function dispatchPendingNotifications(
                 const notification = byId.get(delivery.notification_id);
                 const patch: Record<string, unknown> = { attempts: delivery.attempts + 1 };
 
-                // Aviso removido, sem WhatsApp ou já vencido: encerra sem tentar.
-                // Deixar pendente faria a fila crescer para sempre.
-                const exists = notification && notification.send_whatsapp;
+                const channelOn = notification &&
+                    (delivery.channel === "push" ? notification.send_push : notification.send_whatsapp);
                 const expired = notification?.expires_at
                     ? new Date(notification.expires_at).getTime() <= now
                     : false;
 
-                if (!exists || expired) {
+                // Aviso removido, canal desligado ou já vencido: encerra sem
+                // tentar. Deixar pendente faria a fila crescer para sempre.
+                if (!channelOn || expired) {
                     await supabase
                         .from("notification_deliveries")
                         .update({ ...patch, status: "skipped", last_error: expired ? "aviso expirado" : "aviso removido" })
@@ -122,6 +128,48 @@ export async function dispatchPendingNotifications(
                         .eq("id", delivery.id);
                     return;
                 }
+
+                const done = (status: "sent" | "failed" | "skipped", lastError: string | null) => {
+                    if (status === "sent") sent++;
+                    if (status === "failed") failed++;
+                    return supabase
+                        .from("notification_deliveries")
+                        .update({
+                            ...patch,
+                            status,
+                            last_error: lastError,
+                            ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}),
+                        })
+                        .eq("id", delivery.id);
+                };
+
+                const retryLater = (lastError: string, attempts = delivery.attempts + 1) => {
+                    if (attempts >= MAX_ATTEMPTS) return done("failed", lastError);
+                    return supabase
+                        .from("notification_deliveries")
+                        .update({
+                            ...patch,
+                            last_error: lastError,
+                            next_attempt_at: new Date(Date.now() + nextAttemptDelay(attempts)).toISOString(),
+                        })
+                        .eq("id", delivery.id);
+                };
+
+                if (delivery.channel === "push") {
+                    const outcome = await sendPushToUser(supabase, delivery.user_id, {
+                        title: notification.title,
+                        body: notification.message,
+                        url: notification.link,
+                        tag: notification.id,
+                    });
+
+                    if (outcome === "sent") return done("sent", null);
+                    // Sem inscrição (ou todas mortas): insistir não cria aparelho.
+                    if (outcome === "gone") return done("skipped", "sem inscrição push ativa");
+                    return retryLater(outcome === "retry" ? "push temporariamente indisponível" : "push falhou");
+                }
+
+                if (!delivery.phone) return done("skipped", "sem telefone");
 
                 let status: number | null = null;
                 let errorText: string | null = null;
@@ -149,34 +197,8 @@ export async function dispatchPendingNotifications(
                 }
 
                 const ok = status !== null && status >= 200 && status < 300;
-
-                if (ok) {
-                    sent++;
-                    await supabase
-                        .from("notification_deliveries")
-                        .update({ ...patch, status: "sent", sent_at: new Date().toISOString(), last_error: null })
-                        .eq("id", delivery.id);
-                    return;
-                }
-
-                const attempts = delivery.attempts + 1;
-                if (attempts >= MAX_ATTEMPTS) {
-                    failed++;
-                    await supabase
-                        .from("notification_deliveries")
-                        .update({ ...patch, status: "failed", last_error: errorText ?? `HTTP ${status}` })
-                        .eq("id", delivery.id);
-                    return;
-                }
-
-                await supabase
-                    .from("notification_deliveries")
-                    .update({
-                        ...patch,
-                        last_error: errorText ?? `HTTP ${status}`,
-                        next_attempt_at: new Date(Date.now() + nextAttemptDelay(attempts)).toISOString(),
-                    })
-                    .eq("id", delivery.id);
+                if (ok) return done("sent", null);
+                return retryLater(errorText ?? `HTTP ${status}`);
             }));
         }
     } catch (err) {
@@ -195,9 +217,9 @@ export async function dispatchPendingNotifications(
 /**
  * Drena em background sem segurar a resposta.
  *
- * Mesmo motivo do webhook: o admin que salva o aviso não deve esperar o
- * WhatsApp. `EdgeRuntime.waitUntil` cobre 3 passadas; o que sobrar fica para o
- * cron de minuto.
+ * Mesmo motivo do webhook: o admin que salva o aviso não deve esperar o envio.
+ * `EdgeRuntime.waitUntil` cobre 3 passadas; o que sobrar fica para o cron de
+ * minuto.
  */
 export function scheduleNotificationDispatch(supabase: any): void {
     const runtime = (globalThis as any).EdgeRuntime;

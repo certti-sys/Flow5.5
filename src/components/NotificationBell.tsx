@@ -1,13 +1,15 @@
-import { Bell, CheckCircle, AlertTriangle, XCircle, Info, CheckCheck, Check, Trash2 } from "lucide-react";
+import { Bell, CheckCircle, AlertTriangle, XCircle, Info, CheckCheck, Check, Trash2, Smartphone } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export const NotificationBell = () => {
   const { 
@@ -20,6 +22,7 @@ export const NotificationBell = () => {
   } = useNotifications();
   // Excluir é do admin (RLS); para o aluno o botão só geraria erro.
   const { isAdmin } = useAuth();
+  const push = usePushNotifications();
   const navigate = useNavigate();
 
   const handleNotificationClick = (notification: Notification) => {
@@ -182,6 +185,39 @@ export const NotificationBell = () => {
             </div>
           )}
         </ScrollArea>
+
+        {/* Push: o pedido de permissão tem que sair de um clique, nunca do boot. */}
+        {push.state !== "unsupported" && push.state !== "insecure" && push.state !== "checking" && (
+          <div className="border-t border-white/5 p-3">
+            {push.state === "granted" ? (
+              <button
+                onClick={() => push.disable()}
+                disabled={push.busy}
+                className="w-full flex items-center justify-center gap-2 text-[12px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Avisos no celular ativados — desativar
+              </button>
+            ) : push.state === "denied" ? (
+              <p className="text-[12px] text-muted-foreground text-center leading-relaxed">
+                Notificações bloqueadas no navegador. Libere nas permissões do site para receber avisos.
+              </p>
+            ) : (
+              <button
+                onClick={async () => {
+                  const ok = await push.enable();
+                  if (ok) toast.success("Avisos no celular ativados!");
+                  else if (push.state === "denied") toast.error("Permissão de notificação negada.");
+                }}
+                disabled={push.busy}
+                className="w-full flex items-center justify-center gap-2 text-[12px] text-primary hover:text-primary/80 font-medium transition-colors disabled:opacity-50"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                {push.busy ? "Ativando..." : "Receber avisos no celular"}
+              </button>
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

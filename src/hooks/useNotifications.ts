@@ -38,6 +38,8 @@ export interface NewNotification {
   expires_at?: string | null;
   /** Além do sino, enfileira no WhatsApp dos destinatários com telefone. */
   send_whatsapp?: boolean;
+  /** Além do sino, enfileira Web Push para os aparelhos inscritos. */
+  send_push?: boolean;
 }
 
 /**
