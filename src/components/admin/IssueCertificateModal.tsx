@@ -71,6 +71,8 @@ export function IssueCertificateModal({ open, onOpenChange }: IssueCertificateMo
       const { data, error } = await supabase
         .from("courses")
         .select("id, title")
+        // Curso sem entrega não aparece: o insert seria recusado pelo trigger.
+        .eq("certificates_enabled", true)
         .order("title");
       if (error) throw error;
       return data as { id: string; title: string | null }[];

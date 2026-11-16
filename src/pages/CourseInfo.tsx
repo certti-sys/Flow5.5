@@ -137,13 +137,17 @@ const CourseInfo = () => {
                   </div>
                   <span className="text-sm font-semibold">Acesso Vitalício</span>
                 </div>
-                <Separator className="bg-white/5" />
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Star className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-semibold">Certificado Incluso</span>
-                </div>
+                {course.certificates_enabled === true && (
+                  <>
+                    <Separator className="bg-white/5" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Star className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="text-sm font-semibold">Certificado Incluso</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

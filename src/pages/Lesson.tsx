@@ -810,6 +810,7 @@ const Lesson = () => {
             <LessonSidebar
               modules={modules}
               courseId={courseId!}
+              certificatesEnabled={lessonData?.modules?.courses?.certificates_enabled === true}
             />
           </div>
 
@@ -827,6 +828,7 @@ const Lesson = () => {
                   <LessonSidebar
                     modules={modules}
                     courseId={courseId!}
+                    certificatesEnabled={lessonData?.modules?.courses?.certificates_enabled === true}
                   />
                 </AccordionContent>
               </AccordionItem>

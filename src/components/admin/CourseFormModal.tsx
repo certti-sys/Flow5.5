@@ -41,6 +41,7 @@ const courseSchema = z.object({
   thumbnail: z.string().url("Thumbnail inválida").optional().or(z.literal("")),
   show_card_overlay: z.boolean().default(true),
   show_category_badge: z.boolean().default(true),
+  certificates_enabled: z.boolean().default(false),
   checkout_url: z.string().url("URL inválida").optional().or(z.literal("")),
 });
 
@@ -69,6 +70,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
       thumbnail: "",
       show_card_overlay: true,
       show_category_badge: true,
+      certificates_enabled: false,
       checkout_url: "",
     },
   });
@@ -114,6 +116,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
         thumbnail: course.thumbnail,
         show_card_overlay: course.show_card_overlay !== false,
         show_category_badge: course.show_category_badge !== false,
+        certificates_enabled: course.certificates_enabled === true,
         checkout_url: course.checkout_url || "",
       });
       setThumbnailPreview(course.thumbnail);
@@ -127,6 +130,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
         thumbnail: "",
         show_card_overlay: true,
         show_category_badge: true,
+        certificates_enabled: false,
         checkout_url: "",
       });
       setThumbnailPreview("");
@@ -573,6 +577,31 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                         </FormLabel>
                         <p className="text-xs text-muted-foreground pt-1">
                           Mostrar badge de categoria sobre a capa
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Certificado por curso: só entrega se este e o global estiverem ligados */}
+                <FormField
+                  control={form.control}
+                  name="certificates_enabled"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-white/10 bg-black/20 p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-white/80 font-medium">
+                          Entregar certificado neste curso
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground pt-1">
+                          Depende também do switch em Personalização
                         </p>
                       </div>
                     </FormItem>

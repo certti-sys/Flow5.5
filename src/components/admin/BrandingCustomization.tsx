@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Info, Loader2, Save, Send, Link, Monitor, Layout as LayoutIcon, Image as ImageIcon, Heart, Palette, Award } from "lucide-react";
 import { ImageUploadField } from "./ImageUploadField";
 import { usePlatformSettings, PlatformSettings } from "@/hooks/usePlatformSettings";
@@ -45,6 +46,7 @@ const pickFormData = (settings: Partial<PlatformSettings>): Partial<PlatformSett
   certificate_instructor_name: settings.certificate_instructor_name,
   certificate_logo_url: settings.certificate_logo_url,
   certificate_template: settings.certificate_template,
+  certificates_enabled: settings.certificates_enabled,
   login_background_url: settings.login_background_url,
   login_overlay_opacity: settings.login_overlay_opacity,
 });
@@ -134,6 +136,7 @@ export const BrandingCustomization = () => {
       certificate_instructor_name: 'Diretoria Executiva',
       certificate_logo_url: null,
       certificate_template: 'dark-premium',
+      certificates_enabled: false,
       login_background_url: null,
       login_overlay_opacity: 50,
     });
@@ -591,12 +594,29 @@ export const BrandingCustomization = () => {
               <div>
                 <CardTitle className="text-[20px] font-bold text-white tracking-tight">Certificados</CardTitle>
                 <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">
-                  Template e assinatura usados na emissão.
+                  Entrega, template e assinatura dos certificados.
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-8 space-y-8">
+            {/* Liga/desliga em toda a plataforma. Desligado, nenhum curso entrega
+                certificado — o aluno não vê o botão e a API recusa a emissão. */}
+            <div className="flex items-start justify-between gap-6 rounded-[12px] border border-white/10 bg-black/20 p-4">
+              <div className="space-y-1">
+                <Label htmlFor="certificates_enabled" className="text-white/80 font-medium">
+                  Entregar certificados
+                </Label>
+                <p className="text-[12px] text-muted-foreground/80">
+                  Desligado, nenhum curso emite certificado novo. Os já emitidos continuam acessíveis.
+                </p>
+              </div>
+              <Switch
+                id="certificates_enabled"
+                checked={formData.certificates_enabled ?? false}
+                onCheckedChange={(v) => setFormData({ ...formData, certificates_enabled: v })}
+              />
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <div>

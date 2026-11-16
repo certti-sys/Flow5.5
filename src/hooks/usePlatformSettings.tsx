@@ -29,6 +29,7 @@ export interface PlatformSettings {
   certificate_instructor_name: string | null;
   certificate_logo_url: string | null;
   certificate_template: string;
+  certificates_enabled: boolean;
   webhook_secret: string | null;
   login_background_url: string | null;
   login_overlay_opacity: number;
@@ -58,6 +59,7 @@ const defaultSettings: Partial<PlatformSettings> = {
   gradient_start_color: '#FF4136',
   gradient_end_color: '#FF851B',
   certificate_template: 'dark-premium',
+  certificates_enabled: false,
   navigation_layout: 'horizontal',
   sidebar_default_collapsed: false,
   monitoring_sentry_active: false,

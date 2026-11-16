@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -18,13 +19,15 @@ import {
 interface LessonSidebarProps {
   modules: any[];
   courseId: string;
+  certificatesEnabled?: boolean;
 }
 
-export const LessonSidebar = ({ modules, courseId }: LessonSidebarProps) => {
+export const LessonSidebar = ({ modules, courseId, certificatesEnabled = false }: LessonSidebarProps) => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { isLessonCompleted } = useUserProgress();
   const { user } = useAuth();
+  const { settings } = usePlatformSettings();
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   const handleGenerateCertificate = async () => {
@@ -109,8 +112,8 @@ export const LessonSidebar = ({ modules, courseId }: LessonSidebarProps) => {
           </div>
         )}
 
-        {/* Certificate Button */}
-        {progressPercentage === 100 && (
+        {/* Certificate Button: só quando o curso e a plataforma entregam */}
+        {progressPercentage === 100 && certificatesEnabled && settings?.certificates_enabled === true && (
           <div className="mt-4 pt-4 border-t border-white/5 animate-fade-in">
             <Button 
               onClick={handleGenerateCertificate}

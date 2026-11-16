@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 import { FileBadge, Loader2 } from "lucide-react";
 
@@ -20,6 +21,7 @@ const Course = () => {
   const navigate = useNavigate();
   const { isLessonCompleted } = useUserProgress();
   const { user } = useAuth();
+  const { settings } = usePlatformSettings();
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   // Scroll to top when page loads or courseId changes
@@ -52,6 +54,10 @@ const Course = () => {
   });
 
   const modules = course?.modules || [];
+
+  // Só entrega quem tem o curso e a plataforma ligados.
+  const canIssueCertificate =
+    course?.certificates_enabled === true && settings?.certificates_enabled === true;
   const firstLesson = modules[0]?.lessons?.[0];
 
   // Calculate course progress
@@ -246,7 +252,7 @@ const Course = () => {
                 <p className="text-xs text-muted-foreground mt-2">
                   {completedLessons} de {totalLessons} aulas concluídas
                 </p>
-                {progressPercentage === 100 && (
+                {progressPercentage === 100 && canIssueCertificate && (
                   <div className="mt-4 pt-4 border-t border-white/5">
                     <Button 
                       onClick={handleGenerateCertificate}
@@ -357,7 +363,11 @@ const Course = () => {
           {/* Sidebar */}
           <div className="lg:col-span-1 animate-fade-in">
             <div className="lg:sticky lg:top-6">
-              <LessonSidebar modules={modules} courseId={courseId || ""} />
+              <LessonSidebar
+                modules={modules}
+                courseId={courseId || ""}
+                certificatesEnabled={course?.certificates_enabled === true}
+              />
             </div>
           </div>
         </div>
