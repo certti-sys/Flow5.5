@@ -300,19 +300,21 @@ export function AssignCoursesModal({ open, onOpenChange, student }: AssignCourse
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-styled">
                   {categories.map((category) => {
                     const categoryCourses = courses.filter(c => c.category === category);
+                    // Categoria nula vira key vazia e o React reclama de key duplicada.
+                    const categoryKey = category || "sem-categoria";
                     return (
                       <div
-                        key={category}
+                        key={categoryKey}
                         className="flex items-start space-x-3 p-4 rounded-[10px] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors"
                       >
                         <Checkbox
-                          id={`category-${category}`}
+                          id={`category-${categoryKey}`}
                           checked={selectedCategories.includes(category)}
                           onCheckedChange={() => handleToggleCategory(category)}
                           className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         />
                         <label
-                          htmlFor={`category-${category}`}
+                          htmlFor={`category-${categoryKey}`}
                           className="flex-1 cursor-pointer"
                         >
                           <div className="flex justify-between items-center mb-1">

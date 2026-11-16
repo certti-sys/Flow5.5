@@ -48,8 +48,9 @@ export function CreateStudentModal({ open, onOpenChange }: CreateStudentModalPro
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ ...values, role: 'student', courseIds: [] }),
+        body: JSON.stringify({ ...values, role: 'user', courseIds: [] }),
       });
 
       const result = await res.json();
