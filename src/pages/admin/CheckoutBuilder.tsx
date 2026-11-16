@@ -39,6 +39,49 @@ interface BuilderProduct {
     checkout_config: unknown;
 }
 
+/** Configuração de SMS do produto, lida pela IntegraX. */
+type SmsEvent = { enabled: boolean; body_text: string };
+type SmsConfig = Record<string, SmsEvent>;
+
+const SMS_MAX = 160;
+
+/** Mesmos defaults do sistema de referência, com os mesmos placeholders. */
+const SMS_EVENTS: Array<{
+    key: string;
+    label: string;
+    description: string;
+    variables: string[];
+    default: SmsEvent;
+}> = [
+    {
+        key: "pix_generated",
+        label: "PIX gerado",
+        description: "Enviado logo após a cobrança PIX ser criada.",
+        variables: ["{nome_cliente}", "{nome_produto}", "{valor}", "{link_pix}"],
+        default: { enabled: false, body_text: "PIX de {nome_produto} ({valor}). Pague: {link_pix}" },
+    },
+    {
+        key: "access_delivery",
+        label: "Entrega de acesso",
+        description: "Enviado após a confirmação do pagamento.",
+        variables: ["{nome_cliente}", "{nome_produto}", "{link_acesso}", "{email_cliente}"],
+        default: { enabled: false, body_text: "Ola {nome_cliente}! Seu acesso a {nome_produto}: {link_acesso}" },
+    },
+];
+
+/** Prévia com valores de exemplo, no mesmo formato do envio real. */
+function renderSmsPreview(template: string): string {
+    return template
+        .split("{nome_cliente}").join("Maria")
+        .split("{nome_produto}").join("Curso Exemplo")
+        .split("{valor}").join("R$ 127,00")
+        .split("{link_pix}").join("https://v5.flowmembers.app/p/abc123")
+        .split("{link_acesso}").join("https://v5.flowmembers.app/login")
+        .split("{email_cliente}").join("maria@exemplo.com")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 const inputClass = "bg-white/[0.03] border-white/10 text-white placeholder:text-white/30 h-11";
 
 function SectionCard({
@@ -339,13 +382,14 @@ export default function CheckoutBuilder() {
                 </div>
 
                 <Tabs defaultValue="geral" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-7">
+                    <TabsList className="grid w-full grid-cols-4 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-8">
                         <TabsTrigger value="geral">Geral</TabsTrigger>
                         <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
                         <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                         <TabsTrigger value="campos">Campos</TabsTrigger>
                         <TabsTrigger value="social">Social</TabsTrigger>
                         <TabsTrigger value="contato">Contato</TabsTrigger>
+                        <TabsTrigger value="sms">SMS</TabsTrigger>
                         <TabsTrigger value="avancado">Avançado</TabsTrigger>
                     </TabsList>
 
@@ -1155,6 +1199,72 @@ export default function CheckoutBuilder() {
                     </TabsContent>
 
                     {/* AVANÇADO */}
+                    {/* SMS */}
+                    <TabsContent value="sms" className="space-y-4">
+                        <SectionCard
+                            title="SMS por produto"
+                            description="Enviado pela IntegraX. Cada mensagem aceita até 160 caracteres."
+                        >
+                            {SMS_EVENTS.map((event) => {
+                                const current = (config.sms as SmsConfig | undefined)?.[event.key] ?? event.default;
+                                const rendered = renderSmsPreview(current.body_text);
+                                return (
+                                    <div key={event.key} className="space-y-2 rounded-xl border border-white/5 p-4">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-[13px] font-semibold text-white/90">{event.label}</p>
+                                                <p className="text-[12px] text-muted-foreground">{event.description}</p>
+                                            </div>
+                                            <Switch
+                                                checked={current.enabled}
+                                                onCheckedChange={(enabled) =>
+                                                    patch((c) => ({
+                                                        ...c,
+                                                        sms: {
+                                                            ...(c.sms as SmsConfig | undefined),
+                                                            [event.key]: { ...current, enabled },
+                                                        },
+                                                    }))
+                                                }
+                                            />
+                                        </div>
+
+                                        <Input
+                                            value={current.body_text}
+                                            onChange={(e) =>
+                                                patch((c) => ({
+                                                    ...c,
+                                                    sms: {
+                                                        ...(c.sms as SmsConfig | undefined),
+                                                        [event.key]: { ...current, body_text: e.target.value },
+                                                    },
+                                                }))
+                                            }
+                                            className={inputClass}
+                                        />
+
+                                        <div className="flex items-center justify-between gap-3 text-[12px]">
+                                            <p className="text-muted-foreground truncate">{rendered}</p>
+                                            <span
+                                                className={cn(
+                                                    "shrink-0 tabular-nums",
+                                                    rendered.length > SMS_MAX
+                                                        ? "text-red-400"
+                                                        : "text-muted-foreground",
+                                                )}
+                                            >
+                                                {rendered.length}/{SMS_MAX}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11.5px] text-muted-foreground">
+                                            Variáveis: {event.variables.join(" ")}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </SectionCard>
+                    </TabsContent>
+
                     <TabsContent value="avancado" className="space-y-4">
                         <SectionCard title="SEO / compartilhamento" description="Título, descrição e imagem ao compartilhar o link">
                             <div className="grid gap-3 sm:grid-cols-2">

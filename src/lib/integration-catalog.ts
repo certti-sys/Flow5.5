@@ -1,4 +1,4 @@
-import { BarChart3, Facebook, FileText, LineChart, Music2, MousePointerClick, Code2 } from "lucide-react";
+import { BarChart3, Facebook, FileText, LineChart, MessageSquare, Music2, MousePointerClick, Code2, Radio } from "lucide-react";
 
 /**
  * Catálogo de integrações disponíveis.
@@ -11,13 +11,15 @@ import { BarChart3, Facebook, FileText, LineChart, Music2, MousePointerClick, Co
 export type IntegrationKind =
   | "utmify"
   | "spedy"
+  | "integrax"
   | "pixel_meta"
+  | "pixel_x"
   | "pixel_tiktok"
   | "pixel_google_ads"
   | "pixel_ga4"
   | "pixel_script";
 
-export type FieldType = "text" | "password" | "select" | "textarea";
+export type FieldType = "text" | "password" | "select" | "textarea" | "multiselect";
 
 export type Field = {
   key: string;
@@ -38,6 +40,11 @@ export type CatalogEntry = {
   accent: string;
   /** `server` = fila + edge function; `browser` = script no checkout. */
   mode: "server" | "browser";
+  /**
+   * `single` = uma conexão por app (reconectar atualiza a mesma linha).
+   * `list` = várias conexões do mesmo app, cada uma com nome próprio.
+   */
+  cardinality?: "single" | "list";
   fields: Field[];
 };
 
@@ -49,6 +56,7 @@ export const CATALOG: CatalogEntry[] = [
     icon: BarChart3,
     accent: "text-emerald-400",
     mode: "server",
+    cardinality: "single",
     fields: [
       {
         key: "secret",
@@ -67,6 +75,7 @@ export const CATALOG: CatalogEntry[] = [
     icon: Facebook,
     accent: "text-blue-400",
     mode: "server",
+    cardinality: "list",
     fields: [
       { key: "pixel_id", label: "Pixel ID", type: "text", placeholder: "123456789012345" },
       {
@@ -85,6 +94,7 @@ export const CATALOG: CatalogEntry[] = [
     icon: FileText,
     accent: "text-violet-400",
     mode: "server",
+    cardinality: "single",
     fields: [
       { key: "secret", label: "API Key", type: "password", secret: true },
       {
@@ -99,12 +109,59 @@ export const CATALOG: CatalogEntry[] = [
     ],
   },
   {
+    kind: "integrax",
+    name: "IntegraX",
+    description: "Envia SMS de PIX gerado e de entrega de acesso. Máximo de 160 caracteres por mensagem.",
+    icon: MessageSquare,
+    accent: "text-cyan-400",
+    mode: "server",
+    cardinality: "single",
+    fields: [
+      {
+        key: "secret",
+        label: "Token da API",
+        type: "password",
+        secret: true,
+        placeholder: "Token do painel IntegraX",
+        help: "O texto de cada SMS é configurado por produto, no editor de checkout.",
+      },
+    ],
+  },
+  {
+    kind: "pixel_x",
+    name: "Pixel X",
+    description: "Postback próprio da Pixel X, com status nativo e eventos selecionáveis.",
+    icon: Radio,
+    accent: "text-rose-400",
+    mode: "server",
+    cardinality: "list",
+    fields: [
+      { key: "name", label: "Nome", type: "text", placeholder: "Ex: Pixel X - Curso CSS" },
+      { key: "url", label: "URL do webhook", type: "text", placeholder: "https://..." },
+      { key: "secret", label: "Token", type: "password", secret: true },
+      {
+        key: "events",
+        label: "Eventos",
+        type: "multiselect",
+        options: [
+          { value: "pedido_pago", label: "Pedido pago" },
+          { value: "pagamento_recusado", label: "Pagamento recusado" },
+          { value: "reembolso", label: "Reembolso" },
+          { value: "pix_gerado", label: "Pix gerado" },
+          { value: "boleto_gerado", label: "Boleto gerado" },
+        ],
+        help: "Sem seleção, todos os eventos são enviados.",
+      },
+    ],
+  },
+  {
     kind: "pixel_tiktok",
     name: "TikTok Pixel",
     description: "Eventos de conversão no navegador do visitante.",
     icon: Music2,
     accent: "text-pink-400",
     mode: "browser",
+    cardinality: "list",
     fields: [{ key: "pixel_id", label: "Pixel ID", type: "text", placeholder: "CXXXXXXXXXXXXXX" }],
   },
   {

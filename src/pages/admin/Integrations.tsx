@@ -18,8 +18,8 @@ import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Info, RefreshCw, Settings, XCircle, Zap } from "lucide-react";
-import { CATALOG, catalogEntry, type CatalogEntry, type IntegrationKind } from "@/lib/integration-catalog";
+import { CheckCircle2, Info, Plus, RefreshCw, Settings, XCircle, Zap } from "lucide-react";
+import { CATALOG, type CatalogEntry, type IntegrationKind } from "@/lib/integration-catalog";
 
 type Integration = {
   id: string;
@@ -33,18 +33,15 @@ type Integration = {
   last_error: string | null;
 };
 
-type Store = {
-  kind: IntegrationKind;
-  name: string;
-  description: string;
-};
+/** `row` ausente = conexão nova; com `id` = editando. */
+type Editing = { entry: CatalogEntry; row?: Integration };
 
 const COLUMNS =
   "id, kind, name, config, has_secret, is_active, product_ids, last_tested_at, last_error";
 
 export default function IntegrationsPage() {
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<Store | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
   const [open, setOpen] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -84,21 +81,21 @@ export default function IntegrationsPage() {
   });
 
   const byKind = useMemo(() => {
-    const map = new Map<string, Integration>();
+    const map = new Map<string, Integration[]>();
     for (const i of data ?? []) {
-      // Uma linha por kind: a config é única, então reconectar atualiza.
-      if (!map.has(i.kind)) map.set(i.kind, i);
+      const list = map.get(i.kind) ?? [];
+      list.push(i);
+      map.set(i.kind, list);
     }
     return map;
   }, [data]);
 
   const apps = CATALOG.filter((c) => c.mode === "server");
   const pixels = CATALOG.filter((c) => c.mode === "browser");
-  const activeCount = [...byKind.values()].filter((i) => i.is_active).length;
+  const activeCount = (data ?? []).filter((i) => i.is_active).length;
 
-  const openConfig = (entry: CatalogEntry) => {
-    const existing = byKind.get(entry.kind);
-    setEditing({ kind: entry.kind, name: entry.name, description: entry.description });
+  const openConfig = (entry: CatalogEntry, row?: Integration) => {
+    setEditing({ entry, row });
     setOpen(true);
   };
 
@@ -151,7 +148,7 @@ export default function IntegrationsPage() {
 
       <Section
         title="Pixels de conversão"
-        description="Carregam no navegador do visitante, sem passar pela fila."
+        description="Carregam no navegador do visitante ou recebem o postback pelo servidor."
         entries={pixels}
         byKind={byKind}
         onConfigure={openConfig}
@@ -159,9 +156,7 @@ export default function IntegrationsPage() {
       />
 
       <ConfigSheet
-        store={editing}
-        integration={editing ? byKind.get(editing.kind) : undefined}
-        entry={editing ? catalogEntry(editing.kind) : undefined}
+        editing={editing}
         products={products ?? []}
         open={open}
         onOpenChange={setOpen}
@@ -177,8 +172,8 @@ function Section({
   title: string;
   description: string;
   entries: CatalogEntry[];
-  byKind: Map<string, Integration>;
-  onConfigure: (entry: CatalogEntry) => void;
+  byKind: Map<string, Integration[]>;
+  onConfigure: (entry: CatalogEntry, row?: Integration) => void;
   onToggle: (id: string, active: boolean) => void;
 }) {
   return (
@@ -188,102 +183,186 @@ function Section({
         <p className="text-[13px] text-muted-foreground">{description}</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {entries.map((entry) => {
-          const saved = byKind.get(entry.kind);
-          const Icon = entry.icon;
-          return (
-            <div
-              key={entry.kind}
-              className="glass-card p-5 rounded-[20px] border border-white/10 hover:border-white/20 transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-[14px] bg-black/40 border border-white/10 flex items-center justify-center">
-                    <Icon className={cn("w-5 h-5", entry.accent)} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[15px] text-white">{entry.name}</h3>
-                    <p className="text-[12.5px] text-muted-foreground mt-0.5 max-w-[320px]">
-                      {entry.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  {saved ? (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider",
-                        saved.is_active
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-white/5 text-white/60 border-white/10",
-                      )}
-                    >
-                      {saved.is_active ? "Ativa" : "Inativa"}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border-white/10">
-                      Não conectada
-                    </Badge>
-                  )}
-                  {saved && (
-                    <Switch
-                      checked={saved.is_active}
-                      onCheckedChange={(active) => onToggle(saved.id, active)}
-                      aria-label={`Ativar ${entry.name}`}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {saved?.last_error && (
-                <p className="mt-3 flex items-start gap-2 text-[12px] text-amber-400/90">
-                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  {saved.last_error}
-                </p>
-              )}
-
-              <div className="mt-4 flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onConfigure(entry)}
-                  className="glass-card border-white/10 hover:bg-white/5 h-[38px] rounded-[10px] text-[12px] uppercase tracking-widest font-bold text-white"
-                >
-                  <Settings className="w-3.5 h-3.5 mr-2" />
-                  {saved ? "Editar" : "Conectar"}
-                </Button>
-                {saved && !saved.has_secret && saved.kind !== "pixel_script" && (
-                  <span className="flex items-center gap-1 text-[12px] text-amber-400/90">
-                    <XCircle className="w-3.5 h-3.5" />
-                    Falta credencial
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {entries.map((entry) => (
+          <AppCard
+            key={entry.kind}
+            entry={entry}
+            rows={byKind.get(entry.kind) ?? []}
+            onConfigure={onConfigure}
+            onToggle={onToggle}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function ConfigSheet({
-  store, integration, entry, products, open, onOpenChange, onSaved,
+/**
+ * Apps de conexão única mostram um card com o estado da conexão; apps de lista
+ * mostram um card por conexão e um botão "Adicionar".
+ */
+function AppCard({
+  entry, rows, onConfigure, onToggle,
 }: {
-  store: Store | null;
-  integration: Integration | undefined;
-  entry: CatalogEntry | undefined;
+  entry: CatalogEntry;
+  rows: Integration[];
+  onConfigure: (entry: CatalogEntry, row?: Integration) => void;
+  onToggle: (id: string, active: boolean) => void;
+}) {
+  const Icon = entry.icon;
+  const isList = entry.cardinality === "list";
+
+  const header = (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start gap-3">
+        <div className="w-11 h-11 rounded-[14px] bg-black/40 border border-white/10 flex items-center justify-center">
+          <Icon className={cn("w-5 h-5", entry.accent)} />
+        </div>
+        <div>
+          <h3 className="font-bold text-[15px] text-white">{entry.name}</h3>
+          <p className="text-[12.5px] text-muted-foreground mt-0.5 max-w-[320px]">
+            {entry.description}
+          </p>
+        </div>
+      </div>
+      {isList && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onConfigure(entry)}
+          className="glass-card border-white/10 hover:bg-white/5 h-[38px] rounded-[10px] text-[12px] uppercase tracking-widest font-bold text-white shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5 mr-2" />
+          Adicionar
+        </Button>
+      )}
+    </div>
+  );
+
+  const body = (row: Integration | undefined, showHeader: boolean) => (
+    <div
+      key={row?.id ?? "new"}
+      className={cn(
+        "glass-card p-5 rounded-[20px] border border-white/10 hover:border-white/20 transition-all",
+        !showHeader && "bg-transparent border-white/5",
+      )}
+    >
+      {showHeader ? header : (
+        <div className="flex items-center gap-2 mb-1">
+          <Icon className={cn("w-4 h-4", entry.accent)} />
+          <span className="text-[13px] font-semibold text-white/90">
+            {row?.name || entry.name}
+          </span>
+          {row?.config?.url && (
+            <span className="text-[11.5px] text-muted-foreground truncate max-w-[220px]">
+              {String(row.config.url)}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className={cn("flex items-start justify-between gap-4", !showHeader && "mt-1")}>
+        <div className="min-w-0">
+          {showHeader && row?.config?.url && (
+            <p className="text-[11.5px] text-muted-foreground truncate max-w-[320px] mt-1">
+              {String(row.config.url)}
+            </p>
+          )}
+
+          {row?.last_error && (
+            <p className="mt-3 flex items-start gap-2 text-[12px] text-amber-400/90">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              {row.last_error}
+            </p>
+          )}
+
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onConfigure(entry, row)}
+              className="glass-card border-white/10 hover:bg-white/5 h-[38px] rounded-[10px] text-[12px] uppercase tracking-widest font-bold text-white"
+            >
+              <Settings className="w-3.5 h-3.5 mr-2" />
+              {row ? "Editar" : "Conectar"}
+            </Button>
+            {row && !row.has_secret && entry.kind !== "pixel_script" && (
+              <span className="flex items-center gap-1 text-[12px] text-amber-400/90">
+                <XCircle className="w-3.5 h-3.5" />
+                Falta credencial
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          {row ? (
+            <>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider",
+                  row.is_active
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-white/5 text-white/60 border-white/10",
+                )}
+              >
+                {row.is_active ? "Ativa" : "Inativa"}
+              </Badge>
+              <Switch
+                checked={row.is_active}
+                onCheckedChange={(active) => onToggle(row.id, active)}
+                aria-label={`Ativar ${entry.name}`}
+              />
+            </>
+          ) : (
+            <Badge
+              variant="outline"
+              className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border-white/10"
+            >
+              Não conectada
+            </Badge>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!isList) return body(rows[0], true);
+
+  return (
+    <div className="glass-card p-5 rounded-[20px] border border-white/10 space-y-3">
+      {header}
+      {rows.length === 0 ? (
+        <p className="text-[12.5px] text-muted-foreground">Nenhuma conexão configurada.</p>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((row) => body(row, false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfigSheet({
+  editing, products, open, onOpenChange, onSaved,
+}: {
+  editing: Editing | null;
   products: Array<{ id: string; name: string }>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }) {
+  const entry = editing?.entry;
+  const integration = editing?.row;
+
   const [values, setValues] = useState<Record<string, string>>({});
   const [secret, setSecret] = useState("");
+  const [events, setEvents] = useState<string[]>([]);
   const [productIds, setProductIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [testPhone, setTestPhone] = useState("");
+  const [testing, setTesting] = useState(false);
 
   // Reabrir o mesmo app precisa recarregar os valores salvos, então reseta
   // sempre que a linha muda.
@@ -291,27 +370,55 @@ function ConfigSheet({
     if (!entry) return;
     const next: Record<string, string> = {};
     for (const field of entry.fields) {
-      if (field.secret) continue;
+      if (field.secret || field.type === "multiselect") continue;
       next[field.key] = String(integration?.config?.[field.key] ?? field.options?.[0]?.value ?? "");
     }
     setValues(next);
+    setEvents(Array.isArray(integration?.config?.events) ? [...integration.config.events] : []);
     setSecret("");
     setProductIds(integration?.product_ids ?? []);
+    setTestPhone("");
   }, [entry, integration, open]);
 
-  if (!entry || !store) return null;
+  if (!entry || !editing) return null;
+
+  const requiresSecret = entry.kind !== "pixel_script";
 
   const handleSave = async () => {
-    if (entry.mode === "server" && !integration?.has_secret && !secret) {
+    if (requiresSecret && !integration?.has_secret && !secret) {
       toast.error("Informe a credencial antes de salvar.");
       return;
+    }
+
+    // Pixel X usa `name` como rótulo da conexão na lista.
+    const displayName = values.name?.trim() || entry.name;
+
+    // Pixel X exige ao menos um evento, como no sistema de referência.
+    if (entry.kind === "pixel_x" && events.length === 0) {
+      toast.error("Selecione pelo menos um evento.");
+      return;
+    }
+
+    // Pixel de navegador com `product_ids` vazio não dispara em nenhum produto
+    // (semântica da referência), então exigir a escolha evita configurar um
+    // pixel que nunca roda.
+    if (entry.mode === "browser" && productIds.length === 0) {
+      toast.error("Selecione ao menos um produto para este pixel.");
+      return;
+    }
+
+    const config: Record<string, unknown> = { ...values };
+    // Só a Pixel X usa `events`; lista vazia nunca chega aqui.
+    if (events.length > 0) config.events = events;
+    for (const key of Object.keys(config)) {
+      if (config[key] === "") delete config[key];
     }
 
     setSaving(true);
     const row = {
       kind: entry.kind,
-      name: entry.name,
-      config: values,
+      name: displayName,
+      config,
       is_active: integration?.is_active ?? true,
       product_ids: productIds,
       ...(secret ? { secret } : {}),
@@ -346,12 +453,50 @@ function ConfigSheet({
     onOpenChange(false);
   };
 
+  /** O teste roda na edge function: o token nunca chega ao navegador. */
+  const handleTest = async () => {
+    if (!integration) {
+      toast.error("Salve a integração antes de testar.");
+      return;
+    }
+    setTesting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dispatch-integrations?action=test_${
+          entry.kind === "integrax" ? "integrax" : "pixel_x"
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({
+            integration_id: integration.id,
+            phone: testPhone,
+            message: "Teste Flow5.5",
+          }),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) toast.success(json.message ?? "Teste enviado.");
+      else toast.error(json.message ?? json.error ?? `HTTP ${res.status}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha no teste.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const testable = entry.kind === "integrax" || entry.kind === "pixel_x";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-[460px] bg-[#0a0a0c] border-white/10 overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="text-white">{store.name}</SheetTitle>
-          <SheetDescription>{store.description}</SheetDescription>
+          <SheetTitle className="text-white">{entry.name}</SheetTitle>
+          <SheetDescription>{entry.description}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-5 mt-6">
@@ -373,6 +518,27 @@ function ConfigSheet({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : field.type === "multiselect" ? (
+                <div className="rounded-[10px] border border-white/10 bg-black/40 divide-y divide-white/5">
+                  {field.options?.map((o) => {
+                    const checked = events.includes(o.value);
+                    return (
+                      <label key={o.value} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white/5">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setEvents((prev) =>
+                              checked ? prev.filter((v) => v !== o.value) : [...prev, o.value],
+                            )
+                          }
+                          className="accent-primary"
+                        />
+                        <span className="text-[13px] text-white/80">{o.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               ) : field.type === "textarea" ? (
                 <Textarea
                   value={values[field.key] ?? ""}
@@ -405,7 +571,9 @@ function ConfigSheet({
           <div className="space-y-2">
             <Label className="text-[13px] text-white/80">Produtos</Label>
             <p className="text-[12px] text-muted-foreground">
-              Sem seleção, vale para todos os produtos.
+              {entry.mode === "browser"
+                ? "O pixel só dispara nos produtos selecionados."
+                : "Sem seleção, vale para todos os produtos."}
             </p>
             <div className="max-h-[180px] overflow-y-auto rounded-[10px] border border-white/10 bg-black/40 divide-y divide-white/5">
               {products.length === 0 && (
@@ -431,6 +599,38 @@ function ConfigSheet({
               })}
             </div>
           </div>
+
+          {entry.kind === "integrax" && (
+            <div className="space-y-2">
+              <Label className="text-[13px] text-white/80">Enviar SMS de teste</Label>
+              <p className="text-[12px] text-muted-foreground">
+                Envia uma mensagem real para o número informado.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="11999999999"
+                  className="bg-black/40 border-white/10 h-[42px] rounded-[10px]"
+                />
+                <Button onClick={handleTest} disabled={testing || !testPhone} variant="outline" className="rounded-[10px]">
+                  {testing ? "Enviando..." : "Testar"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {entry.kind === "pixel_x" && (
+            <div className="space-y-2">
+              <Label className="text-[13px] text-white/80">Disparar evento de teste</Label>
+              <p className="text-[12px] text-muted-foreground">
+                Envia um postback de exemplo, marcado como pedido pago.
+              </p>
+              <Button onClick={handleTest} disabled={testing} variant="outline" className="rounded-[10px]">
+                {testing ? "Enviando..." : "Testar"}
+              </Button>
+            </div>
+          )}
 
           {integration?.last_error && (
             <div className="rounded-[10px] border border-amber-500/20 bg-amber-500/5 p-3 text-[12px] text-amber-400">

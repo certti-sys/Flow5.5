@@ -1,5 +1,10 @@
 import { logger } from "./logger.ts";
-import { type Integration, type OrderPayload, sendIntegrationEvent } from "./integrations.ts";
+import {
+    type DeliveryContext,
+    type Integration,
+    type OrderPayload,
+    sendIntegrationEvent,
+} from "./integrations.ts";
 
 /**
  * Entrega da fila de integrações de marketing (`integration_deliveries`).
@@ -20,6 +25,7 @@ type Delivery = {
     order_id: string | null;
     event: string;
     payload: OrderPayload;
+    context: DeliveryContext | null;
     attempt: number;
     max_attempts: number;
 };
@@ -39,7 +45,7 @@ export async function dispatchPendingIntegrations(
     try {
         const { data: rows, error } = await supabase
             .from("integration_deliveries")
-            .select("id, integration_id, order_id, event, payload, attempt, max_attempts")
+            .select("id, integration_id, order_id, event, payload, context, attempt, max_attempts")
             .eq("status", "pending")
             .lte("next_attempt_at", new Date().toISOString())
             .order("next_attempt_at", { ascending: true })
@@ -98,6 +104,7 @@ export async function dispatchPendingIntegrations(
                     integration,
                     delivery.payload,
                     delivery.event,
+                    delivery.context ?? {},
                 );
 
                 if (result.outcome === "ok") {

@@ -39,6 +39,23 @@ export default function ThankYouPage() {
     const qrCode = searchParams.get("qrcode");
     const qrCodeBase64 = searchParams.get("qrcode_base64");
 
+    // O PIX chega por query string, que se perde ao recarregar a página ou ao
+    // abrir o link curto enviado por SMS. `get_order_pix` relê do pagamento.
+    const [pixFallback, setPixFallback] = useState<{ copy_paste?: string; qr_code_base64?: string } | null>(null);
+    useEffect(() => {
+        if (!orderId || qrCode || qrCodeBase64) return;
+        let active = true;
+        supabase.rpc("get_order_pix", { p_order_id: orderId }).then(({ data }) => {
+            if (active && data) setPixFallback(data as { copy_paste?: string; qr_code_base64?: string });
+        });
+        return () => {
+            active = false;
+        };
+    }, [orderId, qrCode, qrCodeBase64]);
+
+    const pixCode = qrCode ?? pixFallback?.copy_paste ?? null;
+    const pixImage = qrCodeBase64 ?? pixFallback?.qr_code_base64 ?? null;
+
     const [copied, setCopied] = useState(false);
     const [order, setOrder] = useState<PublicOrder | null>(null);
     const [loading, setLoading] = useState(true);
@@ -248,11 +265,11 @@ export default function ThankYouPage() {
                     <Separator />
 
                     {/* QR Code PIX */}
-                    {paymentMethod === "pix" && (qrCodeBase64 || qrCode) && !isPaid && (
+                    {paymentMethod === "pix" && (pixImage || pixCode) && !isPaid && (
                         <div className="space-y-4">
                             <div className="p-4 bg-white rounded-lg inline-block">
                                 <img
-                                    src={qrCodeBase64 ? `data:image/png;base64,${qrCodeBase64}` : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode!)}`}
+                                    src={pixImage ? `data:image/png;base64,${pixImage}` : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixCode!)}`}
                                     alt="QR Code PIX"
                                     className="w-48 h-48"
                                     loading="eager"
@@ -263,14 +280,14 @@ export default function ThankYouPage() {
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        value={qrCode ?? ""}
+                                        value={pixCode ?? ""}
                                         readOnly
                                         className="flex-1 text-xs p-2 rounded border bg-muted/50 truncate"
                                     />
                                     <Button
                                         variant="outline"
                                         size="icon"
-                                        onClick={() => qrCode && handleCopy(qrCode)}
+                                        onClick={() => pixCode && handleCopy(pixCode)}
                                     >
                                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                     </Button>

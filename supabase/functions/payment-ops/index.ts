@@ -2490,6 +2490,13 @@ Deno.serve(async (req) => {
                     // Vem do navegador; o valor é só para atribuição e não
                     // entra em nenhuma decisão de cobrança.
                     tracking: payload.tracking ?? {},
+                    // Só o servidor vê IP e user-agent: a Pixel X exige os dois
+                    // e o navegador não consegue informar o próprio IP.
+                    device: {
+                        ip: (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '')
+                            .split(',')[0].trim(),
+                        user_agent: req.headers.get('user-agent') || '',
+                    },
                 },
             }).select('*').single();
 
