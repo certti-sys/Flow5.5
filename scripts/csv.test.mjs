@@ -17,6 +17,14 @@ test("detecta , como separador (Sheets/en)", () => {
   assert.deepEqual(rows, [["name", "email"], ["Maria", "maria@x.com"]]);
 });
 
+test("detecta tab como separador (colar do Excel)", () => {
+  const rows = parseCsv("name\temail\twhatsapp\nAna\tana@x.com\t5511911111111");
+  assert.deepEqual(rows, [
+    ["name", "email", "whatsapp"],
+    ["Ana", "ana@x.com", "5511911111111"],
+  ]);
+});
+
 test("campo entre aspas preserva separador e quebra de linha", () => {
   const rows = parseCsv('name;obs\n"Silva; Ana";"linha1\nlinha2"');
   assert.deepEqual(rows, [["name", "obs"], ["Silva; Ana", "linha1\nlinha2"]]);

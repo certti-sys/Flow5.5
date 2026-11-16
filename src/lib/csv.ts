@@ -3,16 +3,23 @@
 /**
  * Quebra o texto em linhas/campos respeitando aspas duplas.
  *
- * O separador é inferido da primeira linha porque o Excel pt-BR salva em `;`
- * e o Sheets/en exportam em `,`. Inferir evita exigir configuração do admin.
+ * O separador é inferido da primeira linha porque o Excel pt-BR salva em `;`,
+ * o Sheets/en exporta em `,` e colar do Excel gera tab. Inferir evita exigir
+ * configuração do admin.
  */
 export function parseCsv(rawText: string): string[][] {
   const text = rawText.replace(/^\uFEFF/, "");
   const firstBreak = text.indexOf("\n");
   const firstLine = firstBreak === -1 ? text : text.slice(0, firstBreak);
-  const semicolons = (firstLine.match(/;/g) ?? []).length;
-  const commas = (firstLine.match(/,/g) ?? []).length;
-  const delimiter = semicolons > commas ? ";" : ",";
+
+  // O separador mais frequente na primeira linha vence: tab > ; > ,
+  // (empate fica com `,`, o mais comum em CSV exportado por sistema).
+  const counts = [
+    { delimiter: "\t", count: (firstLine.match(/\t/g) ?? []).length },
+    { delimiter: ";", count: (firstLine.match(/;/g) ?? []).length },
+    { delimiter: ",", count: (firstLine.match(/,/g) ?? []).length },
+  ];
+  const delimiter = counts.reduce((best, cur) => (cur.count > best.count ? cur : best)).delimiter;
 
   const rows: string[][] = [];
   let row: string[] = [];
