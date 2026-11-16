@@ -4,73 +4,59 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Info, Loader2, Save, Send, Link, Monitor, Layout as LayoutIcon, Image as ImageIcon, Heart, RotateCcw, Palette } from "lucide-react";
+import { Info, Loader2, Save, Send, Link, Monitor, Layout as LayoutIcon, Image as ImageIcon, Heart, Palette, Award } from "lucide-react";
 import { ImageUploadField } from "./ImageUploadField";
 import { usePlatformSettings, PlatformSettings } from "@/hooks/usePlatformSettings";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
+const CERTIFICATE_TEMPLATES = [
+  { value: "dark-premium", label: "Dark Premium" },
+  { value: "classic-white", label: "Clássico Branco" },
+  { value: "minimal-light", label: "Minimalista Claro" },
+  { value: "corporate-blue", label: "Corporativo Azul" },
+];
+
+const pickFormData = (settings: Partial<PlatformSettings>): Partial<PlatformSettings> => ({
+  banner_badge_text: settings.banner_badge_text,
+  banner_title_line1: settings.banner_title_line1,
+  banner_title_line2: settings.banner_title_line2,
+  banner_title_line3: settings.banner_title_line3,
+  banner_subtitle: settings.banner_subtitle,
+  banner_button_primary_text: settings.banner_button_primary_text,
+  banner_button_primary_link: settings.banner_button_primary_link,
+  banner_button_secondary_text: settings.banner_button_secondary_text,
+  banner_button_secondary_link: settings.banner_button_secondary_link,
+  banner_background_url: settings.banner_background_url,
+  banner_title_size: settings.banner_title_size,
+  logo_text: settings.logo_text,
+  logo_image_url: settings.logo_image_url,
+  logo_horizontal_url: settings.logo_horizontal_url,
+  logo_display_mode: settings.logo_display_mode,
+  favicon_url: settings.favicon_url,
+  page_title: settings.page_title,
+  gradient_start_color: settings.gradient_start_color,
+  gradient_end_color: settings.gradient_end_color,
+  certificate_signature_url: settings.certificate_signature_url,
+  certificate_instructor_name: settings.certificate_instructor_name,
+  certificate_logo_url: settings.certificate_logo_url,
+  certificate_template: settings.certificate_template,
+  login_background_url: settings.login_background_url,
+  login_overlay_opacity: settings.login_overlay_opacity,
+});
+
 export const BrandingCustomization = () => {
   const { settings, updateSettings, isSaving, uploadAsset } = usePlatformSettings();
 
-  const [formData, setFormData] = useState<Partial<PlatformSettings>>({
-    banner_badge_text: settings.banner_badge_text,
-    banner_title_line1: settings.banner_title_line1,
-    banner_title_line2: settings.banner_title_line2,
-    banner_title_line3: settings.banner_title_line3,
-    banner_subtitle: settings.banner_subtitle,
-    banner_button_primary_text: settings.banner_button_primary_text,
-    banner_button_primary_link: settings.banner_button_primary_link,
-    banner_button_secondary_text: settings.banner_button_secondary_text,
-    banner_button_secondary_link: settings.banner_button_secondary_link,
-    banner_background_url: settings.banner_background_url,
-    banner_show_stats_card: settings.banner_show_stats_card,
-    banner_title_size: settings.banner_title_size ?? 'md',
-    logo_text: settings.logo_text,
-    logo_image_url: settings.logo_image_url,
-    logo_horizontal_url: settings.logo_horizontal_url,
-    logo_display_mode: settings.logo_display_mode,
-    favicon_url: settings.favicon_url,
-    page_title: settings.page_title,
-    gradient_start_color: settings.gradient_start_color,
-    gradient_end_color: settings.gradient_end_color,
-    certificate_signature_url: settings.certificate_signature_url ?? null,
-    certificate_instructor_name: settings.certificate_instructor_name ?? '',
-    login_background_url: settings.login_background_url,
-    login_overlay_opacity: settings.login_overlay_opacity ?? 50,
-  });
+
+  const [formData, setFormData] = useState<Partial<PlatformSettings>>(() => pickFormData(settings));
 
   useEffect(() => {
-    setFormData({
-      banner_badge_text: settings.banner_badge_text,
-      banner_title_line1: settings.banner_title_line1,
-      banner_title_line2: settings.banner_title_line2,
-      banner_title_line3: settings.banner_title_line3,
-      banner_subtitle: settings.banner_subtitle,
-      banner_button_primary_text: settings.banner_button_primary_text,
-      banner_button_primary_link: settings.banner_button_primary_link,
-      banner_button_secondary_text: settings.banner_button_secondary_text,
-      banner_button_secondary_link: settings.banner_button_secondary_link,
-      banner_background_url: settings.banner_background_url,
-      banner_show_stats_card: settings.banner_show_stats_card,
-    banner_title_size: settings.banner_title_size ?? 'md',
-      logo_text: settings.logo_text,
-      logo_image_url: settings.logo_image_url,
-      logo_horizontal_url: settings.logo_horizontal_url,
-      logo_display_mode: settings.logo_display_mode,
-      favicon_url: settings.favicon_url,
-      page_title: settings.page_title,
-      gradient_start_color: settings.gradient_start_color,
-      gradient_end_color: settings.gradient_end_color,
-      certificate_signature_url: settings.certificate_signature_url ?? null,
-      certificate_instructor_name: settings.certificate_instructor_name ?? '',
-      login_background_url: settings.login_background_url,
-      login_overlay_opacity: settings.login_overlay_opacity ?? 50,
-    });
+    setFormData(pickFormData(settings));
   }, [settings]);
 
   const handleBannerImageUpload = async (file: File) => {
@@ -103,6 +89,18 @@ export const BrandingCustomization = () => {
     return url;
   };
 
+  const handleSignatureUpload = async (file: File) => {
+    const url = await uploadAsset(file, 'certificate-signature');
+    setFormData(prev => ({ ...prev, certificate_signature_url: url }));
+    return url;
+  };
+
+  const handleCertificateLogoUpload = async (file: File) => {
+    const url = await uploadAsset(file, 'certificate-logo');
+    setFormData(prev => ({ ...prev, certificate_logo_url: url }));
+    return url;
+  };
+
   const handleSave = async () => {
     try {
       await updateSettings(formData);
@@ -123,7 +121,6 @@ export const BrandingCustomization = () => {
       banner_button_secondary_text: 'Meu Progresso',
       banner_button_secondary_link: '/perfil',
       banner_background_url: null,
-      banner_show_stats_card: false,
       banner_title_size: 'md',
       logo_text: 'EduStream',
       logo_image_url: null,
@@ -135,6 +132,8 @@ export const BrandingCustomization = () => {
       gradient_end_color: '#FF851B',
       certificate_signature_url: null,
       certificate_instructor_name: 'Diretoria Executiva',
+      certificate_logo_url: null,
+      certificate_template: 'dark-premium',
       login_background_url: null,
       login_overlay_opacity: 50,
     });
@@ -315,20 +314,6 @@ export const BrandingCustomization = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 glass-card border-white/5 rounded-[12px] bg-white/[0.01]">
-                  <div className="flex items-center gap-3">
-                    <LayoutIcon className="w-5 h-5 text-muted-foreground/70" />
-                    <Label htmlFor="stats-card" className="cursor-pointer text-[14px] font-bold text-white/60">
-                      Mostrar card de estatísticas
-                    </Label>
-                  </div>
-                  <Switch
-                    id="stats-card"
-                    checked={formData.banner_show_stats_card}
-                    onCheckedChange={(checked) => setFormData({ ...formData, banner_show_stats_card: checked })}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                </div>
               </div>
             </div>
           </CardContent>
@@ -567,6 +552,7 @@ export const BrandingCustomization = () => {
                   onImageRemove={() => setFormData({ ...formData, login_background_url: null })}
                   aspectRatio="16/9"
                   maxSizeMB={5}
+                  overlayOpacity={formData.login_overlay_opacity ?? 50}
                 />
 
                 {formData.login_background_url && (
@@ -592,6 +578,85 @@ export const BrandingCustomization = () => {
               </CardContent>
            </Card>
         </div>
+      </motion.div>
+
+      {/* Certificados */}
+      <motion.div variants={itemVariants}>
+        <Card className="glass-card border-white/10 rounded-[16px]">
+          <CardHeader className="p-8 border-b border-white/5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                <Award className="w-6 h-6 text-amber-500 shadow-glow-sm" />
+              </div>
+              <div>
+                <CardTitle className="text-[20px] font-bold text-white tracking-tight">Certificados</CardTitle>
+                <CardDescription className="text-[14px] text-muted-foreground/80 font-medium">
+                  Template e assinatura usados na emissão.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-8 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">
+                    Template
+                  </Label>
+                  <Select
+                    value={formData.certificate_template ?? "dark-premium"}
+                    onValueChange={(v) => setFormData({ ...formData, certificate_template: v })}
+                  >
+                    <SelectTrigger className="glass-card border-white/10 h-[44px] rounded-[12px] text-[14px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CERTIFICATE_TEMPLATES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-[13px] font-bold text-muted-foreground/80 uppercase tracking-widest block mb-2.5">
+                    Nome do Instrutor
+                  </Label>
+                  <Input
+                    value={formData.certificate_instructor_name ?? ""}
+                    onChange={(e) => setFormData({ ...formData, certificate_instructor_name: e.target.value })}
+                    placeholder="Diretoria Executiva"
+                    className="glass-card border-white/10 h-[44px] rounded-[12px] text-[14px]"
+                  />
+                </div>
+
+                <ImageUploadField
+                  label="Assinatura"
+                  description="PNG com fundo transparente."
+                  currentImageUrl={formData.certificate_signature_url}
+                  onImageUpload={handleSignatureUpload}
+                  onImageRemove={() => setFormData({ ...formData, certificate_signature_url: null })}
+                  aspectRatio="4/1"
+                  maxSizeMB={1}
+                  maxPreviewWidth="220px"
+                />
+              </div>
+
+              <div>
+                <ImageUploadField
+                  label="Logo do Certificado"
+                  description="Sem imagem, usa o logo da plataforma."
+                  currentImageUrl={formData.certificate_logo_url}
+                  onImageUpload={handleCertificateLogoUpload}
+                  onImageRemove={() => setFormData({ ...formData, certificate_logo_url: null })}
+                  aspectRatio="3/1"
+                  maxSizeMB={1}
+                  maxPreviewWidth="220px"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Action Bar */}

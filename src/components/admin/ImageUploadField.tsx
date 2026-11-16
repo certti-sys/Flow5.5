@@ -12,6 +12,8 @@ interface ImageUploadFieldProps {
   maxSizeMB?: number;
   maxPreviewWidth?: string;
   description?: string;
+  /** Escurece o preview, para telas que aplicam overlay sobre a imagem. */
+  overlayOpacity?: number;
 }
 
 export const ImageUploadField = ({
@@ -23,6 +25,7 @@ export const ImageUploadField = ({
   maxSizeMB = 5,
   maxPreviewWidth,
   description,
+  overlayOpacity,
 }: ImageUploadFieldProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
@@ -120,6 +123,13 @@ export const ImageUploadField = ({
               className="w-full rounded-lg object-cover"
               style={{ aspectRatio }}
             />
+            {overlayOpacity !== undefined && (
+              <div
+                className="absolute inset-0 rounded-lg bg-black pointer-events-none"
+                style={{ opacity: overlayOpacity / 100 }}
+                aria-hidden="true"
+              />
+            )}
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               <Button
                 type="button"

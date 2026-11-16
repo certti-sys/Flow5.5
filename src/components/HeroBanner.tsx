@@ -63,7 +63,7 @@ export const HeroBanner = () => {
               <span className="block">{settings.banner_title_line1}</span>
               <span className="block text-white/90">{settings.banner_title_line2}</span>
               {settings.banner_title_line3 && (
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">
+                <span className="block text-gradient">
                   {settings.banner_title_line3}
                 </span>
               )}
