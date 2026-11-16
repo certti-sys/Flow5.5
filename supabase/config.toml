@@ -14,6 +14,11 @@ verify_jwt = false
 [functions.dispatch-notifications]
 verify_jwt = false
 
+# Drenagem da fila de integrações de marketing (UTMfy, Meta CAPI, Spedy).
+# Mesmo desenho do webhook de saída.
+[functions.dispatch-integrations]
+verify_jwt = false
+
 [functions.delete-user]
 verify_jwt = true
 

@@ -37,6 +37,7 @@ const AdminWhatsAppSettings = lazy(() => import("./pages/admin/WhatsAppSettings"
 const AdminMonitoringSettings = lazy(() => import("./pages/admin/MonitoringSettings"));
 const Placeholder = lazy(() => import("./pages/admin/Placeholder"));
 const GatewaysPage = lazy(() => import("./pages/admin/Gateways"));
+const IntegrationsPage = lazy(() => import("./pages/admin/Integrations"));
 const ProductsPage = lazy(() => import("./pages/admin/Products"));
 const OrdersPage = lazy(() => import("./pages/admin/Orders"));
 const SalesDashboard = lazy(() => import("./pages/admin/SalesDashboard"));
@@ -321,6 +322,16 @@ const App = () => (
                     <AdminProtectedRoute>
                       <AdminLayout>
                         <GatewaysPage />
+                      </AdminLayout>
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/integracoes"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout>
+                        <IntegrationsPage />
                       </AdminLayout>
                     </AdminProtectedRoute>
                   }

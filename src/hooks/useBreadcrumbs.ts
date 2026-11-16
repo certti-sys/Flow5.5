@@ -85,6 +85,8 @@ export function useBreadcrumbs(): Breadcrumb[] {
       breadcrumbs.push({ label: "Carrosséis" });
     } else if (path === "/admin/webhooks") {
       breadcrumbs.push({ label: "Webhooks" });
+    } else if (path === "/admin/integracoes") {
+      breadcrumbs.push({ label: "Integrações" });
     } else if (path === "/admin/personalizacao") {
       breadcrumbs.push({ label: "Personalização" });
     } else if (path === "/admin/configuracoes") {

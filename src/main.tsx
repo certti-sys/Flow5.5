@@ -1,6 +1,11 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { captureTracking } from "./lib/tracking";
+
+// A origem do tráfego vem na URL de entrada e some quando o visitante navega
+// dentro da SPA, então precisa ser copiada no primeiro carregamento.
+captureTracking();
 
 /**
  * Bootstrap defensivo.

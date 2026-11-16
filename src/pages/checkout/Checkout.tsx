@@ -24,6 +24,8 @@ import { StripeCardElement } from "@/components/checkout/StripeCardElement";
 import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
 import { normalizeCheckoutConfig } from "@/types/checkout-config";
+import { getTracking } from "@/lib/tracking";
+import { initPixels, trackPixel } from "@/lib/pixels";
 import {
     fetchCheckoutGateways,
     resolveCheckoutGateways,
@@ -162,6 +164,27 @@ export default function CheckoutPage() {
             root.style.removeProperty('--checkout-bg');
         };
     }, [config.appearance.background_color]);
+
+    // Pixels configurados no admin. Carrega depois do produto para respeitar
+    // o filtro por produto e dispara PageView/InitiateCheckout.
+    useEffect(() => {
+        if (!resolvedProductId) return;
+        let cancelled = false;
+        (async () => {
+            const active = await initPixels(resolvedProductId);
+            if (cancelled || active.length === 0) return;
+            trackPixel({ name: "PageView" });
+            trackPixel({
+                name: "InitiateCheckout",
+                value: product?.price,
+                currency: "BRL",
+                contentIds: [resolvedProductId],
+            });
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [resolvedProductId, product?.price]);
 
     // Fetch Order Bumps aplicáveis
     const { data: orderBumps } = useQuery({
@@ -407,6 +430,13 @@ export default function CheckoutPage() {
             return;
           }
 
+            // Pixel de navegador: o visitante passou da validação e vai pagar.
+            trackPixel({
+                name: "AddPaymentInfo",
+                value: product?.price,
+                currency: "BRL",
+            });
+
             // If Stripe gateway, create Payment Intent first
             if (selectedGateway === 'stripe') {
                 await handleStripePayment(data);
@@ -519,6 +549,7 @@ export default function CheckoutPage() {
                     couponId: appliedCoupon?.valid ? appliedCoupon.coupon?.id : null,
                     couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : null,
                     discountAmount: couponDiscountInCents,
+                    tracking: getTracking(),
                     address: selectedMethod === 'bolbradesco'
                         ? {
                             zip_code: (data.zipCode || '').replace(/\D/g, ''),
@@ -642,7 +673,8 @@ export default function CheckoutPage() {
                     orderBumps: selectedBumps,
                     couponId: appliedCoupon?.valid ? appliedCoupon.coupon?.id : null,
                     couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : null,
-                    discountAmount: couponDiscountInCents
+                    discountAmount: couponDiscountInCents,
+                    tracking: getTracking()
                 }
             };
 

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Clock, Copy, Check, ArrowRight, Home, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ErrorState";
+import { initPixels, trackPixel } from "@/lib/pixels";
 
 interface PublicOrderItem {
     product_id: string | null;
@@ -105,6 +106,42 @@ export default function ThankYouPage() {
 
     const isPaid = order?.status === "paid" || order?.payment?.status === "paid";
     const redirectAfterPurchase = order?.redirect_after_purchase ?? null;
+
+    // Purchase uma vez por pedido: a página é recarregada no polling e o
+    // visitante pode voltar, então a guarda é por `sessionStorage`.
+    useEffect(() => {
+        if (!isPaid || !order || !orderId) return;
+        const key = `flow:purchase:${orderId}`;
+        try {
+            if (sessionStorage.getItem(key)) return;
+        } catch {
+            // Sem sessionStorage (modo restrito): dispara mesmo assim.
+        }
+
+        let cancelled = false;
+        (async () => {
+            const productId = order.items?.[0]?.product_id ?? null;
+            const active = await initPixels(productId);
+            if (cancelled || active.length === 0) return;
+            trackPixel({
+                name: "Purchase",
+                value: order.total_amount,
+                currency: order.currency || "BRL",
+                contentIds: order.items.map((i) => i.product_id).filter((id): id is string => !!id),
+                orderId: order.id,
+                productName: order.items?.[0]?.name,
+            });
+            try {
+                sessionStorage.setItem(key, "1");
+            } catch {
+                // Idem: o evento já saiu.
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isPaid, order, orderId]);
 
     // Redirecionamento pós-compra configurado no produto.
     useEffect(() => {

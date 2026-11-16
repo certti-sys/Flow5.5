@@ -22,7 +22,8 @@ import {
   UserCheck,
   Tag,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Plug
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -82,6 +83,7 @@ const communicationItems = [
 // 5. Configurações do Sistema
 const systemItems = [
   { title: "Gateways", url: "/admin/gateways", icon: CreditCard },
+  { title: "Integrações", url: "/admin/integracoes", icon: Plug },
   { title: "Webhooks", url: "/admin/webhooks", icon: Webhook },
   { title: "Monitoramento", url: "/admin/monitoring", icon: Activity },
 ];

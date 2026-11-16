@@ -37,6 +37,8 @@ const PaymentOpsSchema = z.object({
       city: z.string(),
       federal_unit: z.string(),
     }).optional(),
+    // Atribuição de tráfego capturada no navegador (utm_*, fbclid, src, sck).
+    tracking: z.record(z.string()).optional(),
     // Usado apenas em test_connection para escolher o ambiente.
     env: z.enum(['test', 'live']).optional(),
   })
@@ -2485,6 +2487,9 @@ Deno.serve(async (req) => {
                 metadata: {
                     idempotency_key: payload.idempotencyKey ?? null,
                     guest_checkout: !user,
+                    // Vem do navegador; o valor é só para atribuição e não
+                    // entra em nenhuma decisão de cobrança.
+                    tracking: payload.tracking ?? {},
                 },
             }).select('*').single();
 
