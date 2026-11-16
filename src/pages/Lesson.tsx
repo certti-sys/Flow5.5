@@ -177,18 +177,19 @@ const Lesson = () => {
   const courseId = lessonData?.modules?.courses?.id;
 
   // Check if user has access to this course
-  const { hasAccess, loading: loadingAccess } = useHasAccessToCourse(courseId || null);
+  const { hasAccess, loading: loadingAccess, failed: accessCheckFailed } = useHasAccessToCourse(courseId || null);
 
   // Redirect to info page if no access
   useEffect(() => {
     // Verify data is synced with current URL params before redirecting
     const isDataSynced = lessonData?.id === lessonId;
 
-    // Only redirect after lesson data has loaded, is synced, and access verification is complete
-    if (isDataSynced && !isLoading && lessonData && !loadingAccess && !hasAccess && courseId) {
+    // Só redireciona quando a checagem concluiu e disse "sem acesso".
+    // Verificação que falhou não pode expulsar o aluno da aula.
+    if (isDataSynced && !isLoading && lessonData && !loadingAccess && !accessCheckFailed && !hasAccess && courseId) {
       navigate(`/curso/${courseId}/info`);
     }
-  }, [hasAccess, loadingAccess, courseId, navigate, isLoading, lessonData, lessonId]);
+  }, [hasAccess, loadingAccess, accessCheckFailed, courseId, navigate, isLoading, lessonData, lessonId]);
 
   // Fetch comments with threading
   const { data: comments = [] } = useQuery({

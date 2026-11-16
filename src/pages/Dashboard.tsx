@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { HeroBanner } from "@/components/HeroBanner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, ChevronLeft, Play } from "lucide-react";
+import { ChevronRight, ChevronLeft, Play, AlertTriangle } from "lucide-react";
 import { useDragToScroll } from "@/hooks/useDragToScroll";
 import { CarouselIndicators } from "@/components/CarouselIndicators";
 import { useQuery } from "@tanstack/react-query";
@@ -85,7 +85,8 @@ const Dashboard = () => {
   const courseIds = courses.map((c: any) => c.id).filter(Boolean);
 
   // Check access for all courses
-  const { accessMap, loading: accessLoading } = useCourseAccess(courseIds);
+  // `accessCheckFailed` = não deu para verificar (não é o mesmo que "sem acesso")
+  const { accessMap, loading: accessLoading, failed: accessCheckFailed } = useCourseAccess(courseIds);
 
   // Calculate progress for each course
   const coursesWithProgress = courses.filter(Boolean).map((course: any) => {
@@ -108,8 +109,9 @@ const Dashboard = () => {
 
     const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-    // Use accessMap value, fallback to true if still loading (prevents flash)
-    const hasAccess = accessMap[course.id] ?? (accessLoading ? true : false);
+    // Use accessMap value; falha na verificação libera o card (o servidor é a
+    // fonte da verdade e um erro não pode parecer "você perdeu o acesso")
+    const hasAccess = accessCheckFailed ? true : (accessMap[course.id] ?? (accessLoading ? true : false));
 
     return {
       ...course,
@@ -190,6 +192,30 @@ const Dashboard = () => {
         className="w-full px-4 md:px-6 lg:px-8 pt-4 pb-8 md:pt-6 md:pb-12 space-y-8"
       >
         {/* Continue Watching Section */}
+        {accessCheckFailed && (
+          <div className="glass-card rounded-[16px] border-amber-500/30 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-start gap-3 flex-1">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-200">
+                  Não foi possível verificar seu acesso aos cursos
+                </p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  Os cursos continuam liberados. Se algum conteúdo não abrir, recarregue a página.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="glass-card border-white/10 hover:bg-white/10 rounded-[12px] shrink-0"
+            >
+              Recarregar
+            </Button>
+          </div>
+        )}
+
         {coursesInProgress.length > 0 && (
           <div className="glass-card rounded-[24px] border-white/10 p-5 md:p-6">
             <div className="flex items-center justify-between gap-4 mb-5">

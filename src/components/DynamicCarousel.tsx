@@ -109,7 +109,7 @@ export const DynamicCarousel = ({ carousel, className = "mb-10" }: DynamicCarous
   const courseIds = courses.map((c: any) => c.id).filter(Boolean);
 
   // Check access for all courses
-  const { accessMap, loading: accessLoading } = useCourseAccess(courseIds);
+  const { accessMap, loading: accessLoading, failed: accessCheckFailed } = useCourseAccess(courseIds);
 
   // Calculate progress for each course
   const coursesWithProgress = courses.filter(Boolean).map((course: any) => {
@@ -131,9 +131,8 @@ export const DynamicCarousel = ({ carousel, className = "mb-10" }: DynamicCarous
 
     const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-    // Use accessMap value, fallback to true if still loading (prevents flash of locked cards)
-    // The cache initialization in useCourseAccess should provide correct values
-    const hasAccess = accessMap[course.id] ?? (accessLoading ? true : false);
+    // Use accessMap value; falha na verificação libera o card (erro não é negação)
+    const hasAccess = accessCheckFailed ? true : (accessMap[course.id] ?? (accessLoading ? true : false));
 
     return {
       ...course,

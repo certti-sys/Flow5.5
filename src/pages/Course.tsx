@@ -72,7 +72,7 @@ const Course = () => {
     : 0;
 
   // Check if user has access to this course
-  const { hasAccess, loading: loadingAccess } = useHasAccessToCourse(courseId || null);
+  const { hasAccess, loading: loadingAccess, failed: accessCheckFailed } = useHasAccessToCourse(courseId || null);
 
   // Find current/next lesson to watch
   const findCurrentLesson = () => {
@@ -135,8 +135,9 @@ const Course = () => {
     // Verify data is synced with current URL params before redirecting
     const isDataSynced = course?.id === courseId;
 
-    // Only redirect after course data has loaded, is synced, and access verification is complete
-    if (isDataSynced && !isLoading && course && !loadingAccess && courseId) {
+    // Only redirect after course data has loaded, is synced, and access verification is complete.
+    // Se a verificação falhou, não redireciona: erro não é o mesmo que "sem acesso".
+    if (isDataSynced && !isLoading && course && !loadingAccess && !accessCheckFailed && courseId) {
       if (hasAccess) {
         // Has access - redirect to first uncompleted lesson
         const { lesson } = findCurrentLesson();
@@ -148,7 +149,7 @@ const Course = () => {
         navigate(`/curso/${courseId}/info`, { replace: true });
       }
     }
-  }, [hasAccess, loadingAccess, courseId, navigate, isLoading, course, modules]);
+  }, [hasAccess, loadingAccess, accessCheckFailed, courseId, navigate, isLoading, course, modules]);
 
   if (isLoading || loadingAccess) {
     return (
