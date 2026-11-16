@@ -92,12 +92,21 @@ export function ImportStudentsModal({ open, onOpenChange }: ImportStudentsModalP
   };
 
   const handleFile = async (file: File) => {
-    if (!/\.csv$/i.test(file.name)) {
-      toast.error("Envie um arquivo .csv");
-      return;
-    }
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Arquivo muito grande (máx. 2 MB).");
+      return;
+    }
+
+    // .xlsx é um ZIP (assinatura "PK"): deixamos passar a extensão mas avisamos
+    // o que fazer, em vez de falhar com "CSV vazio".
+    const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
+    if (head[0] === 0x50 && head[1] === 0x4b) {
+      toast.error("Arquivo .xlsx não é suportado. No Excel use Salvar como → CSV (separado por ponto e vírgula).");
+      return;
+    }
+
+    if (!/\.(csv|txt)$/i.test(file.name)) {
+      toast.error("Envie um arquivo .csv");
       return;
     }
 
@@ -110,14 +119,15 @@ export function ImportStudentsModal({ open, onOpenChange }: ImportStudentsModalP
 
     const header = parsed[0].map((h) => h.trim().toLowerCase());
     const idx = {
-      name: header.indexOf("name"),
-      email: header.indexOf("email"),
-      whatsapp: header.indexOf("whatsapp"),
-      password: header.indexOf("password"),
+      // Aceita cabeçalhos em português: o cliente costuma traduzir a planilha.
+      name: Math.max(header.indexOf("name"), header.indexOf("nome")),
+      email: Math.max(header.indexOf("email"), header.indexOf("e-mail")),
+      whatsapp: Math.max(header.indexOf("whatsapp"), header.indexOf("telefone")),
+      password: Math.max(header.indexOf("password"), header.indexOf("senha")),
     };
 
     if (idx.name === -1 || idx.email === -1) {
-      toast.error("Colunas obrigatórias ausentes: name e email.");
+      toast.error("Colunas obrigatórias ausentes: name (nome) e email.");
       return;
     }
 
@@ -279,7 +289,7 @@ export function ImportStudentsModal({ open, onOpenChange }: ImportStudentsModalP
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,.txt,text/csv"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -300,12 +310,17 @@ export function ImportStudentsModal({ open, onOpenChange }: ImportStudentsModalP
                 <span className="text-[12px] text-muted-foreground">Máximo 2 MB · até 100 alunos por lote</span>
               </button>
 
-              <div className="flex items-center justify-between gap-3 p-4 bg-black/20 border border-white/5 rounded-[12px]">
-                <div className="text-[12px] text-muted-foreground">
-                  Colunas: <code className="text-white/70">name</code>,{" "}
-                  <code className="text-white/70">email</code>,{" "}
-                  <code className="text-white/70">whatsapp</code>,{" "}
-                  <code className="text-white/70">password</code> (opcional)
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-black/20 border border-white/5 rounded-[12px]">
+                <div className="text-[12px] text-muted-foreground space-y-1">
+                  <p>
+                    Colunas: <code className="text-white/70">name</code>,{" "}
+                    <code className="text-white/70">email</code>,{" "}
+                    <code className="text-white/70">whatsapp</code>,{" "}
+                    <code className="text-white/70">password</code> (opcional)
+                  </p>
+                  <p className="text-muted-foreground/70">
+                    Baixe o modelo e preencha as linhas abaixo do cabeçalho. No Excel, salve como CSV.
+                  </p>
                 </div>
                 <Button
                   type="button"
@@ -314,7 +329,7 @@ export function ImportStudentsModal({ open, onOpenChange }: ImportStudentsModalP
                   className="glass-card border-white/10 hover:bg-white/5 h-[36px] px-4 rounded-[10px] text-[12px] font-bold text-white bg-transparent shrink-0"
                 >
                   <Download className="w-3.5 h-3.5 mr-2" />
-                  Modelo
+                  Baixar modelo
                 </Button>
               </div>
             </div>
