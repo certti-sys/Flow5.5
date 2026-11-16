@@ -81,10 +81,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: userRoles } = await supabase
+    const { data: userRoles, error: rolesError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id);
+    // Erro aqui não pode virar "sem acesso": o cliente mostraria todos os
+    // cursos bloqueados por uma falha passageira do banco.
+    if (rolesError) throw rolesError;
 
     const isAdmin = userRoles?.some(ur => ur.role === 'admin');
     logger.info(`Access check for user: ${user.id}`, { isAdmin, roleCount: userRoles?.length });
@@ -98,16 +101,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: userCourseAccess } = await supabase
+    const { data: userCourseAccess, error: accessError } = await supabase
       .from('user_course_access')
       .select('course_id')
       .eq('user_id', user.id)
       .in('course_id', courseIds);
+    if (accessError) throw accessError;
 
-    const { data: courses } = await supabase
+    const { data: courses, error: coursesError } = await supabase
       .from('courses')
       .select('id, category')
       .in('id', courseIds);
+    if (coursesError) throw coursesError;
 
     const categories = [...new Set(
       courses?.map(c => c.category).filter(Boolean) as string[]
@@ -115,11 +120,12 @@ Deno.serve(async (req) => {
 
     let categoryAccess: any[] = [];
     if (categories.length > 0) {
-      const { data } = await supabase
+      const { data, error: categoryError } = await supabase
         .from('user_course_categories')
         .select('category')
         .eq('user_id', user.id)
         .in('category', categories);
+      if (categoryError) throw categoryError;
       categoryAccess = data || [];
     }
 

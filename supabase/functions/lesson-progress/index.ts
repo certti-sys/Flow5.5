@@ -46,6 +46,15 @@ Deno.serve(async (req) => {
       }
     );
 
+    // Client sem o token do aluno: o header global acima sobrescreve o service
+    // role, então escritas em tabelas sem policy de update (user_stats) eram
+    // descartadas pela RLS sem erro. XP/streak precisam deste client.
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+
     const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (userError || !user) {
       return new Response(
@@ -171,11 +180,12 @@ Deno.serve(async (req) => {
         logger.info(`Awarding XP for first completion`, { userId: user.id, lessonId, xp: xpGained });
 
         // Fetch current stats
-        const { data: stats } = await supabase
+        const { data: stats, error: statsError } = await supabaseAdmin
           .from('user_stats')
-          .select('total_xp, level, lessons_today, last_activity_date')
+          .select('total_xp, level, lessons_today, last_activity_date, current_streak, best_streak')
           .eq('user_id', user.id)
           .maybeSingle();
+        if (statsError) logger.error('Error reading user_stats', statsError);
 
         const today = new Date().toISOString().split('T')[0];
         
@@ -183,7 +193,7 @@ Deno.serve(async (req) => {
           // Initialize stats if missing
           const newXp = xpGained;
           const newLevel = Math.floor(newXp / 100) + 1;
-          await supabase.from('user_stats').insert({
+          const { error: statsInsertError } = await supabaseAdmin.from('user_stats').insert({
             user_id: user.id,
             total_xp: newXp,
             level: newLevel,
@@ -192,6 +202,9 @@ Deno.serve(async (req) => {
             lessons_today: 1,
             last_activity_date: today
           });
+          if (statsInsertError) {
+            logger.error('Error initializing user_stats', statsInsertError);
+          }
         } else {
           // Update existing stats
           const newTotalXp = (stats.total_xp || 0) + xpGained;
@@ -225,7 +238,7 @@ Deno.serve(async (req) => {
           const isNewDay = stats.last_activity_date !== today;
           const newLessonsToday = isNewDay ? 1 : (stats.lessons_today || 0) + 1;
           
-          await supabase.from('user_stats').update({
+          const { error: statsUpdateError } = await supabaseAdmin.from('user_stats').update({
             total_xp: newTotalXp,
             level: newLevel,
             current_streak: newStreak,
@@ -234,6 +247,9 @@ Deno.serve(async (req) => {
             last_activity_date: today,
             updated_at: new Date().toISOString()
           }).eq('user_id', user.id);
+          if (statsUpdateError) {
+            logger.error('Error updating user_stats', statsUpdateError);
+          }
         }
       }
 
@@ -251,10 +267,27 @@ Deno.serve(async (req) => {
         );
       }
 
+      // As aulas pertencem a módulos, não ao curso: filtrar `lessons.module_id`
+      // pelo id do curso devolvia sempre vazio.
+      const { data: modules, error: modulesError } = await supabase
+        .from('modules')
+        .select('id')
+        .eq('course_id', courseId);
+      if (modulesError) throw modulesError;
+
+      const moduleIds = (modules ?? []).map((m) => m.id);
+
+      if (moduleIds.length === 0) {
+        return new Response(
+          JSON.stringify({ data: { lessonProgress: [], courseProgress: 0 } }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('id')
-        .eq('module_id', courseId);
+        .in('module_id', moduleIds);
       if (lessonsError) throw lessonsError;
 
       if (!allLessons || allLessons.length === 0) {
@@ -301,3 +334,4 @@ Deno.serve(async (req) => {
     );
   }
 });
+
