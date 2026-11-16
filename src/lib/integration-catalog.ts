@@ -1,4 +1,4 @@
-import { BarChart3, Facebook, FileText, LineChart, MessageSquare, Music2, MousePointerClick, Code2, Radio } from "lucide-react";
+import { BarChart3, Facebook, FileText, LineChart, MessageSquare, Music2, MousePointerClick, Code2, Radio, Tags } from "lucide-react";
 
 /**
  * Catálogo de integrações disponíveis.
@@ -17,9 +17,10 @@ export type IntegrationKind =
   | "pixel_tiktok"
   | "pixel_google_ads"
   | "pixel_ga4"
+  | "pixel_gtm"
   | "pixel_script";
 
-export type FieldType = "text" | "password" | "select" | "textarea" | "multiselect";
+export type FieldType = "text" | "password" | "select" | "textarea" | "multiselect" | "flags";
 
 export type Field = {
   key: string;
@@ -27,7 +28,9 @@ export type Field = {
   type: FieldType;
   placeholder?: string;
   help?: string;
-  options?: Array<{ value: string; label: string }>;
+  options?: Array<{ value: string; label: string; help?: string }>;
+  /** Para `flags`: valor inicial de cada chave. */
+  defaults?: Record<string, boolean>;
   /** `secret` vai para a coluna oculta, o resto para `config`. */
   secret?: boolean;
 };
@@ -46,6 +49,39 @@ export type CatalogEntry = {
    */
   cardinality?: "single" | "list";
   fields: Field[];
+};
+
+/**
+ * Comportamento do Purchase por pixel. Vem do sistema de referência e existe
+ * porque o mesmo evento pode ser contado em dois momentos (cobrança gerada e
+ * pagamento aprovado) e o order bump infla o valor da conversão.
+ */
+const PIXEL_FLAGS: Field = {
+  key: "flags",
+  label: "Comportamento do Purchase",
+  type: "flags",
+  defaults: {
+    fire_purchase_on_pix: true,
+    fire_purchase_on_boleto: true,
+    disable_order_bump_events: false,
+  },
+  options: [
+    {
+      value: "fire_purchase_on_pix",
+      label: "Disparar Purchase quando o PIX é gerado",
+      help: "Desligue se a loja só conta a venda depois da aprovação.",
+    },
+    {
+      value: "fire_purchase_on_boleto",
+      label: "Disparar Purchase quando o boleto é gerado",
+      help: "Mesmo critério, para boleto.",
+    },
+    {
+      value: "disable_order_bump_events",
+      label: "Ignorar order bump no valor da conversão",
+      help: "O Purchase sai só com o produto principal.",
+    },
+  ],
 };
 
 export const CATALOG: CatalogEntry[] = [
@@ -162,7 +198,10 @@ export const CATALOG: CatalogEntry[] = [
     accent: "text-pink-400",
     mode: "browser",
     cardinality: "list",
-    fields: [{ key: "pixel_id", label: "Pixel ID", type: "text", placeholder: "CXXXXXXXXXXXXXX" }],
+    fields: [
+      { key: "pixel_id", label: "Pixel ID", type: "text", placeholder: "CXXXXXXXXXXXXXX" },
+      PIXEL_FLAGS,
+    ],
   },
   {
     kind: "pixel_google_ads",
@@ -171,6 +210,7 @@ export const CATALOG: CatalogEntry[] = [
     icon: MousePointerClick,
     accent: "text-amber-400",
     mode: "browser",
+    cardinality: "list",
     fields: [
       { key: "conversion_id", label: "Conversion ID", type: "text", placeholder: "AW-123456789" },
       {
@@ -180,6 +220,7 @@ export const CATALOG: CatalogEntry[] = [
         placeholder: "AbC-D_efG",
         help: "Opcional. Sem ele o evento ainda é enviado.",
       },
+      PIXEL_FLAGS,
     ],
   },
   {
@@ -189,7 +230,29 @@ export const CATALOG: CatalogEntry[] = [
     icon: LineChart,
     accent: "text-orange-400",
     mode: "browser",
-    fields: [{ key: "measurement_id", label: "Measurement ID", type: "text", placeholder: "G-XXXXXXXXXX" }],
+    cardinality: "list",
+    fields: [
+      { key: "measurement_id", label: "Measurement ID", type: "text", placeholder: "G-XXXXXXXXXX" },
+      PIXEL_FLAGS,
+    ],
+  },
+  {
+    kind: "pixel_gtm",
+    name: "Google Tag Manager",
+    description: "Envia o funil do checkout para o dataLayer do contêiner GTM.",
+    icon: Tags,
+    accent: "text-sky-400",
+    mode: "browser",
+    cardinality: "list",
+    fields: [
+      {
+        key: "container_id",
+        label: "Container ID",
+        type: "text",
+        placeholder: "GTM-XXXXXXX",
+        help: "O contêiner precisa ter as tags de conversão; o dataLayer manda page_view, begin_checkout, add_payment_info e purchase.",
+      },
+    ],
   },
   {
     kind: "pixel_script",

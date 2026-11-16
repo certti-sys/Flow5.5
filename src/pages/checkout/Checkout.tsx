@@ -431,11 +431,15 @@ export default function CheckoutPage() {
           }
 
             // Pixel de navegador: o visitante passou da validação e vai pagar.
-            trackPixel({
-                name: "AddPaymentInfo",
-                value: product?.price,
-                currency: "BRL",
-            });
+            trackPixel(
+                {
+                    name: "AddPaymentInfo",
+                    value: product?.price,
+                    currency: "BRL",
+                    method: selectedMethod === 'bolbradesco' ? 'boleto' : selectedMethod === 'pix' ? 'pix' : undefined,
+                },
+                { isOrderBump: selectedBumps.length > 0 },
+            );
 
             // If Stripe gateway, create Payment Intent first
             if (selectedGateway === 'stripe') {
@@ -625,6 +629,50 @@ export default function CheckoutPage() {
                 toast.success("Pagamento aprovado! 🎉");
             } else {
                 toast.success("Pagamento processado!");
+            }
+
+            // PIX/boleto gerado ainda não é venda confirmada, mas o pixel pode
+            // querer contar a conversão agora — a flag de cada pixel decide.
+            // A guarda é a mesma do Purchase aprovado: um evento por pedido.
+            if (result.status !== 'paid' && (method === 'pix' || method === 'boleto')) {
+                const key = `flow:purchase:${orderId}`;
+                let alreadyFired = false;
+                try {
+                    alreadyFired = !!sessionStorage.getItem(key);
+                } catch {
+                    // Sem sessionStorage: dispara mesmo assim.
+                }
+                if (!alreadyFired) {
+                    const bumpItems = selectedBumps.flatMap((bumpId) => {
+                        const bump = orderBumps?.find((b: any) => b.id === bumpId);
+                        const offer = bump?.offer_product as any;
+                        if (!offer?.id) return [];
+                        const price = Math.round(offer.price * (1 - (bump.discount_percent || 0) / 100));
+                        return [{ productId: offer.id, name: offer.name, amount: price, kind: "order_bump" }];
+                    });
+                    const mainItem = resolvedProductId
+                        ? [{ productId: resolvedProductId, name: product?.name, amount: basePrice, kind: "main" }]
+                        : [];
+                    const items = [...mainItem, ...bumpItems];
+
+                    trackPixel(
+                        {
+                            name: "Purchase",
+                            value: finalAmountInCents,
+                            currency: "BRL",
+                            contentIds: items.map((i) => i.productId),
+                            orderId,
+                            productName: product?.name,
+                            items,
+                        },
+                        { triggerType: method },
+                    );
+                    try {
+                        sessionStorage.setItem(key, "1");
+                    } catch {
+                        // Idem: o evento já saiu.
+                    }
+                }
             }
 
             // Redirecionar para página de obrigado

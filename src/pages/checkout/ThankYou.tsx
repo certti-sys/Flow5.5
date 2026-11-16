@@ -140,14 +140,25 @@ export default function ThankYouPage() {
             const productId = order.items?.[0]?.product_id ?? null;
             const active = await initPixels(productId);
             if (cancelled || active.length === 0) return;
-            trackPixel({
-                name: "Purchase",
-                value: order.total_amount,
-                currency: order.currency || "BRL",
-                contentIds: order.items.map((i) => i.product_id).filter((id): id is string => !!id),
-                orderId: order.id,
-                productName: order.items?.[0]?.name,
-            });
+            trackPixel(
+                {
+                    name: "Purchase",
+                    value: order.total_amount,
+                    currency: order.currency || "BRL",
+                    contentIds: order.items.map((i) => i.product_id).filter((id): id is string => !!id),
+                    orderId: order.id,
+                    productName: order.items?.[0]?.name,
+                    items: order.items
+                        .filter((i) => i.product_id)
+                        .map((i) => ({
+                            productId: i.product_id as string,
+                            name: i.name,
+                            amount: i.unit_amount * i.quantity,
+                            kind: i.kind,
+                        })),
+                },
+                { triggerType: "approved" },
+            );
             try {
                 sessionStorage.setItem(key, "1");
             } catch {

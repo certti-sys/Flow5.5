@@ -286,7 +286,7 @@ function AppCard({
               <Settings className="w-3.5 h-3.5 mr-2" />
               {row ? "Editar" : "Conectar"}
             </Button>
-            {row && !row.has_secret && entry.kind !== "pixel_script" && (
+            {row && !row.has_secret && entry.fields.some((f) => f.secret) && (
               <span className="flex items-center gap-1 text-[12px] text-amber-400/90">
                 <XCircle className="w-3.5 h-3.5" />
                 Falta credencial
@@ -357,6 +357,7 @@ function ConfigSheet({
   const integration = editing?.row;
 
   const [values, setValues] = useState<Record<string, string>>({});
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
   const [secret, setSecret] = useState("");
   const [events, setEvents] = useState<string[]>([]);
   const [productIds, setProductIds] = useState<string[]>([]);
@@ -370,10 +371,21 @@ function ConfigSheet({
     if (!entry) return;
     const next: Record<string, string> = {};
     for (const field of entry.fields) {
-      if (field.secret || field.type === "multiselect") continue;
+      if (field.secret || field.type === "multiselect" || field.type === "flags") continue;
       next[field.key] = String(integration?.config?.[field.key] ?? field.options?.[0]?.value ?? "");
     }
     setValues(next);
+    const flagField = entry.fields.find((f) => f.type === "flags");
+    if (flagField) {
+      const saved = integration?.config ?? {};
+      const merged: Record<string, boolean> = {};
+      for (const opt of flagField.options ?? []) {
+        merged[opt.value] = Boolean(saved[opt.value] ?? flagField.defaults?.[opt.value] ?? false);
+      }
+      setFlags(merged);
+    } else {
+      setFlags({});
+    }
     setEvents(Array.isArray(integration?.config?.events) ? [...integration.config.events] : []);
     setSecret("");
     setProductIds(integration?.product_ids ?? []);
@@ -382,7 +394,7 @@ function ConfigSheet({
 
   if (!entry || !editing) return null;
 
-  const requiresSecret = entry.kind !== "pixel_script";
+  const requiresSecret = entry.fields.some((f) => f.secret);
 
   const handleSave = async () => {
     if (requiresSecret && !integration?.has_secret && !secret) {
@@ -412,6 +424,14 @@ function ConfigSheet({
     if (events.length > 0) config.events = events;
     for (const key of Object.keys(config)) {
       if (config[key] === "") delete config[key];
+    }
+
+    // Flags só entram quando fogem do padrão: o catálogo é a fonte do default,
+    // então linha antiga sem a chave já se comporta como ligada/desligada.
+    const flagField = entry.fields.find((f) => f.type === "flags");
+    for (const opt of flagField?.options ?? []) {
+      const value = flags[opt.value] ?? flagField?.defaults?.[opt.value] ?? false;
+      if (value !== (flagField?.defaults?.[opt.value] ?? false)) config[opt.value] = value;
     }
 
     setSaving(true);
@@ -504,7 +524,27 @@ function ConfigSheet({
             <div key={field.key} className="space-y-2">
               <Label className="text-[13px] text-white/80">{field.label}</Label>
 
-              {field.type === "select" ? (
+              {field.type === "flags" ? (
+                <div className="rounded-[10px] border border-white/10 bg-black/40 divide-y divide-white/5">
+                  {field.options?.map((o) => {
+                    const checked = flags[o.value] ?? field.defaults?.[o.value] ?? false;
+                    return (
+                      <label key={o.value} className="flex items-start gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-white/5">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => setFlags((prev) => ({ ...prev, [o.value]: !checked }))}
+                          className="accent-primary mt-0.5"
+                        />
+                        <span className="space-y-0.5">
+                          <span className="block text-[13px] text-white/80">{o.label}</span>
+                          {o.help && <span className="block text-[11.5px] text-muted-foreground">{o.help}</span>}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : field.type === "select" ? (
                 <Select
                   value={values[field.key] || field.options?.[0]?.value}
                   onValueChange={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}

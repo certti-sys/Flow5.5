@@ -10,15 +10,36 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-type Kind = "pixel_tiktok" | "pixel_google_ads" | "pixel_ga4" | "pixel_script";
+type Kind = "pixel_tiktok" | "pixel_google_ads" | "pixel_ga4" | "pixel_gtm" | "pixel_script";
 
 type PublicIntegration = { kind: Kind; config: Record<string, any> };
+
+/** De onde veio o Purchase: pagamento aprovado, ou a cobrança recém-gerada. */
+export type PixelTrigger = "approved" | "pix" | "boleto";
+
+export type TrackOptions = { triggerType?: PixelTrigger; isOrderBump?: boolean };
+
+type PurchaseItem = {
+  productId: string;
+  name?: string;
+  /** Centavos. */
+  amount: number;
+  kind?: string | null;
+};
 
 export type PixelEvent =
   | { name: "PageView" }
   | { name: "InitiateCheckout"; value?: number; currency?: string; contentIds?: string[] }
-  | { name: "AddPaymentInfo"; value?: number; currency?: string }
-  | { name: "Purchase"; value: number; currency: string; contentIds?: string[]; orderId: string; productName?: string };
+  | { name: "AddPaymentInfo"; value?: number; currency?: string; method?: "pix" | "boleto" }
+  | {
+      name: "Purchase";
+      value: number;
+      currency: string;
+      contentIds?: string[];
+      orderId: string;
+      productName?: string;
+      items?: PurchaseItem[];
+    };
 
 /** Centavos → reais. Pixels só entendem valor decimal. */
 const brl = (cents?: number) => (cents ?? 0) / 100;
@@ -63,6 +84,33 @@ function inlineScript(code: string, id: string): void {
   }
 
   document.head.appendChild(holder);
+}
+
+// ---------------------------------------------------------------------------
+// dataLayer (GTM)
+// ---------------------------------------------------------------------------
+
+let dataLayerActive = false;
+
+function ensureDataLayer(): Record<string, unknown>[] {
+  const w = window as any;
+  w.dataLayer = w.dataLayer || [];
+  return w.dataLayer;
+}
+
+function pushEvent(name: string, payload: Record<string, unknown>): void {
+  if (!dataLayerActive) return;
+  ensureDataLayer().push({ event: name, ...payload });
+}
+
+function loadGtm(containerId: string): void {
+  const id = String(containerId ?? "").trim().toUpperCase();
+  if (!/^GTM-[A-Z0-9]+$/.test(id)) return;
+  // O `dataLayer` precisa existir antes do container, senão o GTM cria o
+  // próprio e os eventos já enfileirados se perdem.
+  ensureDataLayer();
+  dataLayerActive = true;
+  injectScript(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(id)}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -118,12 +166,55 @@ function loadGoogleAds(conversionId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Flags por pixel
+// ---------------------------------------------------------------------------
+
+/**
+ * O pixel configurado pode recusar o Purchase: quando o checkout gerou a
+ * cobrança (PIX/boleto ainda não pago) ou quando o pedido tem order bump e a
+ * integração pede para não contaminar o valor da conversão.
+ */
+export function shouldFire(cfg: Record<string, any>, options: TrackOptions): boolean {
+  if (options.isOrderBump && cfg.disable_order_bump_events) return false;
+  if (options.triggerType === "pix" && cfg.fire_purchase_on_pix === false) return false;
+  if (options.triggerType === "boleto" && cfg.fire_purchase_on_boleto === false) return false;
+  return true;
+}
+
+/** Valor e itens do Purchase depois de aplicar `disable_order_bump_events`. */
+export function purchaseSlice(
+  event: Extract<PixelEvent, { name: "Purchase" }>,
+  cfg: Record<string, any>,
+): { value: number; items: PurchaseItem[]; contentIds?: string[] } {
+  const items = event.items ?? [];
+  if (!cfg.disable_order_bump_events || items.length === 0) {
+    return { value: event.value, items, contentIds: event.contentIds };
+  }
+  const kept = items.filter((i) => i.kind !== "order_bump");
+  // Pedido só com bump: sem o principal não há conversão a atribuir.
+  if (kept.length === 0) return { value: 0, items: [], contentIds: [] };
+  return {
+    value: kept.reduce((sum, i) => sum + i.amount, 0),
+    items: kept,
+    contentIds: kept.map((i) => i.productId),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
 
 let current: PublicIntegration[] = [];
+let lastProductId: string | null | undefined;
 
-/** Lê a configuração pública e injeta os scripts. Retorna os ativos. */
+/**
+ * Eventos de topo de funil disparam uma vez por produto nesta página: o
+ * `useEffect` do checkout remonta (StrictMode, hot reload) e sem a guarda a
+ * conversão dobra.
+ */
+const firedOnce = new Set<string>();
+
+/** Lê a configuração e injeta os scripts. Retorna os ativos. */
 export async function initPixels(productId?: string | null): Promise<PublicIntegration[]> {
   try {
     const { data, error } = await (supabase as any).rpc("get_public_integrations", {
@@ -133,6 +224,10 @@ export async function initPixels(productId?: string | null): Promise<PublicInteg
     current = data as PublicIntegration[];
   } catch {
     return [];
+  }
+  if (productId !== lastProductId) {
+    lastProductId = productId;
+    firedOnce.clear();
   }
 
   for (const integration of current) {
@@ -147,6 +242,9 @@ export async function initPixels(productId?: string | null): Promise<PublicInteg
       case "pixel_ga4":
         loadGa4(cfg.measurement_id);
         break;
+      case "pixel_gtm":
+        loadGtm(cfg.container_id);
+        break;
       case "pixel_script":
         if (cfg.head_script) inlineScript(String(cfg.head_script), "flow-custom-pixel");
         break;
@@ -156,8 +254,26 @@ export async function initPixels(productId?: string | null): Promise<PublicInteg
   return current;
 }
 
-export function trackPixel(event: PixelEvent): void {
+function itemPayload(items: PurchaseItem[]) {
+  return items.map((i) => ({
+    item_id: i.productId,
+    item_name: i.name,
+    price: brl(i.amount),
+    quantity: 1,
+  }));
+}
+
+export function trackPixel(event: PixelEvent, options: TrackOptions = {}): void {
   if (current.length === 0) return;
+
+  // Topo de funil: uma vez por produto, mesmo com o componente remontando.
+  // `Purchase` tem dedupe por pedido no chamador, e `AddPaymentInfo` é por
+  // tentativa de pagamento — repetir ali é legítimo.
+  if (event.name === "PageView" || event.name === "InitiateCheckout") {
+    const key = `${event.name}:${lastProductId ?? ""}`;
+    if (firedOnce.has(key)) return;
+    firedOnce.add(key);
+  }
 
   for (const integration of current) {
     const cfg = integration.config ?? {};
@@ -174,10 +290,16 @@ export function trackPixel(event: PixelEvent): void {
         AddPaymentInfo: "AddPaymentInfo",
         Purchase: "CompletePayment",
       };
+      if (event.name === "Purchase" && !shouldFire(cfg, options)) continue;
+      const slice = event.name === "Purchase" ? purchaseSlice(event, cfg) : null;
       ttq.track(map[event.name], {
-        value: brl("value" in event ? event.value : 0),
+        value: slice ? brl(slice.value) : brl("value" in event ? event.value : 0),
         currency: "currency" in event ? event.currency ?? "BRL" : "BRL",
-        content_id: "contentIds" in event ? event.contentIds?.[0] : undefined,
+        content_id: slice
+          ? slice.contentIds?.[0] ?? event.orderId
+          : "contentIds" in event
+          ? event.contentIds?.[0]
+          : undefined,
         content_type: "product",
       });
       continue;
@@ -186,11 +308,13 @@ export function trackPixel(event: PixelEvent): void {
     if (integration.kind === "pixel_google_ads") {
       const gtag = (window as any).gtag;
       if (!gtag || event.name !== "Purchase") continue;
+      if (!shouldFire(cfg, options)) continue;
       const label = cfg.label ? String(cfg.label) : undefined;
       if (!cfg.conversion_id || !label) continue;
+      const slice = purchaseSlice(event, cfg);
       gtag("event", "conversion", {
         send_to: `${cfg.conversion_id}/${label}`,
-        value: brl(event.value),
+        value: brl(slice.value),
         currency: event.currency || "BRL",
         transaction_id: event.orderId,
       });
@@ -200,21 +324,65 @@ export function trackPixel(event: PixelEvent): void {
     if (integration.kind === "pixel_ga4") {
       const gtag = (window as any).gtag;
       if (!gtag) continue;
+      if (event.name === "Purchase" && !shouldFire(cfg, options)) continue;
       const names: Record<string, string> = {
         PageView: "page_view",
         InitiateCheckout: "begin_checkout",
         AddPaymentInfo: "add_payment_info",
         Purchase: "purchase",
       };
+      const slice = event.name === "Purchase" ? purchaseSlice(event, cfg) : null;
       // GA4 não aceita `page_view` com valor; eventos de e-commerce sim.
       gtag("event", names[event.name], {
-        value: "value" in event ? brl(event.value) : undefined,
+        value: slice ? brl(slice.value) : "value" in event ? brl(event.value) : undefined,
         currency: "currency" in event ? event.currency : undefined,
         transaction_id: event.name === "Purchase" ? event.orderId : undefined,
-        items: "contentIds" in event && event.contentIds
-          ? event.contentIds.map((id) => ({ item_id: id, item_name: event.name === "Purchase" ? event.productName : undefined }))
+        items: slice
+          ? itemPayload(slice.items)
+          : "contentIds" in event && event.contentIds
+          ? event.contentIds.map((id) => ({
+              item_id: id,
+              item_name: event.name === "Purchase" ? event.productName : undefined,
+            }))
           : undefined,
       });
     }
+  }
+
+  // Nomes iguais aos do dataLayer da referência, para as tags do GTM não
+  // precisarem de configuração específica por loja.
+  const currency = "currency" in event ? event.currency ?? "BRL" : "BRL";
+  switch (event.name) {
+    case "PageView":
+      pushEvent("page_view", { page_path: window.location.pathname });
+      break;
+    case "InitiateCheckout":
+      pushEvent("begin_checkout", { value: brl(event.value), currency });
+      break;
+    case "AddPaymentInfo": {
+      pushEvent("add_payment_info", {
+        value: brl(event.value),
+        currency,
+        payment_type: event.method ?? "pix",
+      });
+      if (event.method === "pix" || event.method === "boleto") {
+        pushEvent(event.method === "boleto" ? "boleto_generated" : "pix_generated", {
+          value: brl(event.value),
+          currency,
+        });
+      }
+      break;
+    }
+    case "Purchase":
+      // O dataLayer leva o valor cheio do pedido: quem filtra order bump é a
+      // tag do GTM, e as flags por pixel já foram aplicadas acima.
+      pushEvent("purchase", {
+        value: brl(event.value),
+        currency,
+        transaction_id: event.orderId,
+        items: itemPayload(event.items ?? []),
+        trigger_type: options.triggerType ?? "approved",
+      });
+      break;
   }
 }
