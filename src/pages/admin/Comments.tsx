@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -12,6 +12,7 @@ import {
   Eye,
   Trash2,
   UserCircle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,7 @@ interface Comment {
 
 const Comments = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [courseFilter, setCourseFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
@@ -84,6 +86,7 @@ const Comments = () => {
   const [orderBy, setOrderBy] = useState("recent");
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [replyOpen, setReplyOpen] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: comments = [], isLoading, isError, refetch } = useQuery({
@@ -117,6 +120,61 @@ const Comments = () => {
         .order("title");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const closeReply = () => {
+    setReplyOpen(false);
+    setReplyContent("");
+  };
+
+  // A resposta é um comentário com parent_id apontando para o comentário
+  // original — mesma estrutura que a página da aula já usa.
+  const replyMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedComment || !user) throw new Error("Sessão expirada. Entre novamente.");
+      const content = replyContent.trim();
+      if (!content) throw new Error("Escreva uma resposta antes de enviar.");
+
+      const { error } = await supabase.from("comments").insert({
+        lesson_id: selectedComment.lesson_id,
+        user_id: user.id,
+        content,
+        parent_id: selectedComment.id,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminComments"] });
+      toast.success("Resposta enviada!");
+      closeReply();
+      setSelectedComment(null);
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao enviar resposta", { description: error.message });
+    },
+  });
+
+  // Excluir um comentário raiz leva junto as respostas dele: sem FK em
+  // cascata, elas ficariam órfãs e invisíveis no painel.
+  const deleteMutation = useMutation({
+    mutationFn: async (comment: Comment) => {
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .or(`id.eq.${comment.id},parent_id.eq.${comment.id}`);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminComments"] });
+      toast.success("Comentário excluído!");
+      setDeleteOpen(false);
+      setSelectedComment(null);
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir comentário", { description: error.message });
     },
   });
 
@@ -355,7 +413,7 @@ const Comments = () => {
                   </div>
                   <div className="flex items-center gap-2 pt-3 border-t border-white/5 opacity-40 group-hover:opacity-100 transition-opacity">
                     {!comment.parent_id && (
-                      <Button variant="ghost" size="icon" onClick={() => { setSelectedComment(comment); setReplyOpen(true); }} className="w-9 h-9 rounded-xl hover:bg-primary/20 hover:text-primary transition-all" title="Responder">
+                      <Button variant="ghost" size="icon" onClick={() => { setSelectedComment(comment); setReplyContent(""); setReplyOpen(true); }} className="w-9 h-9 rounded-xl hover:bg-primary/20 hover:text-primary transition-all" title="Responder">
                         <Reply className="w-4 h-4" />
                       </Button>
                     )}
@@ -380,7 +438,7 @@ const Comments = () => {
       )}
 
       {selectedComment && replyOpen && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setReplyOpen(false); }}>
+        <Dialog open={true} onOpenChange={(open) => { if (!open) closeReply(); }}>
           <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-2xl p-0 overflow-hidden bg-black/90 backdrop-blur-xl">
             <DialogHeader className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
               <div className="flex items-center gap-4">
@@ -405,22 +463,35 @@ const Comments = () => {
                 <div className="relative">
                   <textarea
                     placeholder="Escreva sua resposta..."
-                    value=""
-                    onChange={() => {}}
-                    className="min-h-[140px] glass-card border-white/10 focus:border-primary/50 bg-black/40 rounded-[16px] p-4 text-[14px] placeholder:text-white/60 resize-none outline-none block w-full"
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    disabled={replyMutation.isPending}
+                    autoFocus
+                    className="min-h-[140px] w-full glass-card border-white/10 focus:border-primary/50 bg-black/40 rounded-[16px] p-4 pb-10 text-[14px] text-white caret-primary placeholder:text-white/60 resize-none outline-none block disabled:opacity-60"
                   />
-                  <div className="absolute bottom-3 right-3 text-[12px] uppercase font-bold text-white/60">
+                  <div className="pointer-events-none absolute bottom-3 right-3 text-[12px] uppercase font-bold text-white/60">
                     Sua resposta será pública
                   </div>
                 </div>
               </div>
             </div>
             <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
-              <Button variant="outline" className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold" onClick={() => setReplyOpen(false)}>
+              <Button variant="outline" className="h-[44px] px-6 glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold" onClick={closeReply} disabled={replyMutation.isPending}>
                 Cancelar
               </Button>
-              <Button className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow transition-all active:scale-95" onClick={() => setReplyOpen(false)}>
-                Enviar Resposta
+              <Button
+                className="h-[44px] px-6 rounded-[12px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow transition-all active:scale-95"
+                onClick={() => replyMutation.mutate()}
+                disabled={replyMutation.isPending || !replyContent.trim()}
+              >
+                {replyMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  "Enviar Resposta"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -443,7 +514,18 @@ const Comments = () => {
             </div>
             <div className="px-6 py-5 border-t border-white/5 bg-black/40 flex items-center justify-end gap-3 rounded-b-[20px]">
               <AlertDialogCancel className="flex-1 h-[44px] glass-card border-white/10 hover:bg-white/5 rounded-[12px] text-white bg-transparent font-bold mt-0">Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => setDeleteOpen(false)} className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold">Excluir Agora</AlertDialogAction>
+              <AlertDialogAction
+                onClick={(event) => {
+                  // Evita o fechamento automático: só fecha depois do sucesso,
+                  // para o erro aparecer com o diálogo ainda aberto.
+                  event.preventDefault();
+                  if (selectedComment) deleteMutation.mutate(selectedComment);
+                }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 h-[44px] bg-red-500 hover:bg-red-600 text-white border-0 rounded-[12px] font-bold"
+              >
+                {deleteMutation.isPending ? "Excluindo..." : "Excluir Agora"}
+              </AlertDialogAction>
             </div>
           </AlertDialogContent>
         </AlertDialog>
