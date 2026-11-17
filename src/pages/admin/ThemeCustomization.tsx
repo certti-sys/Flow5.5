@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Palette, Save, RotateCcw, Loader2, Check, Copy, Image as ImageIcon, Layout as LayoutIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { generatePalette, ColorPalette, resetThemeToDefault, hslToHex, getContrastColor } from "@/lib/colorGenerator";
+import { generatePalette, ColorPalette, hslToHex, getContrastColor, getCachedTheme, applyThemeToCSSVariables } from "@/lib/colorGenerator";
 import { useTheme } from "@/hooks/useTheme";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BrandingCustomization } from "@/components/admin/BrandingCustomization";
@@ -16,21 +16,32 @@ import { LayoutCustomization } from "@/components/admin/LayoutCustomization";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
+// Cor usada quando a plataforma realmente não tem tema configurado.
+const DEFAULT_THEME_COLOR = "#ea384c";
+
 export default function ThemeCustomization() {
-  const [selectedColor, setSelectedColor] = useState("#ea384c");
-  const [generatedPalette, setGeneratedPalette] = useState<ColorPalette | null>(null);
+  // Parte do último tema conhecido (cache) para nunca exibir/salvar a cor
+  // padrão enquanto a configuração real ainda está carregando.
+  const [selectedColor, setSelectedColor] = useState(
+    () => getCachedTheme()?.primaryColor || DEFAULT_THEME_COLOR,
+  );
+  const [generatedPalette, setGeneratedPalette] = useState<ColorPalette | null>(
+    () => getCachedTheme()?.palette ?? null,
+  );
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
-  const { activeTheme, applyPreview, saveTheme, isSaving } = useTheme();
+  const { activeTheme, isLoading, applyPreview, saveTheme, isSaving } = useTheme();
 
   // Generate initial palette
   useEffect(() => {
+    if (isLoading) return;
+
     if (activeTheme?.primary_color) {
       setSelectedColor(activeTheme.primary_color);
       setGeneratedPalette(activeTheme.color_palette);
     } else {
-      handleGeneratePalette("#ea384c");
+      handleGeneratePalette(DEFAULT_THEME_COLOR);
     }
-  }, [activeTheme]);
+  }, [activeTheme, isLoading]);
 
   const handleGeneratePalette = (color: string) => {
     if (!color || color.length < 7) return;
@@ -66,10 +77,13 @@ export default function ThemeCustomization() {
   };
 
   const handleResetToDefault = () => {
-    setSelectedColor("#ea384c");
-    handleGeneratePalette("#ea384c");
-    resetThemeToDefault();
-    toast.info("Cores resetadas para o padrão.");
+    const palette = generatePalette(DEFAULT_THEME_COLOR);
+    setSelectedColor(DEFAULT_THEME_COLOR);
+    setGeneratedPalette(palette);
+    // Só preview local: limpar o cache/variáveis aqui deixava a página com a
+    // cor padrão e o banco com a cor configurada (sumia até recarregar).
+    applyThemeToCSSVariables(palette);
+    toast.info("Cor padrão selecionada. Clique em Salvar para publicar.");
   };
 
   const copyToClipboard = (hex: string) => {
@@ -294,6 +308,7 @@ export default function ThemeCustomization() {
               <Button
                 variant="outline"
                 onClick={handleResetToDefault}
+                disabled={isLoading || isSaving}
                 className="h-[44px] px-6 rounded-[12px] text-[14px] font-bold glass-card hover:bg-white/5 border-white/10"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
@@ -302,14 +317,14 @@ export default function ThemeCustomization() {
               <Button
                 variant="secondary"
                 onClick={handleApplyPreview}
-                disabled={!generatedPalette}
+                disabled={!generatedPalette || isLoading}
                 className="h-[44px] px-6 rounded-[12px] text-[14px] font-bold bg-white/5 hover:bg-white/10 border border-white/5"
               >
                 Visualizar
               </Button>
               <Button
                 onClick={handleSaveTheme}
-                disabled={!generatedPalette || isSaving}
+                disabled={!generatedPalette || isSaving || isLoading}
                 className="h-[44px] px-8 rounded-[12px] text-[14px] font-bold gradient-primary shadow-glow hover:scale-105 transition-all min-w-[140px]"
               >
                 {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}

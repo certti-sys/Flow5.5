@@ -37,27 +37,50 @@
     <!-- Apply cached theme BEFORE React loads to prevent flash -->
     <script>
       (function() {
+        var root = document.documentElement;
+
+        function applyPalette(p) {
+          if (!p || !p['500']) return;
+          var h = p['500'].split(' ')[0];
+          root.style.setProperty('--primary', p['500']);
+          root.style.setProperty('--accent', p['500']);
+          root.style.setProperty('--ring', p['500']);
+          root.style.setProperty('--sidebar-primary', p['500']);
+          root.style.setProperty('--sidebar-ring', p['500']);
+          root.style.setProperty('--sidebar-accent', p['700']);
+          root.style.setProperty('--gradient-primary', 'linear-gradient(135deg, hsl(' + p['500'] + ') 0%, hsl(' + h + ' 95% 55%) 100%)');
+          root.style.setProperty('--shadow-glow', '0 0 40px hsl(' + p['500'] + ' / 0.3)');
+          Object.keys(p).forEach(function (shade) {
+            root.style.setProperty('--primary-' + shade, p[shade]);
+          });
+        }
+
+        // ---------- 1) último tema conhecido (instantâneo) ----------
         try {
-          // Apply cached color theme
           var themeCache = localStorage.getItem('activeTheme');
           if (themeCache) {
             var theme = JSON.parse(themeCache);
-            if (theme && theme.palette) {
-              var root = document.documentElement;
-              var p = theme.palette;
-              root.style.setProperty('--primary', p['500']);
-              root.style.setProperty('--accent', p['500']);
-              root.style.setProperty('--ring', p['500']);
-              root.style.setProperty('--sidebar-primary', p['500']);
-              root.style.setProperty('--sidebar-ring', p['500']);
-              root.style.setProperty('--sidebar-accent', p['700']);
-              // Apply gradient
-              var h = p['500'].split(' ')[0];
-              root.style.setProperty('--gradient-primary', 'linear-gradient(135deg, hsl(' + p['500'] + ') 0%, hsl(' + h + ' 95% 55%) 100%)');
-              root.style.setProperty('--shadow-glow', '0 0 40px hsl(' + p['500'] + ' / 0.3)');
+            if (theme && theme.vars) {
+              // Formato atual: conjunto completo de variáveis já calculadas
+              Object.keys(theme.vars).forEach(function (name) {
+                if (theme.vars[name]) root.style.setProperty(name, theme.vars[name]);
+              });
+            } else if (theme && theme.palette) {
+              // Formato antigo (cache de versões anteriores)
+              applyPalette(theme.palette);
             }
           }
-          
+
+          // Cores do gradiente de texto (configuradas no Branding)
+          var gradientCache = localStorage.getItem('brandingGradient');
+          if (gradientCache) {
+            var gradient = JSON.parse(gradientCache);
+            if (gradient && gradient.start && gradient.end) {
+              root.style.setProperty('--gradient-text-start', gradient.start);
+              root.style.setProperty('--gradient-text-end', gradient.end);
+            }
+          }
+
           // Apply cached layout setting to prevent layout flash
           var layoutCache = localStorage.getItem('navigation_layout');
           if (layoutCache) {
@@ -65,6 +88,29 @@
           }
         } catch (e) {
           // Silently fail - React will handle it
+        }
+
+        // ---------- 2) tema real da plataforma, antes do React ----------
+        // Primeira visita no navegador não tem cache e veria a cor padrão até
+        // o bundle carregar. Esta consulta começa junto com o HTML e o React
+        // reaproveita a mesma promise (ver useTheme), sem request duplicado.
+        var supabaseUrl = "%VITE_SUPABASE_URL%";
+        var supabaseKey = "%VITE_SUPABASE_ANON_KEY%";
+        if (supabaseUrl && supabaseKey &&
+            supabaseUrl.indexOf('%VITE_') !== 0 && supabaseKey.indexOf('%VITE_') !== 0) {
+          window.__themeBootstrap = fetch(
+            supabaseUrl.replace(/\/+$/, '') +
+              '/rest/v1/theme_settings?select=id,primary_color,color_palette,is_active&is_active=eq.true',
+            { headers: { apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey } }
+          )
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (rows) {
+              if (rows && rows[0] && rows[0].color_palette) {
+                applyPalette(rows[0].color_palette);
+              }
+              return rows;
+            })
+            .catch(function () { return null; });
         }
       })();
     </script>

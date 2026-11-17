@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useLayoutEffect } from 'react';
 import { usePlatformSettings, PlatformSettings } from '@/hooks/usePlatformSettings';
 
 interface PlatformSettingsContextType {
@@ -7,6 +7,8 @@ interface PlatformSettingsContextType {
 }
 
 const PlatformSettingsContext = createContext<PlatformSettingsContextType | undefined>(undefined);
+
+const GRADIENT_CACHE_KEY = 'brandingGradient';
 
 // Function to convert HEX to HSL
 const hexToHSL = (hex: string): { h: number; s: number; l: number } => {
@@ -35,23 +37,47 @@ const hexToHSL = (hex: string): { h: number; s: number; l: number } => {
   };
 };
 
+const toCssHsl = (hex: string): string | null => {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
+  const { h, s, l } = hexToHSL(hex);
+  return `${h} ${s}% ${l}%`;
+};
+
 export const PlatformSettingsProvider = ({ children }: { children: ReactNode }) => {
   const { settings, isLoading } = usePlatformSettings();
 
-  // Apply gradient colors to CSS variables when settings change
-  useEffect(() => {
-    if (settings.gradient_start_color && settings.gradient_end_color) {
-      const startHSL = hexToHSL(settings.gradient_start_color);
-      const endHSL = hexToHSL(settings.gradient_end_color);
+  // Apply gradient colors to CSS variables when settings change.
+  // useLayoutEffect: antes do paint. E não aplica enquanto carrega, senão o
+  // valor de `defaultSettings` (#FF4136/#FF851B) pisca antes da cor real.
+  useLayoutEffect(() => {
+    if (isLoading) return;
 
-      const root = document.documentElement;
-      root.style.setProperty('--gradient-text-start', `${startHSL.h} ${startHSL.s}% ${startHSL.l}%`);
-      root.style.setProperty('--gradient-text-end', `${endHSL.h} ${endHSL.s}% ${endHSL.l}%`);
+    const root = document.documentElement;
+    const start = settings.gradient_start_color ? toCssHsl(settings.gradient_start_color) : null;
+    const end = settings.gradient_end_color ? toCssHsl(settings.gradient_end_color) : null;
+
+    if (start && end) {
+      root.style.setProperty('--gradient-text-start', start);
+      root.style.setProperty('--gradient-text-end', end);
+      // Cache para o script inline do index.html aplicar antes do React.
+      try {
+        localStorage.setItem(GRADIENT_CACHE_KEY, JSON.stringify({ start, end }));
+      } catch {
+        // localStorage pode estar indisponível
+      }
+    } else {
+      root.style.removeProperty('--gradient-text-start');
+      root.style.removeProperty('--gradient-text-end');
+      try {
+        localStorage.removeItem(GRADIENT_CACHE_KEY);
+      } catch {
+        // localStorage pode estar indisponível
+      }
     }
-  }, [settings.gradient_start_color, settings.gradient_end_color]);
+  }, [isLoading, settings.gradient_start_color, settings.gradient_end_color]);
 
   // Apply favicon when settings change
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (settings.favicon_url) {
       // Find existing favicon link or create new ones
       const existingFavicons = document.querySelectorAll("link[rel*='icon']");
@@ -72,11 +98,11 @@ export const PlatformSettingsProvider = ({ children }: { children: ReactNode }) 
   }, [settings.favicon_url]);
 
   // Apply page title
-  useEffect(() => {
-    if (settings.page_title) {
+  useLayoutEffect(() => {
+    if (!isLoading && settings.page_title) {
       document.title = settings.page_title;
     }
-  }, [settings.page_title]);
+  }, [isLoading, settings.page_title]);
 
   return (
     <PlatformSettingsContext.Provider value={{ settings, isLoading }}>

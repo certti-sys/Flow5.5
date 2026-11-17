@@ -181,34 +181,44 @@ function readableForeground(hsl: string): string {
 }
 
 /**
+ * Mapeia a paleta para as variáveis CSS do tema.
+ *
+ * Existe separado de `applyThemeToCSSVariables` porque o mesmo conjunto é
+ * gravado no cache local e aplicado pelo script inline do `index.html` antes
+ * do React montar (evita o flash de cor padrão).
+ */
+export function buildThemeVariables(palette: ColorPalette): Record<string, string> {
+  const h = palette[500].split(' ')[0];
+
+  const vars: Record<string, string> = {
+    '--primary': palette[500],
+    '--accent': palette[500],
+    '--ring': palette[500],
+    '--primary-foreground': readableForeground(palette[500]),
+    '--gradient-primary': `linear-gradient(135deg, hsl(${palette[500]}) 0%, hsl(${h} 95% 55%) 100%)`,
+    '--shadow-glow': `0 0 40px hsl(${palette[500]} / 0.3)`,
+    // Sidebar (hover/active states)
+    '--sidebar-primary': palette[500],
+    '--sidebar-ring': palette[500],
+    '--sidebar-accent': palette[700],
+  };
+
+  // All shades for potential future use
+  Object.entries(palette).forEach(([shade, value]) => {
+    vars[`--primary-${shade}`] = value;
+  });
+
+  return vars;
+}
+
+/**
  * Apply theme palette to CSS variables
  */
 export function applyThemeToCSSVariables(palette: ColorPalette): void {
   const root = document.documentElement;
-  
-  // Apply primary color (500 is the base)
-  root.style.setProperty('--primary', palette[500]);
-  root.style.setProperty('--accent', palette[500]);
-  root.style.setProperty('--ring', palette[500]);
-  root.style.setProperty('--primary-foreground', readableForeground(palette[500]));
-  
-  // Apply all shades for potential future use
-  Object.entries(palette).forEach(([shade, value]) => {
-    root.style.setProperty(`--primary-${shade}`, value);
+  Object.entries(buildThemeVariables(palette)).forEach(([name, value]) => {
+    root.style.setProperty(name, value);
   });
-  
-  // Update gradient with new colors
-  const h = palette[500].split(' ')[0];
-  const gradient = `linear-gradient(135deg, hsl(${palette[500]}) 0%, hsl(${h} 95% 55%) 100%)`;
-  root.style.setProperty('--gradient-primary', gradient);
-  
-  // Update shadow glow with new color
-  root.style.setProperty('--shadow-glow', `0 0 40px hsl(${palette[500]} / 0.3)`);
-  
-  // Apply colors to Sidebar (hover/active states)
-  root.style.setProperty('--sidebar-primary', palette[500]);
-  root.style.setProperty('--sidebar-ring', palette[500]);
-  root.style.setProperty('--sidebar-accent', palette[700]);
 }
 
 const THEME_CACHE_KEY = 'activeTheme';
@@ -218,7 +228,10 @@ const THEME_CACHE_KEY = 'activeTheme';
  */
 export function cacheTheme(primaryColor: string, palette: ColorPalette): void {
   try {
-    localStorage.setItem(THEME_CACHE_KEY, JSON.stringify({ primaryColor, palette }));
+    localStorage.setItem(
+      THEME_CACHE_KEY,
+      JSON.stringify({ primaryColor, palette, vars: buildThemeVariables(palette) }),
+    );
   } catch (e) {
     // localStorage may be unavailable in some contexts
     console.warn('Could not cache theme:', e);

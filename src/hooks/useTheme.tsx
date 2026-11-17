@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { applyThemeToCSSVariables, resetThemeToDefault, ColorPalette, cacheTheme } from "@/lib/colorGenerator";
+import {
+  applyThemeToCSSVariables,
+  resetThemeToDefault,
+  cacheTheme,
+  getCachedTheme,
+  ColorPalette,
+} from "@/lib/colorGenerator";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +19,69 @@ export interface ThemeSettings {
   updated_at: string;
 }
 
+/**
+ * Último tema conhecido, usado como dado inicial da consulta.
+ *
+ * Sem isso, entre o primeiro paint e a resposta do banco a página fica com a
+ * cor padrão do CSS — e, se a consulta rodar antes de a sessão ser restaurada,
+ * o resultado pode ser `null` (motivo do "recarregar para aparecer a cor").
+ */
+const buildInitialTheme = (): ThemeSettings | undefined => {
+  const cached = getCachedTheme();
+  if (!cached?.palette?.[500]) return undefined;
+
+  return {
+    id: "local-cache",
+    primary_color: cached.primaryColor,
+    color_palette: cached.palette,
+    is_active: true,
+    created_at: "",
+    updated_at: "",
+  };
+};
+
+type ThemeBootstrapWindow = Window & {
+  __themeBootstrap?: Promise<Array<Partial<ThemeSettings>> | null>;
+};
+
+let themeBootstrapConsumed = false;
+
+/**
+ * Aproveita a consulta que o `index.html` dispara antes do React montar.
+ * Devolve `undefined` quando não há bootstrap (ou ele falhou) para seguir com
+ * a consulta normal; `null` significa "plataforma sem tema ativo".
+ */
+const consumeThemeBootstrap = async (): Promise<ThemeSettings | null | undefined> => {
+  if (themeBootstrapConsumed || typeof window === "undefined") return undefined;
+
+  const promise = (window as ThemeBootstrapWindow).__themeBootstrap;
+  if (!promise) return undefined;
+
+  themeBootstrapConsumed = true;
+
+  try {
+    const timeout = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 4000));
+    const rows = await Promise.race([promise, timeout]);
+
+    if (!Array.isArray(rows)) return undefined;
+    if (rows.length === 0) return null;
+
+    const row = rows[0];
+    if (!row?.color_palette) return undefined;
+
+    return {
+      id: row.id ?? "bootstrap",
+      primary_color: row.primary_color ?? "",
+      color_palette: row.color_palette as ColorPalette,
+      is_active: true,
+      created_at: row.created_at ?? "",
+      updated_at: row.updated_at ?? "",
+    };
+  } catch {
+    return undefined;
+  }
+};
+
 export const useTheme = () => {
   const queryClient = useQueryClient();
 
@@ -20,6 +89,10 @@ export const useTheme = () => {
   const { data: activeTheme, isLoading } = useQuery({
     queryKey: ["activeTheme"],
     queryFn: async () => {
+      // Primeira execução: usa a consulta que o index.html já iniciou.
+      const bootstrapped = await consumeThemeBootstrap();
+      if (bootstrapped !== undefined) return bootstrapped;
+
       const { data, error } = await supabase
         .from("theme_settings")
         .select("*")
@@ -29,8 +102,10 @@ export const useTheme = () => {
       if (error) throw error;
       return data as ThemeSettings | null;
     },
+    // Pinta com o último tema conhecido e revalida em segundo plano.
+    initialData: buildInitialTheme(),
+    initialDataUpdatedAt: 0,
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos
-    refetchOnMount: false, // Não refetch ao montar componente
     refetchOnWindowFocus: false, // Não refetch ao focar janela
   });
 
@@ -48,7 +123,7 @@ export const useTheme = () => {
     // because ThemeProvider already applied cached theme
   }, [activeTheme]);
 
-  // Save theme mutation
+  // Save theme mutation (atomic: nunca deixa a plataforma sem tema ativo)
   const saveThemeMutation = useMutation({
     mutationFn: async ({
       primaryColor,
@@ -57,32 +132,22 @@ export const useTheme = () => {
       primaryColor: string;
       colorPalette: ColorPalette;
     }) => {
-      // First, deactivate all existing themes
-      await supabase
-        .from("theme_settings")
-        .update({ is_active: false })
-        .eq("is_active", true);
-
-      // Then insert new active theme
-      const { data, error } = await supabase
-        .from("theme_settings")
-        .insert({
-          primary_color: primaryColor,
-          color_palette: colorPalette,
-          is_active: true,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("save_active_theme", {
+        p_primary_color: primaryColor,
+        p_color_palette: colorPalette,
+      });
 
       if (error) throw error;
-      return data;
+      return data as ThemeSettings;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["activeTheme"] });
-      // Immediately cache the new theme
-      if (data?.color_palette) {
-        cacheTheme(data.primary_color, data.color_palette as ColorPalette);
+      // Atualiza o cache do React Query na hora: sem janela em que a consulta
+      // ainda devolve o tema antigo (ou nenhum) depois de salvar.
+      if (data) {
+        queryClient.setQueryData(["activeTheme"], data);
+        cacheTheme(data.primary_color, data.color_palette);
       }
+      queryClient.invalidateQueries({ queryKey: ["activeTheme"] });
       toast.success("Tema salvo com sucesso!", {
         description: "As novas cores foram aplicadas para todos os usuários.",
       });

@@ -52,14 +52,19 @@ const pickFormData = (settings: Partial<PlatformSettings>): Partial<PlatformSett
 });
 
 export const BrandingCustomization = () => {
-  const { settings, updateSettings, isSaving, uploadAsset } = usePlatformSettings();
+  const { settings, updateSettings, isSaving, isLoading, uploadAsset } = usePlatformSettings();
 
 
   const [formData, setFormData] = useState<Partial<PlatformSettings>>(() => pickFormData(settings));
 
   useEffect(() => {
-    setFormData(pickFormData(settings));
-  }, [settings]);
+    // Não sobrescreve o formulário com os valores padrão enquanto a
+    // configuração real ainda não chegou (salvar nesse meio-tempo apagava o
+    // branding configurado).
+    if (!isLoading) {
+      setFormData(pickFormData(settings));
+    }
+  }, [settings, isLoading]);
 
   const handleBannerImageUpload = async (file: File) => {
     const url = await uploadAsset(file, 'banner');
@@ -104,6 +109,7 @@ export const BrandingCustomization = () => {
   };
 
   const handleSave = async () => {
+    if (isLoading) return;
     try {
       await updateSettings(formData);
     } catch {
@@ -684,14 +690,14 @@ export const BrandingCustomization = () => {
         <Button
           variant="outline"
           onClick={handleReset}
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
           className="h-[44px] px-6 rounded-[12px] text-[14px] font-medium glass-card hover:bg-white/5 border-white/10"
         >
           Resetar
         </Button>
         <Button
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
           className="h-[44px] px-8 rounded-[12px] text-[14px] font-medium gradient-primary shadow-glow min-w-[170px]"
         >
           {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
