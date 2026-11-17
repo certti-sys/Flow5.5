@@ -45,6 +45,8 @@ export default function YouTubePlayer({
   // Restaura o ponto salvo uma única vez. Sem isso, cada `infoDelivery` (que
   // repete a duração a cada segundo) reenviava o seek e o vídeo voltava.
   const hasRestoredProgress = useRef(false);
+  // Uma troca automática de domínio por aula (ver efeito de timeout).
+  const autoRetried = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [played, setPlayed] = useState(0);
@@ -59,6 +61,14 @@ export default function YouTubePlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [reloadCount, setReloadCount] = useState(0);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
+  // Alguns bloqueadores/redes barram um dos domínios do YouTube. Alternar no
+  // "Tentar novamente" cobre esse caso sem depender de configuração do aluno.
+  const [embedHost, setEmbedHost] = useState<"www.youtube.com" | "www.youtube-nocookie.com">(
+    "www.youtube.com",
+  );
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [apiReady, setApiReady] = useState(false);
+  const [apiErrorCode, setApiErrorCode] = useState<number | null>(null);
 
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
   const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -86,24 +96,47 @@ export default function YouTubePlayer({
       playlist: videoId,
     });
     
-    return `https://www.youtube-nocookie.com/embed/${videoId}?${params}`;
+    return `https://${embedHost}/embed/${videoId}?${params}`;
   };
 
   // Trocar de aula (ou recarregar o iframe) recomeça a restauração de progresso.
   useEffect(() => {
     hasRestoredProgress.current = false;
     setLoadTimedOut(false);
+    setIframeLoaded(false);
+    setApiReady(false);
   }, [videoId, reloadCount]);
 
+  // Só uma troca de aula zera a tentativa automática de domínio; recarregar o
+  // iframe (inclusive pela própria troca automática) não pode zerar.
+  useEffect(() => {
+    autoRetried.current = false;
+  }, [videoId]);
+
   // Em redes/extensões que bloqueiam o iframe do YouTube o player fica preto
-  // e sem duração. Depois de 8s sem metadados, oferece abrir no YouTube.
+  // e sem duração. Antes de desistir, tenta uma vez o outro domínio do embed
+  // automaticamente; se nem assim carregar, mostra o aviso com o link.
   useEffect(() => {
     if (!hasStarted || duration > 0) {
       setLoadTimedOut(false);
       return;
     }
 
-    const timer = setTimeout(() => setLoadTimedOut(true), 8000);
+    const timer = setTimeout(() => {
+      if (!autoRetried.current) {
+        autoRetried.current = true;
+        setApiReady(false);
+        setIframeLoaded(false);
+        setPlayed(0);
+        setDuration(0);
+        setEmbedHost((host) =>
+          host === "www.youtube.com" ? "www.youtube-nocookie.com" : "www.youtube.com",
+        );
+        setReloadCount((count) => count + 1);
+        return;
+      }
+      setLoadTimedOut(true);
+    }, 8000);
     return () => clearTimeout(timer);
   }, [hasStarted, duration, reloadCount]);
 
@@ -128,13 +161,15 @@ export default function YouTubePlayer({
 
     const handleLoad = () => {
       setIsReady(true);
+      setIframeLoaded(true);
 
       try {
         iframeRef.current?.contentWindow?.postMessage(
-          JSON.stringify({ event: "listening", id: iframeId.current }),
+          // O canal padrão é o "widget"; sem ele o player não responde.
+          JSON.stringify({ event: "listening", id: iframeId.current, channel: "widget" }),
           "*"
         );
-        sendCommand("addEventListener", ["onStateChange"]);
+        sendCommand("addEventListener", ["onStateChange", "onError"]);
       } catch {}
       
       setTimeout(() => {
@@ -183,6 +218,17 @@ export default function YouTubePlayer({
         if (data.event === "infoDelivery" && data.info?.currentTime !== undefined) {
           const progress = data.info.currentTime / duration;
           if (!isNaN(progress)) setPlayed(progress);
+        }
+
+        // O player avisa quando o próprio YouTube recusa a reprodução embutida.
+        if (data.event === "onError") {
+          setApiErrorCode(Number(data.info) || 0);
+          setLoadTimedOut(true);
+        }
+
+        if (data.event === "onReady") {
+          setApiReady(true);
+          setIsReady(true);
         }
         
         if (data.event === "onStateChange" && data.info === 0) {
@@ -316,11 +362,41 @@ export default function YouTubePlayer({
 
   const retryLoad = () => {
     setLoadTimedOut(false);
+    setApiErrorCode(null);
     setIsReady(false);
+    setIframeLoaded(false);
+    setApiReady(false);
     setPlayed(0);
     setDuration(0);
+    // Alterna o domínio do embed: se um deles estiver bloqueado na rede, o
+    // outro pode funcionar.
+    setEmbedHost((host) =>
+      host === "www.youtube.com" ? "www.youtube-nocookie.com" : "www.youtube.com",
+    );
     setReloadCount((count) => count + 1);
   };
+
+  const failureMessage = (() => {
+    if (apiErrorCode === 101 || apiErrorCode === 150) {
+      return "O dono deste vídeo não permite reprodução fora do YouTube. Assista pelo link abaixo.";
+    }
+    if (apiErrorCode === 100) {
+      return "Este vídeo não está mais disponível no YouTube (removido ou privado).";
+    }
+    if (apiErrorCode === 153) {
+      return "O YouTube recusou a reprodução embutida neste navegador (código 153). Abra pelo link abaixo.";
+    }
+    if (apiErrorCode) {
+      return `O YouTube recusou a reprodução embutida (código ${apiErrorCode}).`;
+    }
+    if (!iframeLoaded) {
+      return "O player do YouTube não abriu aqui — normalmente bloqueio de rede, DNS ou extensão do navegador.";
+    }
+    if (!apiReady) {
+      return "O player do YouTube não conseguiu iniciar — normalmente bloqueio de rede, DNS, extensão ou política do navegador.";
+    }
+    return "O player abriu, mas o vídeo não começou. Pode ser bloqueio de cookies de terceiros ou de reprodução automática.";
+  })();
 
   return (
     <div
@@ -349,8 +425,12 @@ export default function YouTubePlayer({
             key={reloadCount}
             id={iframeId.current}
             src={getIframeSrc()}
-            allow="autoplay; encrypted-media; fullscreen"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
+            // O YouTube exige um referrer válido no embed; sem isso o player
+            // retorna o erro 153 (tela preta). A política abaixo garante o
+            // envio da origem mesmo que a página use uma política restritiva.
+            referrerPolicy="strict-origin-when-cross-origin"
             title="YouTube video player"
             style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
           />
@@ -370,12 +450,9 @@ export default function YouTubePlayer({
       )}
 
       {loadTimedOut && hasStarted && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black/85 p-6 text-center">
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black/90 p-6 text-center">
           <p className="text-white text-sm font-semibold">O vídeo não carregou aqui</p>
-          <p className="text-white/60 text-xs max-w-sm leading-relaxed">
-            Pode ser bloqueio do navegador, de uma extensão ou do preview embutido.
-            Abra direto no YouTube ou tente recarregar o player.
-          </p>
+          <p className="text-white/60 text-xs max-w-sm leading-relaxed">{failureMessage}</p>
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
             <a
               href={watchUrl}
