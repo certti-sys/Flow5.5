@@ -47,6 +47,10 @@ export default function YouTubePlayer({
   const hasRestoredProgress = useRef(false);
   // Uma troca automática de domínio por aula (ver efeito de timeout).
   const autoRetried = useRef(false);
+  // O aluno já pediu play e o vídeo ainda não chegou a tocar.
+  const autoplayPendingRef = useRef(false);
+  const retryPlayRef = useRef(false);
+  const hasStartedRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [played, setPlayed] = useState(0);
@@ -102,6 +106,10 @@ export default function YouTubePlayer({
   // Trocar de aula (ou recarregar o iframe) recomeça a restauração de progresso.
   useEffect(() => {
     hasRestoredProgress.current = false;
+    retryPlayRef.current = false;
+    // Se o player está sendo recriado (troca de domínio/retry) e o aluno já
+    // pediu play, o novo player também precisa receber o playVideo.
+    autoplayPendingRef.current = hasStartedRef.current;
     setLoadTimedOut(false);
     setIframeLoaded(false);
     setApiReady(false);
@@ -229,6 +237,16 @@ export default function YouTubePlayer({
         if (data.event === "onReady") {
           setApiReady(true);
           setIsReady(true);
+
+          // Comandos enviados antes do player ficar pronto são descartados.
+          // Era isso que deixava o vídeo em 0:00 em alguns navegadores.
+          setTimeout(() => {
+            sendCommand("getDuration");
+            sendCommand("getCurrentTime");
+            if (hasStartedRef.current && autoplayPendingRef.current) {
+              sendCommand("playVideo");
+            }
+          }, 300);
         }
         
         if (data.event === "onStateChange" && data.info === 0) {
@@ -238,8 +256,19 @@ export default function YouTubePlayer({
           }
         }
         
-        if (data.event === "onStateChange" && data.info === 1) setIsPlaying(true);
+        if (data.event === "onStateChange" && data.info === 1) {
+          autoplayPendingRef.current = false;
+          setIsPlaying(true);
+        }
         if (data.event === "onStateChange" && data.info === 2) setIsPlaying(false);
+        // -1 = não iniciado: o autoplay não pegou. Tenta tocar de novo, mas
+        // só enquanto o aluno já pediu play e o vídeo ainda não começou.
+        if (data.event === "onStateChange" && data.info === -1 && hasStartedRef.current) {
+          if (!retryPlayRef.current) {
+            retryPlayRef.current = true;
+            setTimeout(() => sendCommand("playVideo"), 600);
+          }
+        }
       } catch {}
     };
 
@@ -354,6 +383,9 @@ export default function YouTubePlayer({
   const handleFirstPlay = () => {
     setShowPoster(false);
     setHasStarted(true);
+    hasStartedRef.current = true;
+    autoplayPendingRef.current = true;
+    retryPlayRef.current = false;
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) {
       setTimeout(() => sendCommand("playVideo"), 300);
