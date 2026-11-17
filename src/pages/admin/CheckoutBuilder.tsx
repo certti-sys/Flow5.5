@@ -382,7 +382,7 @@ export default function CheckoutBuilder() {
                 </div>
 
                 <Tabs defaultValue="geral" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-4 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-8">
+                    <TabsList variant="sliding" className="grid w-full grid-cols-4 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-8">
                         <TabsTrigger value="geral">Geral</TabsTrigger>
                         <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
                         <TabsTrigger value="pagamento">Pagamento</TabsTrigger>

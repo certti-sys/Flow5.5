@@ -58,6 +58,10 @@ const Leaderboard = () => {
       }
       return data as LeaderboardRow[];
     },
+    // Mantém a lista anterior durante o refetch: sem isso o `isLoading`
+    // desmonta a página inteira (inclusive as abas) a cada troca de período,
+    // e a pill da variante "sliding" nem chega a animar.
+    placeholderData: (previous) => previous,
   });
 
   const getInitials = (name: string | null | undefined) => {
@@ -146,16 +150,16 @@ const Leaderboard = () => {
   if (isLoading) {
     return (
       <PageContainer className="py-8">
-        <div className="space-y-8 animate-pulse">
-          <div className="h-20 bg-card rounded-lg w-full max-w-sm mb-12"></div>
+        <div className="space-y-8">
+          <div className="t-skeleton h-20 bg-card rounded-lg w-full max-w-sm mb-12"></div>
           <div className="flex flex-col md:flex-row justify-center items-end gap-6 mb-16">
-            <div className="h-64 bg-card rounded-2xl w-full md:w-64"></div>
-            <div className="h-80 bg-card rounded-2xl w-full md:w-72"></div>
-            <div className="h-56 bg-card rounded-2xl w-full md:w-64"></div>
+            <div className="t-skeleton h-64 bg-card rounded-2xl w-full md:w-64"></div>
+            <div className="t-skeleton h-80 bg-card rounded-2xl w-full md:w-72"></div>
+            <div className="t-skeleton h-56 bg-card rounded-2xl w-full md:w-64"></div>
           </div>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-card rounded-xl w-full"></div>
+              <div key={i} className="t-skeleton h-16 bg-card rounded-xl w-full"></div>
             ))}
           </div>
         </div>
@@ -176,10 +180,13 @@ const Leaderboard = () => {
             onValueChange={setPeriod}
             className="w-full md:w-auto"
           >
-            <TabsList className="grid grid-cols-3 w-full md:w-[400px] h-11 bg-muted/20 backdrop-blur-md border border-white/5">
-              <TabsTrigger value="weekly" className="text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Semanal</TabsTrigger>
-              <TabsTrigger value="monthly" className="text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Mensal</TabsTrigger>
-              <TabsTrigger value="global" className="text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Global</TabsTrigger>
+            <TabsList
+              variant="sliding"
+              className="grid grid-cols-3 w-full md:w-[400px] h-11 bg-muted/20 backdrop-blur-md border border-white/5 [--tabs-pill-bg:hsl(var(--primary))]"
+            >
+              <TabsTrigger value="weekly" className="text-xs font-bold data-[state=active]:text-primary-foreground">Semanal</TabsTrigger>
+              <TabsTrigger value="monthly" className="text-xs font-bold data-[state=active]:text-primary-foreground">Mensal</TabsTrigger>
+              <TabsTrigger value="global" className="text-xs font-bold data-[state=active]:text-primary-foreground">Global</TabsTrigger>
             </TabsList>
           </Tabs>
         }
@@ -205,7 +212,7 @@ const Leaderboard = () => {
             <div className="col-span-4 md:col-span-2 text-right pr-4">Total XP</div>
           </div>
 
-          <div className="divide-y border-t-0">
+          <div className="t-stagger divide-y border-t-0">
             {listData.map((row, index) => {
               const position = index + 4;
               const isCurrentUser = row.user_id === user?.id;

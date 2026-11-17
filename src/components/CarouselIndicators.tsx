@@ -23,7 +23,9 @@ export const CarouselIndicators = ({
         <button
           key={index}
           className={cn(
-            "rounded-full transition-all duration-300 touch-manipulation",
+            // Anima só largura/cor: `transition-all` também animava o layout
+            // inteiro do indicador a cada página.
+            "rounded-full transition-[width,background-color] duration-fast ease-smooth-out touch-manipulation",
             index === activeIndex
               ? "w-8 sm:w-8 h-2 sm:h-1.5 bg-primary"
               : "w-2 sm:w-1.5 h-2 sm:h-1.5 bg-muted-foreground/30"

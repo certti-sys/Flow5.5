@@ -134,7 +134,7 @@ export default function Orders() {
     onError: (e: any) => toast.error(e.message || 'Erro ao deletar pedidos')
   });
 
-  const { data: orders, isLoading, refetch } = useQuery({
+  const { data: orders, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["admin-orders", statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -153,7 +153,10 @@ export default function Orders() {
       const { data, error } = await query;
       if (error) throw error;
       return data as Order[];
-    }
+    },
+    // Troca de status mantém a tabela anterior na tela em vez de piscar
+    // as linhas de skeleton a cada clique no filtro.
+    placeholderData: (previous) => previous,
   });
 
   const filteredOrders = useMemo(() => {
@@ -355,6 +358,9 @@ export default function Orders() {
 
       {/* Listagem de Pedidos */}
       <motion.div variants={item} className="glass-card rounded-[20px] border-white/10 overflow-hidden shadow-2xl bg-white/[0.01]">
+        {/* Esmaecimento do refetch num filho: `opacity` inline do framer no pai
+            ganharia da classe. */}
+        <div className={cn("transition-opacity duration-quick ease-smooth-out", isFetching && "t-fetching")}>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -457,6 +463,7 @@ export default function Orders() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       </motion.div>
 

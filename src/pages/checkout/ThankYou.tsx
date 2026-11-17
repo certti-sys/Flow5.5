@@ -245,7 +245,7 @@ export default function ThankYouPage() {
                     <div className="flex justify-center">
                         <div className={`p-4 rounded-full ${isPaid ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
                             {isPaid ? (
-                                <CheckCircle className="w-16 h-16 text-green-500" />
+                                <CheckCircle className="t-success-pop w-16 h-16 text-green-500" />
                             ) : (
                                 <Clock className="w-16 h-16 text-yellow-500" />
                             )}

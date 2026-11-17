@@ -52,7 +52,47 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
     --shadow-card: 0 8px 32px hsla(0 0% 0% / 0.4);
 
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* ── Motion scale (transitions.dev) ─────────────────────────────
+       Uma escala só para o app inteiro. Nada de duração solta por
+       componente: quem anima escolhe o token pelo uso, não pelo número. */
+    --duration-stagger: 40ms;   /* offset entre itens de uma lista */
+    --duration-micro: 80ms;     /* delay de tooltip, segmento de shake */
+    --duration-quick: 150ms;    /* fechamento de modal/dropdown, troca de texto */
+    --duration-fast: 250ms;     /* abertura, troca de ícone, tab, página */
+    --duration-medium: 350ms;   /* fechamento de painel/toast, toggle */
+    --duration-slow: 400ms;     /* abertura de painel, revelação de skeleton */
+    --duration-very-slow: 500ms;/* momentos de ênfase, badge, success check */
+
+    --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: ease-in-out;
+    --ease-out: ease-out;
+    --ease-linear: linear;
+    --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+    --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+
+    --distance-micro: 4px;
+    --distance-small: 6px;
+    --distance-base: 8px;
+    --distance-medium: 12px;
+    --distance-large: 30px;
+
+    --scale-large: 0.96;   /* modal */
+    --scale-medium: 0.97;  /* dropdown */
+    --scale-small: 0.98;   /* tooltip */
+    --scale-tiny: 0.99;    /* fechamento de dropdown */
+
+    --blur-small: 2px;
+    --blur-medium: 3px;
+    --blur-large: 8px;
+
+    /* Primitivas */
+    --tt-out-dur: 50ms;
+    --toast-open: 350ms;
+    --toast-close: 250ms;
+    --toast-distance: 16px;
+    --toast-blur: 2px;
+    --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --check-draw: 350ms;
 
     /* Sidebar - usar mesma cor do card para consistência */
     --sidebar-background: 240 10% 10%;
@@ -169,18 +209,23 @@ All colors MUST be HSL.
     background: hsl(240 6% 35%);
   }
 
-  /* Drag feedback visual */
-  [data-dragging="true"]>* {
-    opacity: 0.8;
-    transform: scale(0.98);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+  /* Drag feedback visual — SÓ dentro de um container que está arrastando.
+     A regra antiga (`:not([data-dragging]) > *`) aplicava `transition: 0.15s`
+     em TODO elemento do app, sobrescrevendo qualquer motion por componente. */
+  [data-dragging] > * {
+    transition:
+      opacity var(--duration-quick) var(--ease-smooth-out),
+      transform var(--duration-quick) var(--ease-smooth-out);
   }
 
-  [data-dragging="false"]>*,
-  :not([data-dragging])>* {
+  [data-dragging="true"] > * {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+
+  [data-dragging="false"] > * {
     opacity: 1;
     transform: scale(1);
-    transition: opacity 0.15s ease, transform 0.15s ease;
   }
 }
 
@@ -217,6 +262,7 @@ body {
 }
 
 /* Force overlays - APENAS quando abertos */
+.t-overlay[data-state="open"],
 [data-state="open"][data-radix-dialog-overlay],
 [data-state="open"][data-radix-alert-dialog-overlay] {
   position: fixed !important;
@@ -224,7 +270,9 @@ body {
   z-index: 9999 !important;
 }
 
-/* Force content positioning - EXCLUINDO popovers e sidebar */
+/* Force content positioning - EXCLUINDO popovers e sidebar.
+   Posiciona com `translate` (propriedade individual) em vez de `transform`:
+   assim `transform: scale()` fica livre para a animação de abertura. */
 [role="dialog"]:not([data-radix-popper-content-wrapper] *):not([data-sidebar]):not(:has([data-sidebar])),
 [role="alertdialog"],
 [data-radix-dialog-content]:not([data-sidebar]):not(:has([data-sidebar])),
@@ -232,7 +280,7 @@ body {
   position: fixed !important;
   left: 50% !important;
   top: 50% !important;
-  transform: translate(-50%, -50%) !important;
+  translate: -50% -50% !important;
   z-index: 10000 !important;
   max-width: min(90vw, 672px) !important;
   /* ANTES: 512px | ROLLBACK: voltar para 512px */
@@ -258,9 +306,265 @@ body {
   position: relative !important;
   left: auto !important;
   top: auto !important;
-  transform: none !important;
+  translate: none !important;
   z-index: 50 !important;
   max-width: none !important;
   max-height: none !important;
   margin: auto !important;
 }
+
+/* ============================================================================
+   Motion system — primitivas portadas de transitions.dev
+   Todas leem os tokens de :root. Os guards de animação ficam no
+   @media (prefers-reduced-motion: reduce) global acima.
+   ========================================================================== */
+
+/* ── Modal open / close (#06) ─────────────────────────────────────────────── */
+@keyframes t-modal-in {
+  from { opacity: 0; transform: scale(var(--scale-large)); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes t-modal-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(var(--scale-large)); }
+}
+
+@keyframes t-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes t-overlay-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.t-modal {
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.t-modal[data-state="open"] {
+  animation: t-modal-in var(--duration-fast) var(--ease-smooth-out) both;
+}
+
+.t-modal[data-state="closed"] {
+  animation: t-modal-out var(--duration-quick) var(--ease-smooth-out) both;
+}
+
+.t-overlay[data-state="open"] {
+  animation: t-overlay-in var(--duration-fast) var(--ease-smooth-out) both;
+}
+
+.t-overlay[data-state="closed"] {
+  animation: t-overlay-out var(--duration-quick) var(--ease-smooth-out) both;
+}
+
+/* ── Menu dropdown / popover / select (#05) ───────────────────────────────── */
+@keyframes t-pop-in {
+  from { opacity: 0; transform: scale(var(--scale-medium)); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes t-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(var(--scale-tiny)); }
+}
+
+.t-dropdown {
+  /* Radix expõe a origem real do gatilho: o menu cresce de onde foi clicado. */
+  transform-origin: var(--radix-popper-transform-origin, var(--radix-select-content-transform-origin, center));
+  will-change: transform, opacity;
+}
+
+.t-dropdown[data-state="open"] {
+  animation: t-pop-in var(--duration-fast) var(--ease-smooth-out) both;
+}
+
+.t-dropdown[data-state="closed"] {
+  animation: t-pop-out var(--duration-quick) var(--ease-smooth-out) both;
+}
+
+/* ── Tooltip (#17) ────────────────────────────────────────────────────────── */
+@keyframes t-tooltip-in {
+  from { opacity: 0; transform: scale(var(--scale-small)); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes t-tooltip-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1); }
+}
+
+.t-tooltip {
+  transform-origin: var(--radix-tooltip-content-transform-origin, center);
+}
+
+.t-tooltip[data-state="delayed-open"],
+.t-tooltip[data-state="instant-open"] {
+  animation: t-tooltip-in var(--duration-quick) var(--ease-out) both;
+}
+
+.t-tooltip[data-state="closed"] {
+  animation: t-tooltip-out var(--tt-out-dur) var(--ease-out) both;
+}
+
+/* ── Checkbox check (#25) ─────────────────────────────────────────────────── */
+@keyframes t-check-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* pathLength=1 normaliza o traço: não precisa de getTotalLength() em JS. */
+.t-check-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+[data-state="checked"] .t-check-path {
+  animation: t-check-draw var(--check-draw) var(--ease-smooth-out) both;
+}
+
+/* ── Tabs sliding (#16) ───────────────────────────────────────────────────── */
+.t-tabs-pill {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  z-index: 0;
+  width: var(--pill-w, 0);
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--tabs-pill-bg, hsl(var(--secondary)));
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.25);
+  transform: translateX(var(--pill-x, 0));
+  transition:
+    transform var(--duration-fast) var(--ease-smooth-out),
+    width var(--duration-fast) var(--ease-smooth-out);
+  pointer-events: none;
+}
+
+[data-sliding="true"] > [role="tab"] {
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition-property: color, opacity !important;
+}
+
+/* ── Toast (#22) — Sonner ─────────────────────────────────────────────────── */
+/* O Sonner anima o próprio transform; aqui ajustamos ritmo, distância e blur. */
+[data-sonner-toast].t-toast {
+  filter: blur(0);
+  transition-property: transform, opacity, height, filter, box-shadow;
+  transition-duration: var(--toast-open);
+  transition-timing-function: var(--toast-ease);
+}
+
+[data-sonner-toast].t-toast[data-mounted="false"] {
+  filter: blur(var(--toast-blur));
+}
+
+[data-sonner-toast].t-toast[data-removed="true"] {
+  transition-duration: var(--toast-close);
+}
+
+/* ── Page entrance ────────────────────────────────────────────────────────── */
+/* `backwards` (não `both`): depois da animação o elemento volta ao estilo
+   base, sem `translate` residual — evita criar containing block para
+   descendentes `position: fixed` depois do fim do movimento. */
+@keyframes t-page-in {
+  from { opacity: 0; translate: 0 var(--distance-base); }
+  to   { opacity: 1; translate: 0 0; }
+}
+
+.t-page {
+  animation: t-page-in var(--duration-fast) var(--ease-smooth-out) backwards;
+}
+
+/* ── List stagger ─────────────────────────────────────────────────────────── */
+@keyframes t-item-in {
+  from { opacity: 0; translate: 0 var(--distance-small); }
+  to   { opacity: 1; translate: 0 0; }
+}
+
+/* O atraso é por posição, não por estado: filtrar uma lista não reanima
+   os itens que o React reaproveita. A partir do 8º o atraso para de crescer. */
+.t-stagger > * {
+  animation: t-item-in var(--duration-fast) var(--ease-smooth-out) backwards;
+}
+
+.t-stagger > *:nth-child(1) { animation-delay: calc(var(--duration-stagger) * 0); }
+.t-stagger > *:nth-child(2) { animation-delay: calc(var(--duration-stagger) * 1); }
+.t-stagger > *:nth-child(3) { animation-delay: calc(var(--duration-stagger) * 2); }
+.t-stagger > *:nth-child(4) { animation-delay: calc(var(--duration-stagger) * 3); }
+.t-stagger > *:nth-child(5) { animation-delay: calc(var(--duration-stagger) * 4); }
+.t-stagger > *:nth-child(6) { animation-delay: calc(var(--duration-stagger) * 5); }
+.t-stagger > *:nth-child(7) { animation-delay: calc(var(--duration-stagger) * 6); }
+.t-stagger > *:nth-child(n + 8) { animation-delay: calc(var(--duration-stagger) * 7); }
+
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+/* Sweep de brilho em vez de pulse de opacidade: comunica "carregando"
+   sem piscar a tela inteira. */
+@keyframes t-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+.t-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: hsl(var(--muted));
+}
+
+.t-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    hsl(0 0% 100% / 0.07),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: t-shimmer 1.6s var(--ease-in-out) infinite;
+}
+
+/* ── Content swap (abas, troca de formulário) ─────────────────────────────── */
+@keyframes t-content-in {
+  from { opacity: 0; translate: 0 var(--distance-micro); }
+  to   { opacity: 1; translate: 0 0; }
+}
+
+.t-content-in {
+  animation: t-content-in var(--duration-quick) var(--ease-smooth-out) backwards;
+}
+
+/* ── Refetch: conteúdo fica, só sinaliza que está atualizando ─────────────── */
+/* Use junto com `transition-opacity duration-quick ease-smooth-out`: assim a
+   volta ao normal também anima (a classe some, a transição fica). */
+.t-fetching {
+  opacity: 0.55;
+}
+
+/* ── Success check ────────────────────────────────────────────────────────── */
+@keyframes t-success-pop {
+  0%   { opacity: 0; scale: 0.5; }
+  55%  { opacity: 1; scale: 1.08; }
+  100% { opacity: 1; scale: 1; }
+}
+
+@keyframes t-success-ring {
+  from { opacity: 0.55; scale: 0.7; }
+  to   { opacity: 0; scale: 1.5; }
+}
+
+.t-success-pop {
+  animation: t-success-pop var(--duration-very-slow) var(--ease-bounce) backwards;
+}
+
+.t-success-ring {
+  animation: t-success-ring var(--duration-very-slow) var(--ease-out) backwards;
+}
+

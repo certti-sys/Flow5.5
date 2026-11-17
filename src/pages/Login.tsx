@@ -160,57 +160,59 @@ const Login = () => {
         {/* Card do formulário - Glass card com sombra sutil */}
         <div className="glass-card rounded-2xl p-6 sm:p-8 shadow-lg shadow-white/10 animate-fade-in w-full max-w-sm border border-white/[0.06]">
           {/* Hierarquia visual: Título grande e escuro */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight text-center mb-1">
-            {isSignup ? "Criar Conta" : "Bem-vindo de volta"}
-          </h1>
-          {/* Subtítulo menor e cinza claro */}
-          <p className="text-sm sm:text-base text-white/60 text-center mb-6">
-            {isSignup
-              ? "Cadastre-se para começar sua jornada"
-              : "Acesse sua conta para continuar aprendendo"}
-          </p>
+          <div key={isSignup ? "signup" : "login"} className="t-content-in">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight text-center mb-1">
+              {isSignup ? "Criar Conta" : "Bem-vindo de volta"}
+            </h1>
+            {/* Subtítulo menor e cinza claro */}
+            <p className="text-sm sm:text-base text-white/60 text-center mb-6">
+              {isSignup
+                ? "Cadastre-se para começar sua jornada"
+                : "Acesse sua conta para continuar aprendendo"}
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {isSignup && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  Nome completo
-                </Label>
-                <div className="relative flex items-center">
-                  <User className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome completo"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
-                    disabled={loading}
-                  />
+              <div key="signup-extra" className="t-content-in space-y-4 sm:space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                    Nome completo
+                  </Label>
+                  <div className="relative flex items-center">
+                    <User className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
+                      disabled={loading}
+                    />
+                  </div>
+                  {errors.name && <p role="alert" className="text-xs text-red-400 font-medium">{errors.name}</p>}
                 </div>
-                {errors.name && <p role="alert" className="text-xs text-red-400 font-medium">{errors.name}</p>}
-              </div>
-            )}
 
-            {isSignup && (
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp" className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  WhatsApp
-                </Label>
-                <div className="relative flex items-center">
-                  <Phone className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
-                  <Input
-                    id="whatsapp"
-                    type="tel"
-                    inputMode="tel"
-                    placeholder="(21) 98117-2399"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                    className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
-                    disabled={loading}
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp" className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                    WhatsApp
+                  </Label>
+                  <div className="relative flex items-center">
+                    <Phone className="absolute left-3 w-5 h-5 text-white/60 pointer-events-none" />
+                    <Input
+                      id="whatsapp"
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="(21) 98117-2399"
+                      value={formData.whatsapp}
+                      onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                      className="pl-10 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 transition-colors text-white placeholder:text-white/60"
+                      disabled={loading}
+                    />
+                  </div>
+                  {errors.whatsapp && <p role="alert" className="text-xs text-red-400 font-medium">{errors.whatsapp}</p>}
                 </div>
-                {errors.whatsapp && <p role="alert" className="text-xs text-red-400 font-medium">{errors.whatsapp}</p>}
               </div>
             )}
 

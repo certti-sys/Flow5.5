@@ -189,6 +189,7 @@ const Dashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         className="w-full px-4 md:px-6 lg:px-8 pt-4 pb-8 md:pt-6 md:pb-12 space-y-8"
       >
         {/* Continue Watching Section */}
@@ -254,7 +255,7 @@ const Dashboard = () => {
             <div
               ref={continueCarouselRef}
               id="continue-carousel"
-              className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-2 cursor-grab active:cursor-grabbing"
+              className="t-stagger flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-2 cursor-grab active:cursor-grabbing"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {coursesInProgress.slice(0, 5).map((course) => (

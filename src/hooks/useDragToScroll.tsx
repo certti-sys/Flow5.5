@@ -11,8 +11,19 @@ export const useDragToScroll = (containerRef: RefObject<HTMLElement>) => {
     const container = containerRef.current;
     if (!container) return;
 
+    // Mantém `data-dragging="false"` pelo tempo do retorno visual e depois
+    // remove. Sem isso, ou o retorno não anima, ou a transição vaza para o app.
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearResetTimer = () => {
+      if (resetTimer) {
+        clearTimeout(resetTimer);
+        resetTimer = null;
+      }
+    };
+
     // Shared drag logic
     const startDrag = (pageX: number) => {
+      clearResetTimer();
       isDraggingRef.current = true;
       hasDraggedRef.current = false;
       preventClickRef.current = false;
@@ -42,7 +53,12 @@ export const useDragToScroll = (containerRef: RefObject<HTMLElement>) => {
       isDraggingRef.current = false;
       container.style.cursor = 'grab';
       container.style.userSelect = '';
-      container.removeAttribute('data-dragging');
+      container.setAttribute('data-dragging', 'false');
+      clearResetTimer();
+      resetTimer = setTimeout(() => {
+        container.removeAttribute('data-dragging');
+        resetTimer = null;
+      }, 200);
       
       // Keep preventClickRef true for a brief moment after drag
       if (wasDragging && hasDraggedRef.current) {
@@ -128,6 +144,14 @@ export const useDragToScroll = (containerRef: RefObject<HTMLElement>) => {
     container.addEventListener('click', handleContainerClick, { capture: true });
 
     return () => {
+      // Se o efeito reiniciar durante o retorno visual, fecha o estado na hora:
+      // sem isso o atributo pode ficar preso no container.
+      if (resetTimer) {
+        clearTimeout(resetTimer);
+        resetTimer = null;
+        if (!isDraggingRef.current) container.removeAttribute('data-dragging');
+      }
+
       container.removeEventListener('mousedown', handleMouseDown);
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeEventListener('mouseup', stopDrag);

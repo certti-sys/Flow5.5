@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, subDays, startOfDay, startOfWeek, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   DollarSign, TrendingUp, ShoppingCart, CreditCard,
   Package, ArrowUpRight, ArrowDownRight, BarChart3,
@@ -41,7 +42,7 @@ export default function SalesDashboard() {
     }
   };
 
-  const { data: metrics, isLoading, isError, refetch } = useQuery({
+  const { data: metrics, isFetching, isError, refetch } = useQuery({
     queryKey: ["sales-dashboard-metrics", period],
     queryFn: async () => {
       const periodStart = getPeriodStart(period);
@@ -123,7 +124,10 @@ export default function SalesDashboard() {
           ? Math.round((paidOrders || 0) / totalOrders * 100)
           : 0
       };
-    }
+    },
+    // Segura as métricas anteriores enquanto o novo período carrega: sem isso
+    // todos os números somem por um instante a cada troca no Select.
+    placeholderData: (previous) => previous,
   });
 
   const { data: topProducts } = useQuery({
@@ -163,7 +167,8 @@ export default function SalesDashboard() {
         .map(([id, data]) => ({ id, ...data }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
-    }
+    },
+    placeholderData: (previous) => previous,
   });
 
   const { data: recentSales } = useQuery({
@@ -262,7 +267,12 @@ export default function SalesDashboard() {
         </motion.div>
       ) : (
       <motion.div variants={itemAnim}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div
+          className={cn(
+            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-quick ease-smooth-out",
+            isFetching && "t-fetching",
+          )}
+        >
           <div className="glass-card p-6 rounded-[20px] border-white/10 overflow-hidden relative group h-[160px] bg-gradient-to-tr from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-50 transition-opacity duration-1000" />
             <div className="relative z-10">

@@ -16,7 +16,7 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
+      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm t-overlay",
       className
     )}
     {...props}
@@ -33,16 +33,10 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
       ref={ref}
-      style={{
-        position: 'fixed',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10000
-      }}
       className={cn(
+        // Posicionamento vem de src/index.css (translate individual).
         // Mesmo chrome do DialogContent: todo alert-dialog herda o vidro.
-        "w-full max-w-lg gap-4 p-6 max-h-[90vh] overflow-y-auto shadow-lg",
+        "t-modal w-full max-w-lg gap-4 p-6 max-h-[90vh] overflow-y-auto shadow-lg",
         "glass-card rounded-[20px] border-white/10 bg-black/90 backdrop-blur-xl",
         className
       )}

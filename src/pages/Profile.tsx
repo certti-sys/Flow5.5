@@ -270,7 +270,7 @@ const Profile = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="t-stagger grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {achievements && [...achievements]
                     .sort((a, b) => {
                       const aUnlocked = userAchievements?.some(ua => ua.achievement_id === a.id);

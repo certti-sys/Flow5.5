@@ -733,12 +733,15 @@ const Lesson = () => {
                   onClick={() => toggleCompleteMutation.mutate()}
                   variant={progress?.completed ? "default" : "outline"}
                   disabled={toggleCompleteMutation.isPending}
-                  className={`gap-2 h-[44px] md:h-[48px] px-6 rounded-[12px] font-bold transition-all duration-300 transform active:scale-95 group shrink-0 relative z-20 ${progress?.completed
+                  className={`gap-2 h-[44px] md:h-[48px] px-6 rounded-[12px] font-bold transition-all duration-fast transform active:scale-95 group shrink-0 relative z-20 ${progress?.completed
                     ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20 shadow-premium"
                     : "gradient-primary text-white shadow-glow hover:opacity-90 border-0"
                     }`}
                 >
-                  <CheckCircle2 className={`w-4 h-4 transition-transform group-hover:scale-110 ${progress?.completed ? "fill-white" : ""}`} />
+                  <CheckCircle2
+                    key={progress?.completed ? "done" : "pending"}
+                    className={`w-4 h-4 transition-transform group-hover:scale-110 ${progress?.completed ? "fill-white t-success-pop" : ""}`}
+                  />
                   <span>{progress?.completed ? "Concluída" : "Marcar Concluída"}</span>
                 </Button>
               </div>

@@ -185,7 +185,7 @@ export default function WebhookHub() {
         {/* 1. VISÃO GERAL (Plataformas + Guias) */}
         <TabsContent value="platforms" className="space-y-6">
           {loadingPlatforms ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map(i => (<div key={i} className="h-[160px] w-full animate-pulse bg-white/5 rounded-[16px]" />))}</div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map(i => (<div key={i} className="t-skeleton h-[160px] w-full bg-white/5 rounded-[16px]" />))}</div>
           ) : platformsError ? (
             <ErrorState
               title="Não foi possível carregar as plataformas"

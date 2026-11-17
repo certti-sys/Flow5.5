@@ -134,7 +134,7 @@ export default function GatewaysPage() {
             {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="h-[200px] w-full animate-pulse bg-white/5 rounded-[20px]" />
+                        <div key={i} className="t-skeleton h-[200px] w-full bg-white/5 rounded-[20px]" />
                     ))}
                 </div>
             ) : isError ? (

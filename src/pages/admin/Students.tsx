@@ -43,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const container = {
   hidden: { opacity: 0 },
@@ -214,7 +215,7 @@ export default function AdminStudents() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const { data: students = [], isLoading, error } = useQuery({
+  const { data: students = [], isLoading, isFetching, error } = useQuery({
     queryKey: ["adminStudents", statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -227,6 +228,9 @@ export default function AdminStudents() {
       if (error) throw error;
       return data as Student[];
     },
+    // Trocar o filtro de status não pode derrubar a página para o spinner:
+    // mantém a lista anterior na tela até a nova chegar.
+    placeholderData: (previous) => previous,
   });
 
   if (error) {
@@ -434,6 +438,9 @@ export default function AdminStudents() {
         variants={item}
         className="glass-card rounded-[20px] border-white/10 overflow-hidden shadow-2xl bg-white/[0.01]"
       >
+        {/* Framer controla `opacity` neste motion.div; o esmaecimento do
+            refetch vive num filho comum para não ser sobrescrito inline. */}
+        <div className={cn("transition-opacity duration-quick ease-smooth-out", isFetching && "t-fetching")}>
         {filteredStudents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
@@ -476,6 +483,7 @@ export default function AdminStudents() {
             </table>
           </div>
         )}
+        </div>
       </motion.div>
 
       {pageCount > 1 && (

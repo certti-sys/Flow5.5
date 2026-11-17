@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
+      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm t-overlay",
       className
     )}
     {...props}
@@ -35,17 +35,12 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      style={{
-        position: 'fixed',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10000
-      }}
       className={cn(
+        // Posicionamento vem de src/index.css (translate individual), para
+        // deixar `transform: scale()` livre para a abertura/fechamento.
         // Chrome do design system. Todo modal herda daqui; quem precisa de corpo
         // full-bleed sobrescreve com p-0 (twMerge resolve o conflito).
-        "w-full max-w-lg gap-4 p-6 max-h-[90vh] overflow-y-auto shadow-lg",
+        "t-modal w-full max-w-lg gap-4 p-6 max-h-[90vh] overflow-y-auto shadow-lg",
         "glass-card rounded-[20px] border-white/10 bg-black/90 backdrop-blur-xl",
         className
       )}

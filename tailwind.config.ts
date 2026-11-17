@@ -63,6 +63,20 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      transitionDuration: {
+        stagger: "var(--duration-stagger)",
+        micro: "var(--duration-micro)",
+        quick: "var(--duration-quick)",
+        fast: "var(--duration-fast)",
+        medium: "var(--duration-medium)",
+        slow: "var(--duration-slow)",
+        "very-slow": "var(--duration-very-slow)",
+      },
+      transitionTimingFunction: {
+        "smooth-out": "var(--ease-smooth-out)",
+        bounce: "var(--ease-bounce)",
+        "bounce-strong": "var(--ease-bounce-strong)",
+      },
       keyframes: {
         "accordion-down": {
           from: {
@@ -100,10 +114,10 @@ export default {
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.5s ease-out",
-        "slide-in": "slide-in 0.3s ease-out"
+        "accordion-down": "accordion-down var(--duration-fast) var(--ease-smooth-out)",
+        "accordion-up": "accordion-up var(--duration-fast) var(--ease-smooth-out)",
+        "fade-in": "fade-in var(--duration-very-slow) var(--ease-smooth-out)",
+        "slide-in": "slide-in var(--duration-slow) var(--ease-smooth-out)"
       },
     },
   },
