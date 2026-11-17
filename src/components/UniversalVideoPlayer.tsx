@@ -105,7 +105,9 @@ export default function UniversalVideoPlayer({
   }, [videoUrl, user]);
 
   useEffect(() => {
-    if (!isReady || !playerRef.current || savedProgress === 0) return;
+    // Aula concluída (ou perto do fim) começa do zero: buscar 100% levava
+    // direto ao final e a tela ficava preta.
+    if (!isReady || !playerRef.current || savedProgress <= 0 || savedProgress >= 95) return;
     
     const progressFraction = savedProgress / 100;
     setPlayed(progressFraction);

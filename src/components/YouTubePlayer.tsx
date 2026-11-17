@@ -42,6 +42,9 @@ export default function YouTubePlayer({
   const progressIntervalRef = useRef<NodeJS.Timeout>();
   const saveProgressIntervalRef = useRef<NodeJS.Timeout>();
   const iframeId = useRef<string>(`yt-${courseId}-${lessonId}-${Math.random().toString(36).slice(2)}`);
+  // Restaura o ponto salvo uma única vez. Sem isso, cada `infoDelivery` (que
+  // repete a duração a cada segundo) reenviava o seek e o vídeo voltava.
+  const hasRestoredProgress = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [played, setPlayed] = useState(0);
@@ -54,8 +57,11 @@ export default function YouTubePlayer({
   const [showPoster, setShowPoster] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [reloadCount, setReloadCount] = useState(0);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   const getIframeSrc = () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -82,6 +88,24 @@ export default function YouTubePlayer({
     
     return `https://www.youtube-nocookie.com/embed/${videoId}?${params}`;
   };
+
+  // Trocar de aula (ou recarregar o iframe) recomeça a restauração de progresso.
+  useEffect(() => {
+    hasRestoredProgress.current = false;
+    setLoadTimedOut(false);
+  }, [videoId, reloadCount]);
+
+  // Em redes/extensões que bloqueiam o iframe do YouTube o player fica preto
+  // e sem duração. Depois de 8s sem metadados, oferece abrir no YouTube.
+  useEffect(() => {
+    if (!hasStarted || duration > 0) {
+      setLoadTimedOut(false);
+      return;
+    }
+
+    const timer = setTimeout(() => setLoadTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [hasStarted, duration, reloadCount]);
 
   const sendCommand = (command: string, args: any = []) => {
     if (!iframeRef.current) return;
@@ -129,7 +153,7 @@ export default function YouTubePlayer({
       iframe.removeEventListener("load", handleLoad);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
-  }, [hasStarted]);
+  }, [hasStarted, reloadCount]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -141,8 +165,16 @@ export default function YouTubePlayer({
         if (data.event === "infoDelivery" && data.info?.duration) {
           const newDuration = data.info.duration;
           setDuration(newDuration);
-          
-          if (savedProgress > 0 && newDuration > 0) {
+
+          // Aula já concluída (ou quase no fim) recomeça do zero: buscar 100%
+          // levava o vídeo direto para o final e a tela ficava preta.
+          if (
+            !hasRestoredProgress.current &&
+            savedProgress > 0 &&
+            savedProgress < 95 &&
+            newDuration > 0
+          ) {
+            hasRestoredProgress.current = true;
             const seekTime = (savedProgress / 100) * newDuration;
             setTimeout(() => sendCommand("seekTo", [seekTime, true]), 500);
           }
@@ -282,6 +314,14 @@ export default function YouTubePlayer({
     }
   };
 
+  const retryLoad = () => {
+    setLoadTimedOut(false);
+    setIsReady(false);
+    setPlayed(0);
+    setDuration(0);
+    setReloadCount((count) => count + 1);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -306,6 +346,7 @@ export default function YouTubePlayer({
         <div className="absolute inset-0 overflow-hidden">
           <iframe
             ref={iframeRef}
+            key={reloadCount}
             id={iframeId.current}
             src={getIframeSrc()}
             allow="autoplay; encrypted-media; fullscreen"
@@ -322,9 +363,36 @@ export default function YouTubePlayer({
         </div>
       )}
 
-      {!isReady && hasStarted && (
+      {!isReady && hasStarted && !loadTimedOut && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      )}
+
+      {loadTimedOut && hasStarted && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black/85 p-6 text-center">
+          <p className="text-white text-sm font-semibold">O vídeo não carregou aqui</p>
+          <p className="text-white/60 text-xs max-w-sm leading-relaxed">
+            Pode ser bloqueio do navegador, de uma extensão ou do preview embutido.
+            Abra direto no YouTube ou tente recarregar o player.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <a
+              href={watchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center h-9 px-4 rounded-lg bg-primary text-primary-foreground text-[13px] font-bold hover:bg-primary/90 transition-colors"
+            >
+              Abrir no YouTube
+            </a>
+            <Button
+              variant="outline"
+              onClick={retryLoad}
+              className="h-9 px-4 rounded-lg border-white/15 bg-white/5 text-white hover:bg-white/10 text-[13px] font-bold"
+            >
+              Tentar novamente
+            </Button>
+          </div>
         </div>
       )}
 

@@ -72,6 +72,11 @@ export const useLessonProgress = (
     async (progressPercent: number) => {
       if (!userId || !lessonId || !courseId) return;
 
+      // Aula já concluída continua em 100%: rever o vídeo do início (o player
+      // reinicia quando o progresso passa de 95%) não pode derrubar o
+      // progresso do curso.
+      if (progress.completed) return;
+
       try {
         const { data, error } = await supabase.functions.invoke('lesson-progress', {
           body: {

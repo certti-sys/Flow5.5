@@ -269,8 +269,10 @@ const Lesson = () => {
           .upsert({
             user_id: user.id,
             lesson_id: lessonId,
+            course_id: courseId ?? null,
             completed: true,
             completed_at: new Date().toISOString(),
+            progress_percent: 100,
           }, { onConflict: 'user_id,lesson_id' });
 
         if (error) throw error;
@@ -282,8 +284,10 @@ const Lesson = () => {
           .upsert({
             user_id: user.id,
             lesson_id: lessonId,
+            course_id: courseId ?? null,
             completed: false,
             completed_at: null,
+            progress_percent: 0,
           }, { onConflict: 'user_id,lesson_id' });
 
         if (error) throw error;
