@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { CheckCircle2, Circle, Clock, BookOpen, PlayCircle, Loader2, FileBadge } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchLesson } from "@/lib/lessonQueries";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,7 @@ interface LessonSidebarProps {
 export const LessonSidebar = ({ modules, courseId, certificatesEnabled = false }: LessonSidebarProps) => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isLessonCompleted } = useUserProgress();
   const { user } = useAuth();
   const { settings } = usePlatformSettings();
@@ -170,6 +173,10 @@ export const LessonSidebar = ({ modules, courseId, certificatesEnabled = false }
                         <Link
                           key={lesson.id}
                           to={`/aula/${lesson.id}`}
+                          // Aquece o cache no hover/foco: o clique seguinte já
+                          // encontra aula, materiais e comentários prontos.
+                          onMouseEnter={() => prefetchLesson(queryClient, lesson.id, user?.id)}
+                          onFocus={() => prefetchLesson(queryClient, lesson.id, user?.id)}
                           className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 border-b border-white/5 last:border-b-0 touch-manipulation group relative ${isActive
                             ? "bg-primary/15"
                             : "hover:bg-white/5"

@@ -1,71 +1,53 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-/**
- * Acesso a um curso específico.
+/** Acesso a um curso específico.
  *
- * `failed` existe para separar "não tem acesso" de "não deu para verificar".
- * Antes, qualquer erro na edge function virava `hasAccess = false` e a página
- * redirecionava o aluno para /info como se ele não tivesse comprado o curso.
+ * Fica em cache por curso (5 min): trocar de aula dentro do mesmo curso não
+ * repete a chamada nem segura a página. `failed` separa "não tem acesso" de
+ * "não deu para verificar" — um erro não pode expulsar o aluno da aula.
  */
 export const useHasAccessToCourse = (courseId: string | null) => {
   const { user } = useAuth();
-  const [hasAccess, setHasAccess] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const query = useQuery({
+    queryKey: ["courseAccess", courseId, user?.id],
+    queryFn: async () => {
+      if (!courseId) throw new Error("courseId ausente para checagem de acesso");
 
-    setLoading(true);
-    setFailed(false);
+      const invoke = () =>
+        supabase.functions.invoke("check-course-access", {
+          body: { courseIds: [courseId] },
+        });
 
-    const checkAccess = async () => {
-      if (!courseId) {
-        if (!cancelled) setHasAccess(false);
-        // Mantém loading enquanto não houver courseId válido
-        return;
+      let { data, error } = await invoke();
+
+      if (error || !data?.accessMap) {
+        // Token vencido no meio da sessão: renova e tenta de novo
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) throw refreshError;
+        ({ data, error } = await invoke());
       }
 
-      // Sessão ainda carregando: não decide nada
-      if (!user) return;
+      if (error) throw error;
+      if (!data?.accessMap) throw new Error("check-course-access sem accessMap");
 
-      try {
-        const invoke = () =>
-          supabase.functions.invoke('check-course-access', {
-            body: { courseIds: [courseId] },
-          });
+      return data.accessMap[courseId] === true;
+    },
+    // Só consulta quando há curso e sessão: sem isso a página fica em loading
+    // infinito esperando um courseId que nunca chega.
+    enabled: !!courseId && !!user?.id,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 
-        let { data, error } = await invoke();
-
-        if (error || !data?.accessMap) {
-          // Token vencido no meio da sessão: renova e tenta de novo
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) throw refreshError;
-          ({ data, error } = await invoke());
-        }
-
-        if (error) throw error;
-        if (!data?.accessMap) throw new Error('check-course-access sem accessMap');
-
-        if (cancelled) return;
-        setHasAccess(data.accessMap[courseId] === true);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Error checking course access:', err);
-        setFailed(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    checkAccess();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [courseId, user?.id]);
-
-  return { hasAccess, loading, failed };
+  return {
+    hasAccess: query.data === true,
+    // Sem sessão ainda não decide nada (mantém o gate da página).
+    loading: !user || query.isLoading,
+    failed: query.isError,
+  };
 };

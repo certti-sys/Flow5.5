@@ -34,8 +34,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchLesson,
+  fetchLessonProgress,
+  fetchLessonMaterials,
+  fetchLessonComments,
+  prefetchLesson,
+} from "@/lib/lessonQueries";
 import { useAuth } from "@/hooks/useAuth";
 import { useHasAccessToCourse } from "@/hooks/useHasAccessToCourse";
 import { useGamification, Achievement } from "@/hooks/useGamification";
@@ -99,23 +106,11 @@ const Lesson = () => {
   // Fetch lesson with module and course data
   const { data: lessonData, isLoading } = useQuery({
     queryKey: ["lesson", lessonId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select(`
-          *,
-          modules (
-            *,
-            courses (*)
-          )
-        `)
-        .eq("id", lessonId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchLesson(lessonId!),
     enabled: !!lessonId,
+    // Mantém a aula anterior na tela durante a troca: sem ela a página
+    // inteira virava spinner a cada clique no menu lateral.
+    placeholderData: keepPreviousData,
   });
 
   // Fetch all modules for the course (for sidebar)
@@ -139,39 +134,33 @@ const Lesson = () => {
     enabled: !!lessonData?.modules?.courses?.id,
   });
 
+  // Prefetch da aula anterior e da próxima assim que a lista do curso chega:
+  // no clique do menu (ou do botão "próxima") os dados já estão no cache e a
+  // troca não espera rede.
+  useEffect(() => {
+    if (!modules.length || !lessonId) return;
+    const flat: { id: string }[] = modules.flatMap((m: any) => m.lessons || []);
+    const index = flat.findIndex((l) => l.id === lessonId);
+    if (index < 0) return;
+    [flat[index - 1], flat[index + 1]].forEach((l) => {
+      if (l?.id) prefetchLesson(queryClient, l.id, user?.id);
+    });
+  }, [modules, lessonId, queryClient, user?.id]);
+
   // Fetch user progress for this lesson
   const { data: progress } = useQuery({
     queryKey: ["lessonProgress", lessonId, user?.id],
-    queryFn: async () => {
-      if (!user || !lessonId) return null;
-      const { data, error } = await supabase
-        .from("user_progress")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("lesson_id", lessonId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchLessonProgress(lessonId!, user?.id),
     enabled: !!user && !!lessonId,
+    placeholderData: keepPreviousData,
   });
 
   // Fetch lesson materials
   const { data: lessonMaterials = [] } = useQuery({
     queryKey: ["lessonMaterials", lessonId],
-    queryFn: async () => {
-      if (!lessonId) return [];
-      const { data, error } = await supabase
-        .from("lesson_materials")
-        .select("*")
-        .eq("lesson_id", lessonId)
-        .order("order_index");
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchLessonMaterials(lessonId!),
     enabled: !!lessonId,
+    placeholderData: keepPreviousData,
   });
 
   const courseId = lessonData?.modules?.courses?.id;
@@ -194,65 +183,9 @@ const Lesson = () => {
   // Fetch comments with threading
   const { data: comments = [] } = useQuery({
     queryKey: ["comments", lessonId],
-    queryFn: async () => {
-      // Fetch comments
-      const { data: commentsData, error: commentsError } = await supabase
-        .from("comments")
-        .select(`
-          *,
-          profiles (name, avatar_url)
-        `)
-        .eq("lesson_id", lessonId)
-        .order("created_at", { ascending: true });
-
-      if (commentsError) throw commentsError;
-
-      // Fetch admin user IDs
-      const { data: adminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
-
-      const adminUserIds = new Set((adminRoles || []).map(r => r.user_id));
-
-      // Organize comments into threads
-      const commentsMap = new Map<string, CommentWithReplies>();
-      const rootComments: CommentWithReplies[] = [];
-
-      // First pass: create map of all comments with admin flag
-      (commentsData || []).forEach((comment: any) => {
-        commentsMap.set(comment.id, {
-          ...comment,
-          isAuthorAdmin: adminUserIds.has(comment.user_id),
-          replies: []
-        });
-      });
-
-      // Second pass: organize into threads
-      (commentsData || []).forEach((comment: any) => {
-        const commentWithReplies = commentsMap.get(comment.id)!;
-        if (comment.parent_id && commentsMap.has(comment.parent_id)) {
-          commentsMap.get(comment.parent_id)!.replies!.push(commentWithReplies);
-        } else if (!comment.parent_id) {
-          rootComments.push(commentWithReplies);
-        }
-      });
-
-      // Sort replies chronologically (oldest first so they appear in order below parent)
-      commentsMap.forEach((comment) => {
-        if (comment.replies && comment.replies.length > 0) {
-          comment.replies.sort((a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        }
-      });
-
-      // Sort root comments by date (newest first)
-      return rootComments.sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    },
+    queryFn: () => fetchLessonComments(lessonId!),
     enabled: !!lessonId,
+    placeholderData: keepPreviousData,
   });
 
   // Toggle completion mutation
@@ -603,7 +536,12 @@ const Lesson = () => {
     }, 0);
   };
 
-  if (isLoading || loadingAccess) {
+  // Spinner de tela cheia só quando não há o que mostrar: na troca de aula a
+  // aula anterior continua visível (keepPreviousData) até a nova chegar.
+  // `loadingAccess` segue barrando a 1ª abertura, quando ainda não se sabe se
+  // o aluno tem acesso ao curso — mas troca dentro do mesmo curso lê do cache
+  // e não gera spinner nenhum.
+  if (loadingAccess || (isLoading && !lessonData)) {
     return (
       <div className="min-h-screen">
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
@@ -705,7 +643,10 @@ const Lesson = () => {
                 <UniversalVideoPlayer
                   videoUrl={lessonData.video_url}
                   courseId={courseId}
-                  lessonId={lessonId!}
+                  // Usa o id da aula exibida (e não o da URL): durante a troca
+                  // a aula anterior ainda está na tela e no player, e reportar
+                  // progresso com o id novo gravaria tempo na aula errada.
+                  lessonId={lessonData.id}
                   onProgressUpdate={() => {
                     // Progress tracking handled internally
                   }}
