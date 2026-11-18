@@ -217,6 +217,7 @@ const Course = () => {
                     modules={modules}
                     courseId={courseId || ""}
                     certificatesEnabled={course?.certificates_enabled === true}
+                    certificateMinPercent={course?.certificate_min_percent ?? 100}
                   />
                 </div>
               </div>

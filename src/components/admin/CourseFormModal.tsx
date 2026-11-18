@@ -42,6 +42,12 @@ const courseSchema = z.object({
   show_card_overlay: z.boolean().default(true),
   show_category_badge: z.boolean().default(true),
   certificates_enabled: z.boolean().default(false),
+  certificate_min_percent: z.coerce
+    .number()
+    .int("Use um número inteiro")
+    .min(1, "Mínimo 1%")
+    .max(100, "Máximo 100%")
+    .default(100),
   checkout_url: z.string().url("URL inválida").optional().or(z.literal("")),
 });
 
@@ -71,6 +77,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
       show_card_overlay: true,
       show_category_badge: true,
       certificates_enabled: false,
+      certificate_min_percent: 100,
       checkout_url: "",
     },
   });
@@ -117,6 +124,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
         show_card_overlay: course.show_card_overlay !== false,
         show_category_badge: course.show_category_badge !== false,
         certificates_enabled: course.certificates_enabled === true,
+        certificate_min_percent: course.certificate_min_percent ?? 100,
         checkout_url: course.checkout_url || "",
       });
       setThumbnailPreview(course.thumbnail);
@@ -131,6 +139,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
         show_card_overlay: true,
         show_category_badge: true,
         certificates_enabled: false,
+        certificate_min_percent: 100,
         checkout_url: "",
       });
       setThumbnailPreview("");
@@ -266,7 +275,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
       });
       return;
     }
-    saveMutation.mutate(data);
+    saveMutation.mutate(validation.data);
   };
 
   return (
@@ -607,6 +616,34 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                     </FormItem>
                   )}
                 />
+
+                {/* Percentual mínimo: cursos com aula de bônus não devem travar em 100% */}
+                {form.watch("certificates_enabled") && (
+                  <FormField
+                    control={form.control}
+                    name="certificate_min_percent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80 font-medium">
+                          Conclusão mínima para o certificado (%)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={100}
+                            {...field}
+                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white h-[44px]"
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Aulas de bônus que não devem contar: baixe o percentual. Padrão 100.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
             </div>
 

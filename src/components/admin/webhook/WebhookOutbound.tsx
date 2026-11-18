@@ -24,11 +24,15 @@ import {
  */
 
 export const OUTBOUND_EVENTS = [
-  { value: "order.paid", label: "Pedido pago", description: "Pagamento confirmado pelo gateway." },
-  { value: "order.refunded", label: "Reembolso", description: "Estorno total ou chargeback." },
-  { value: "order.canceled", label: "Pedido cancelado", description: "Cancelado antes da conclusão." },
-  { value: "order.failed", label: "Pagamento falhou", description: "Recusado pelo gateway ou antifraude." },
-  { value: "order.expired", label: "Pedido expirado", description: "Pix/boleto venceu sem pagamento." },
+  { value: "order.pending", label: "Pedido pendente", group: "Pagamento", description: "Pedido criado aguardando confirmação do pagamento." },
+  { value: "order.paid", label: "Pedido pago", group: "Pagamento", description: "Pagamento confirmado pelo gateway." },
+  { value: "order.failed", label: "Pagamento falhou", group: "Pagamento", description: "Recusado pelo gateway ou antifraude." },
+  { value: "order.canceled", label: "Pedido cancelado", group: "Pagamento", description: "Cancelado antes da conclusão." },
+  { value: "order.expired", label: "Pedido expirado", group: "Pagamento", description: "Pix/boleto venceu sem pagamento." },
+  { value: "order.refunded", label: "Reembolso", group: "Pagamento", description: "Estorno total ou chargeback." },
+  { value: "payment.pix_generated", label: "Pix gerado", group: "Pagamento", description: "QR/copia-e-cola emitido (payload traz o código)." },
+  { value: "payment.boleto_generated", label: "Boleto gerado", group: "Pagamento", description: "Boleto emitido com linha digitável e vencimento." },
+  { value: "access.ready", label: "Acesso liberado", group: "Área de membros", description: "Aluno recebeu acesso a um curso (um por curso)." },
 ] as const;
 
 type Endpoint = {
@@ -61,6 +65,7 @@ function randomSecret(): string {
 }
 
 function eventLabel(event: string): string {
+  if (event === "test.ping") return "Teste de endpoint";
   return OUTBOUND_EVENTS.find((e) => e.value === event)?.label ?? event;
 }
 
@@ -199,6 +204,30 @@ export function WebhookOutbound() {
     onError: (error: any) => toast.error(error.message ?? "Falha ao reenfileirar"),
   });
 
+  const testEndpoint = useMutation({
+    mutationFn: async (endpoint: Endpoint) => {
+      const { error } = await supabase.rpc("enqueue_test_webhook", { p_endpoint_id: endpoint.id });
+      if (error) throw error;
+
+      // Drena no mesmo instante; o cron é o plano B. O worker ignora o corpo
+      // e apenas processa a fila, então o enfileiramento acima é o que importa.
+      const { error: dispatchError } = await supabase.functions.invoke("dispatch-webhooks", {
+        body: { endpointId: endpoint.id },
+      });
+      if (dispatchError) return { warning: dispatchError.message };
+      return {};
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["webhook-deliveries"] });
+      if ((result as any)?.warning) {
+        toast.warning("Teste enfileirado. Sai na próxima rodada do agendador.");
+      } else {
+        toast.success("Teste enviado — veja o resultado na lista de entregas");
+      }
+    },
+    onError: (error: any) => toast.error(error.message ?? "Falha ao enfileirar o teste"),
+  });
+
   const copy = async (value: string, label: string) => {
     await navigator.clipboard.writeText(value);
     toast.success(`${label} copiado`);
@@ -268,6 +297,17 @@ export function WebhookOutbound() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button variant="ghost" size="icon" onClick={() => copy(endpoint.url, "URL")} className="h-8 w-8 text-white/50 hover:text-white">
                       <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => testEndpoint.mutate(endpoint)}
+                      disabled={testEndpoint.isPending}
+                      title="Envia um payload de teste para esta URL"
+                      className="text-[12px] text-white/60 hover:text-white"
+                    >
+                      {testEndpoint.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
+                      Testar
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(endpoint)} className="text-[12px] text-white/60 hover:text-white">
                       Editar
@@ -402,23 +442,30 @@ export function WebhookOutbound() {
             <div className="space-y-2">
               <Label>Eventos</Label>
               <div className="space-y-1.5">
-                {OUTBOUND_EVENTS.map((event) => (
-                  <label key={event.value} className="flex items-start gap-2.5 p-2 rounded-[8px] hover:bg-white/5 cursor-pointer">
-                    <Checkbox
-                      checked={form.events.includes(event.value)}
-                      onCheckedChange={(checked) => setForm({
-                        ...form,
-                        events: checked
-                          ? [...form.events, event.value]
-                          : form.events.filter((e) => e !== event.value),
-                      })}
-                      className="mt-0.5"
-                    />
-                    <span>
-                      <span className="block text-[13px] text-white/90 font-medium">{event.label}</span>
-                      <span className="block text-[11px] text-white/40">{event.description}</span>
-                    </span>
-                  </label>
+                {OUTBOUND_EVENTS.map((event, index) => (
+                  <div key={event.value}>
+                    {OUTBOUND_EVENTS[index - 1]?.group !== event.group && (
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-white/30 pt-2 pb-1">
+                        {event.group}
+                      </p>
+                    )}
+                    <label className="flex items-start gap-2.5 p-2 rounded-[8px] hover:bg-white/5 cursor-pointer">
+                      <Checkbox
+                        checked={form.events.includes(event.value)}
+                        onCheckedChange={(checked) => setForm({
+                          ...form,
+                          events: checked
+                            ? [...form.events, event.value]
+                            : form.events.filter((e) => e !== event.value),
+                        })}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="block text-[13px] text-white/90 font-medium">{event.label}</span>
+                        <span className="block text-[11px] text-white/40">{event.description}</span>
+                      </span>
+                    </label>
+                  </div>
                 ))}
               </div>
             </div>

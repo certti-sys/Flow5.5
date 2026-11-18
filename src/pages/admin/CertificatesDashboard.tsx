@@ -18,6 +18,8 @@ interface CertificateData {
   id: string;
   user_id: string;
   course_id: string;
+  issued_at: string | null;
+  created_at: string | null;
   profiles: { name: string | null; email: string | null; avatar_url: string | null };
   courses: { title: string | null } | null;
 }
@@ -51,7 +53,9 @@ const CertificateCard = ({ cert }: { cert: CertificateData }) => {
         </div>
         <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="w-3 h-3 mr-1" />
-          <span>{new Date(cert.id).toLocaleDateString("pt-BR")}</span>
+          <span>
+            {new Date(cert.issued_at || cert.created_at || Date.now()).toLocaleDateString("pt-BR")}
+          </span>
         </div>
       </div>
       <div className="mt-4 flex justify-between items-center px-4 pb-4">
@@ -110,6 +114,7 @@ export default function CertificatesDashboard() {
         .select(`
           id,
           issued_at,
+          created_at,
           user_id,
           course_id,
           profiles (name, email, avatar_url),

@@ -760,6 +760,7 @@ const Lesson = () => {
               modules={modules}
               courseId={courseId!}
               certificatesEnabled={lessonData?.modules?.courses?.certificates_enabled === true}
+              certificateMinPercent={lessonData?.modules?.courses?.certificate_min_percent ?? 100}
             />
           </div>
 
@@ -778,6 +779,7 @@ const Lesson = () => {
                     modules={modules}
                     courseId={courseId!}
                     certificatesEnabled={lessonData?.modules?.courses?.certificates_enabled === true}
+                    certificateMinPercent={lessonData?.modules?.courses?.certificate_min_percent ?? 100}
                   />
                 </AccordionContent>
               </AccordionItem>

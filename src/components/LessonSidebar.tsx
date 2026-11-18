@@ -22,9 +22,16 @@ interface LessonSidebarProps {
   modules: any[];
   courseId: string;
   certificatesEnabled?: boolean;
+  /** Percentual mínimo de conclusão para resgatar o certificado (default 100). */
+  certificateMinPercent?: number;
 }
 
-export const LessonSidebar = ({ modules, courseId, certificatesEnabled = false }: LessonSidebarProps) => {
+export const LessonSidebar = ({
+  modules,
+  courseId,
+  certificatesEnabled = false,
+  certificateMinPercent = 100,
+}: LessonSidebarProps) => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -116,7 +123,7 @@ export const LessonSidebar = ({ modules, courseId, certificatesEnabled = false }
         )}
 
         {/* Certificate Button: só quando o curso e a plataforma entregam */}
-        {progressPercentage === 100 && certificatesEnabled && settings?.certificates_enabled === true && (
+        {progressPercentage >= certificateMinPercent && certificatesEnabled && settings?.certificates_enabled === true && (
           <div className="mt-4 pt-4 border-t border-white/5 animate-fade-in">
             <Button 
               onClick={handleGenerateCertificate}
