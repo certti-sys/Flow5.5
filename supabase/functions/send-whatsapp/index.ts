@@ -55,10 +55,18 @@ async function sendViaEvolution(
     return { success: false, error: 'Evolution API credentials not configured' };
   }
 
+  // Sem timeout o fetch fica pendurado até o limite do edge (horas, na prática
+  // até o runtime matar), e quem chamou — notificação de pagamento — espera
+  // por isso. URL interna do Docker (ex.: `http://aplicaes-evolutionapi-1`) não
+  // resolve daqui e é o caso real.
+  const EVOLUTION_TIMEOUT_MS = 10_000;
+  const request = (url: string, init: RequestInit) =>
+    fetch(url, { ...init, signal: AbortSignal.timeout(EVOLUTION_TIMEOUT_MS) });
+
   try {
     // Send typing indicator if enabled
     if (send_typing_indicator) {
-      await fetch(`${evolution_api_url}/chat/presence/${evolution_instance_name}`, {
+      await request(`${evolution_api_url}/chat/presence/${evolution_instance_name}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +84,7 @@ async function sendViaEvolution(
     }
 
     // Send the message
-    const response = await fetch(`${evolution_api_url}/message/sendText/${evolution_instance_name}`, {
+    const response = await request(`${evolution_api_url}/message/sendText/${evolution_instance_name}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +106,13 @@ async function sendViaEvolution(
     return { success: true, result };
   } catch (error: any) {
     logger.error('Evolution API exception', error);
-    return { success: false, error: error.message || 'Evolution API connection failed' };
+    const timeout = error?.name === 'TimeoutError' || error?.name === 'AbortError';
+    return {
+      success: false,
+      error: timeout
+        ? `Evolution API não respondeu em ${EVOLUTION_TIMEOUT_MS / 1000}s (verifique se a URL "${evolution_api_url}" é acessível pela internet).`
+        : error.message || 'Evolution API connection failed',
+    };
   }
 }
 

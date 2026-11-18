@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, validateCSRF } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
-import { notifyOrderPaid } from "../_shared/notify-order.ts";
+import { notifyOrderPaid, defer } from "../_shared/notify-order.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
 
 // --- SCHEMAS ---
@@ -2226,7 +2226,9 @@ async function resolveCheckoutUser(
         throw new Error(`Não foi possível criar a conta do comprador: ${createError?.message || 'erro desconhecido'}`);
     }
 
-    await sendGuestWelcomeEmail(normalizedEmail, name, tempPassword, phone);
+    // Boas-vindas não pode atrasar a criação do pedido: a senha temporária
+    // chega depois da resposta, mas o comprador já está no checkout.
+    await defer(sendGuestWelcomeEmail(normalizedEmail, name, tempPassword, phone));
     return { id: created.user.id, email: normalizedEmail, metadata: { name, phone, cpf } };
 }
 

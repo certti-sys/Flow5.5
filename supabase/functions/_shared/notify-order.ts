@@ -13,6 +13,23 @@ import { scheduleWebhookDispatch } from "./webhook-dispatch.ts";
  * a confirmação de pagamento (mesma regra do trigger `grant_order_access`).
  */
 
+/**
+ * Roda a tarefa depois de a resposta HTTP sair.
+ *
+ * E-mail e WhatsApp iam com `await` antes do `return`, então o comprador
+ * esperava Brevo + Evolution para ver a confirmação — mesmo com o pagamento já
+ * aprovado no banco em menos de 3s. Sem `EdgeRuntime` (execução local) espera,
+ * para não perder o envio.
+ */
+export async function defer(task: Promise<unknown>): Promise<void> {
+    const runtime = (globalThis as any).EdgeRuntime;
+    if (runtime?.waitUntil) {
+        runtime.waitUntil(task);
+        return;
+    }
+    await task.catch(() => {});
+}
+
 type OrderRow = {
     id: string;
     user_id: string | null;
@@ -37,6 +54,12 @@ export async function notifyOrderPaid(supabase: any, orderId: string): Promise<v
     // configurado. As linhas já foram criadas pelo trigger em `orders`.
     scheduleWebhookDispatch(supabase);
 
+    // O comprador já pagou: a resposta HTTP não pode esperar o Brevo/Evolution
+    // (cada mensagem gasta ~1s de "digitando" + fetch). Vai em background.
+    await defer(sendPaidNotifications(supabase, orderId));
+}
+
+async function sendPaidNotifications(supabase: any, orderId: string): Promise<void> {
     try {
         // Sem provider configurado nada é enviado: sai cedo para não poluir log
         // com um erro por compra.
