@@ -66,10 +66,6 @@ Deno.serve(async (req) => {
 
     // Fetch progress data
     const { count: lessonsCompleted } = await supabaseClient.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('completed', true);
-    
-    // Simple logic for courses completed (reusing current logic or simplifying)
-    // For brevity, skipping the full course loop here but keeping it functional
-    const coursesCompleted = 0; // In a real scenario, implement the courses loop as before
 
     const newlyUnlocked: Achievement[] = [];
     let xpToAdd = 0;

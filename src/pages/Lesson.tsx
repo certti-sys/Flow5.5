@@ -18,6 +18,9 @@ import {
   User,
   BookOpen,
   Sparkles,
+  Heart,
+  NotebookPen,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +49,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useHasAccessToCourse } from "@/hooks/useHasAccessToCourse";
 import { useGamification, Achievement } from "@/hooks/useGamification";
+import { useLessonEngagement } from "@/hooks/useLessonEngagement";
 import { AchievementUnlockedModal } from "@/components/gamification/AchievementUnlockedModal";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Badge } from "@/components/ui/badge";
@@ -155,6 +159,8 @@ const Lesson = () => {
     placeholderData: keepPreviousData,
   });
 
+  const engagement = useLessonEngagement(lessonId);
+
   // Fetch lesson materials
   const { data: lessonMaterials = [] } = useQuery({
     queryKey: ["lessonMaterials", lessonId],
@@ -196,20 +202,16 @@ const Lesson = () => {
       const isCompleted = progress?.completed || false;
 
       if (!isCompleted) {
-        // Marcar como concluído - atualiza diretamente no banco
-        const { error } = await supabase
-          .from("user_progress")
-          .upsert({
-            user_id: user.id,
-            lesson_id: lessonId,
-            course_id: courseId ?? null,
-            completed: true,
-            completed_at: new Date().toISOString(),
-            progress_percent: 100,
-          }, { onConflict: 'user_id,lesson_id' });
+        // Conclusão passa pela edge function: é ela que contabiliza XP,
+        // `user_stats` (streak e aulas do dia) e as conquistas. Gravar
+        // `user_progress` direto aqui deixava as 5 conquistas de streak/dia
+        // e o "+50 XP" impossíveis de ganhar.
+        const { data, error } = await supabase.functions.invoke("lesson-progress", {
+          body: { action: "mark_completed", lessonId, courseId },
+        });
 
         if (error) throw error;
-        return { data: { completed: true, xpGained: 50 } };
+        return { completed: true, xpGained: data?.xpGained ?? 0 };
       } else {
         // Desmarcar
         const { error } = await supabase
@@ -689,7 +691,40 @@ const Lesson = () => {
                   />
                   <span>{progress?.completed ? "Concluída" : "Marcar Concluída"}</span>
                 </Button>
+                <Button
+                  onClick={() => engagement.toggleLike.mutate()}
+                  variant="outline"
+                  disabled={engagement.toggleLike.isPending}
+                  aria-pressed={engagement.liked}
+                  aria-label={engagement.liked ? "Descurtir aula" : "Curtir aula"}
+                  className="gap-2 h-[44px] md:h-[48px] px-4 rounded-[12px] font-bold shrink-0"
+                >
+                  <Heart className={`w-4 h-4 transition-transform ${engagement.liked ? "fill-rose-500 text-rose-500 scale-110" : ""}`} />
+                  <span>{engagement.likesCount}</span>
+                </Button>
               </div>
+            </div>
+
+            {/* Anotações */}
+            <div className="glass-card rounded-[24px] border-white/10 p-6 md:p-8 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
+                  <NotebookPen className="w-4 h-4 text-primary" />
+                  Minhas anotações
+                </h2>
+                <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">
+                  {engagement.savingNote ? (
+                    <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Salvando</span>
+                  ) : engagement.noteSaved ? "Salvo" : "Não salvo"}
+                </span>
+              </div>
+              <Textarea
+                value={engagement.note}
+                onChange={(e) => engagement.setNote(e.target.value)}
+                placeholder="Anotações só suas — ficam salvas nesta aula."
+                maxLength={5000}
+                className="min-h-[110px] resize-y rounded-[12px]"
+              />
             </div>
 
             {/* Lesson Materials */}
