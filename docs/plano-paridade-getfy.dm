@@ -200,8 +200,8 @@ checkout_session_fields(session_id, field_key text, filled_at timestamptz)  -- e
 > Espelha `CheckoutAbuseGuard` + `config/checkout_security.php`.
 
 ### 6.1 Honeypot
-- **Front:** `Checkout.tsx` — campo invisível (`name="website"`, posicionado fora da tela, `tabIndex=-1`, `autoComplete="off"`).
-- **Edge `payment-ops`:** se vier preenchido → responde 200 genérico **sem criar pedido** (não revelar o bloqueio ao bot).
+- **Front:** `CustomerForm.tsx` — campo invisível (`name="website"`, fora da tela, `tabIndex=-1`, `autoComplete="off"`, `aria-hidden`).
+- **Edge `payment-ops`:** se vier preenchido → responde 200 com `orderId` falso **sem criar pedido** (não revelar o bloqueio ao bot).
 
 ### 6.2 Limites por IP/e-mail (valores do Getfy como padrão)
 | Regra | Valor |
@@ -209,11 +209,13 @@ checkout_session_fields(session_id, field_key text, filled_at timestamptz)  -- e
 | Pedidos pendentes por IP/hora | 25 |
 | Pedidos pendentes por e-mail/hora | 15 |
 | Janela de lookback | 1 h |
-| PIX criados por minuto | 8 |
-| Reuso de PIX pendente (lookback) | 120 min |
+| Reuso de PIX pendente (lookback) | 120 min (QR válido 25 min) |
 
-- **Implementação:** estender `_shared/rate-limiter.ts` com `checkPendingOrders(supabase, ipHash, email)`, usando a tabela `rate_limits` que já existe. Precisa de coluna de `ip_hash` no pedido (`orders.ip_hash`).
-- **Reuso de PIX pendente:** se existir pedido `pending` do mesmo e-mail+produto dentro da janela, devolve o QR existente em vez de criar outro (evita flood de PIX).
+- **Implementação:** `checkPendingOrders()` em `_shared/rate-limiter.ts`, **contando `orders`**, não `rate_limits`: o que importa é o pedido que ficou aberto, e recontar requisições puniria quem errou o cartão e tentou de novo.
+- **IP:** vem de `orders.metadata.device.ip` (já gravado no insert). **Não existe `orders.ip_hash`** e não foi criada: o IP cru já é usado pela Pixel X, um hash ao lado seria duplicação, não privacidade.
+- **PIX criado por minuto (8):** não implementado. O reuso abaixo já limita a criação a ~2 QR por janela de 25 min por e-mail+produto, que é o caso real de flood.
+- **Reuso de PIX pendente:** devolve o QR existente (`payments.raw_response`) quando há pedido `pending` do mesmo e-mail+produto, sem cupom nem bump (valor pode ter mudado).
+- **Fail-open:** erro no banco não derruba o checkout (mesma regra do limiter de requisições).
 
 **Esforço Fase 6:** ~1,5 dia. **Risco:** médio (se o limite for agressivo, barra cliente legítimo — começar com os valores do Getfy e monitorar).
 
