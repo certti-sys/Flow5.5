@@ -93,3 +93,67 @@ export async function checkRateLimit(
     return { allowed: true, remaining: 0 };
   }
 }
+
+export interface PendingOrdersResult {
+  allowed: boolean;
+  /** Qual limite estourou — só para o log; a resposta ao cliente é genérica. */
+  reason?: 'ip' | 'email';
+}
+
+/**
+ * Limite de pedidos *pendentes* por hora — freia bot que gera PIX/carrinho em
+ * massa sem pagar. O `checkRateLimit` conta requisições; este conta pedidos que
+ * ficaram abertos, então uma pessoa que erra o cartão e tenta de novo não é
+ * penalizada na mesma proporção.
+ *
+ * O IP vem de `orders.metadata.device.ip` (gravado no insert pelo servidor):
+ * não existe coluna `ip_hash` e não vale criar uma — o IP cru já é necessário
+ * para a Pixel X, então um hash ao lado seria duplicação, não privacidade.
+ *
+ * Fail-open, como o resto do limiter: erro no banco não pode derrubar checkout.
+ */
+export async function checkPendingOrders(
+  supabase: SupabaseClient,
+  { ip, email }: { ip?: string | null; email?: string | null },
+  limits = { ip: 25, email: 15 },
+  windowMinutes = 60
+): Promise<PendingOrdersResult> {
+  const since = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
+
+  try {
+    if (ip) {
+      const { count, error } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .gte('created_at', since)
+        .filter('metadata->device->>ip', 'eq', ip);
+
+      if (error) logger.error('Error counting pending orders by ip', error);
+      else if ((count ?? 0) >= limits.ip) {
+        logger.warn('Pending order limit hit (ip)', { ip, count, limit: limits.ip });
+        return { allowed: false, reason: 'ip' };
+      }
+    }
+
+    if (email) {
+      const { count, error } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .gte('created_at', since)
+        .eq('customer_email', email);
+
+      if (error) logger.error('Error counting pending orders by email', error);
+      else if ((count ?? 0) >= limits.email) {
+        logger.warn('Pending order limit hit (email)', { email, count, limit: limits.email });
+        return { allowed: false, reason: 'email' };
+      }
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    logger.error('Critical error counting pending orders', error);
+    return { allowed: true };
+  }
+}

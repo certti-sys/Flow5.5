@@ -36,6 +36,10 @@ export const checkoutFormSchema = z.object({
     neighborhood: z.string().optional(),
     city: z.string().optional(),
     federalUnit: z.string().optional(),
+
+    // Honeypot anti-bot: invisível, deve chegar vazio. Nunca validar aqui —
+    // quem preenche é bot, e o backend responde 200 falso para não avisá-lo.
+    website: z.string().optional(),
 }).superRefine((data, ctx) => {
     // We assume the paymentMethod will be passed to the form or validated
     // If we want validation, we need to ensure paymentMethod is set in the form data

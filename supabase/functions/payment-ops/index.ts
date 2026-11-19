@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, validateCSRF } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
-import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { checkRateLimit, checkPendingOrders } from "../_shared/rate-limiter.ts";
 import { notifyOrderPaid, defer } from "../_shared/notify-order.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
 
@@ -39,6 +39,8 @@ const PaymentOpsSchema = z.object({
     }).optional(),
     // Atribuição de tráfego capturada no navegador (utm_*, fbclid, src, sck).
     tracking: z.record(z.string()).optional(),
+    // Campo armadilha: invisível para humanos. Preenchido ⇒ bot.
+    website: z.string().optional(),
     // Usado apenas em test_connection para escolher o ambiente.
     env: z.enum(['test', 'live']).optional(),
   })
@@ -2325,8 +2327,37 @@ Deno.serve(async (req) => {
 
         if (action === 'create_paymentIntent') {
 
+            // Honeypot: campo invisível no formulário. Humano não preenche.
+            // Responde 200 com um id falso para o bot não descobrir o bloqueio
+            // e ajustar — a tela seguinte diz "pedido não encontrado".
+            if (payload.website) {
+                logger.warn('Honeypot preenchido; pedido descartado', {
+                    email: payload.email,
+                    ip: req.headers.get('x-forwarded-for'),
+                });
+                return new Response(JSON.stringify({
+                    status: 'pending',
+                    orderId: crypto.randomUUID(),
+                }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+
             const { productId, gatewayId } = payload;
             if (!productId || !gatewayId) throw new Error("productId e gatewayId obrigatórios");
+
+            // Visitante não tem limite por conta, então a proteção vem dos
+            // pedidos que ele deixou em aberto. Bloqueio é genérico: dizer
+            // "limite de PIX" ensina o atacante a variar o e-mail.
+            const clientIp = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '')
+                .split(',')[0].trim();
+            const pending = await checkPendingOrders(supabaseAdmin, {
+                ip: clientIp || null,
+                email: payload.email ? payload.email.trim().toLowerCase() : null,
+            });
+            if (!pending.allowed) {
+                return new Response(JSON.stringify({
+                    error: 'Muitos pedidos em aberto. Aguarde alguns minutos ou finalize um pedido existente.',
+                }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } });
+            }
 
             const { data: credRows } = await supabaseAdmin
                 .from('gateway_credentials')
@@ -2388,6 +2419,55 @@ Deno.serve(async (req) => {
                 throw new Error(
                     `Este produto não aceita ${methodKey} pelo gateway ${cred.gateway.slug}.`
                 );
+            }
+
+            // Reuso de PIX pendente: recarregar a página do QR criava uma
+            // cobrança nova no MP a cada F5. Se já existe PIX do mesmo e-mail e
+            // produto com QR ainda válido, devolve o mesmo em vez de criar outro.
+            // Só vale para compra "limpa": com cupom ou bump o valor pode ter
+            // mudado e a cotação antiga não serve.
+            if (methodKey === 'pix' && !payload.couponId && !(payload.orderBumps?.length)) {
+                const reuseEmail = (payload.email || user?.email || '').trim().toLowerCase();
+                if (reuseEmail) {
+                    const { data: item } = await supabaseAdmin
+                        .from('order_items')
+                        .select('order_id, orders!inner(customer_email, status, created_at)')
+                        .eq('product_id', productId)
+                        .eq('orders.customer_email', reuseEmail)
+                        .eq('orders.status', 'pending')
+                        .gte('orders.created_at', new Date(Date.now() - 120 * 60 * 1000).toISOString())
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (item?.order_id) {
+                        // QR do MP vale 30 min; só reaproveita o que ainda dá tempo.
+                        const { data: reusePayment } = await supabaseAdmin
+                            .from('payments')
+                            .select('id, external_payment_id, raw_response, status')
+                            .eq('order_id', item.order_id)
+                            .eq('payment_method_type', 'pix')
+                            .eq('status', 'pending')
+                            .gte('created_at', new Date(Date.now() - 25 * 60 * 1000).toISOString())
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+
+                        const qr = reusePayment?.raw_response?.point_of_interaction?.transaction_data;
+                        if (qr?.qr_code) {
+                            logger.info(`Reusing pending pix payment for order ${item.order_id}`);
+                            return new Response(JSON.stringify({
+                                status: 'pending',
+                                external_id: reusePayment.external_payment_id,
+                                orderId: item.order_id,
+                                internalPaymentId: reusePayment.id,
+                                qr_code: qr.qr_code,
+                                qr_code_base64: qr.qr_code_base64,
+                                ticket_url: qr.ticket_url,
+                            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                        }
+                    }
+                }
             }
 
             // Cálculo server-side do valor esperado (protege contra manipulação de preço no cliente)

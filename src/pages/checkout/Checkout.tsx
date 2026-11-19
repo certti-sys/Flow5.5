@@ -324,7 +324,8 @@ export default function CheckoutPage() {
             email: "",
             cpf: "",
             phone: "",
-            paymentMethod: "credit_card" // Default
+            paymentMethod: "credit_card", // Default
+            website: ""
         }
     });
 
@@ -554,6 +555,7 @@ export default function CheckoutPage() {
                     couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : null,
                     discountAmount: couponDiscountInCents,
                     tracking: getTracking(),
+                    website: data.website,
                     address: selectedMethod === 'bolbradesco'
                         ? {
                             zip_code: (data.zipCode || '').replace(/\D/g, ''),
@@ -722,7 +724,8 @@ export default function CheckoutPage() {
                     couponId: appliedCoupon?.valid ? appliedCoupon.coupon?.id : null,
                     couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : null,
                     discountAmount: couponDiscountInCents,
-                    tracking: getTracking()
+                    tracking: getTracking(),
+                    website: data.website
                 }
             };
 

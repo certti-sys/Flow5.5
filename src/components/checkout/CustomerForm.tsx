@@ -24,6 +24,18 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
                 <h2 className="text-xl font-semibold">Seus dados</h2>
             </div>
 
+            {/* Honeypot: humano não vê nem alcança por Tab. Bot que lê o HTML e
+                preenche tudo se denuncia; o backend responde 200 falso. */}
+            <input
+                {...form.register("website")}
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute left-[-9999px] top-0 h-0 w-0 opacity-0"
+            />
+
             <FormField
                 control={form.control}
                 name="name"
