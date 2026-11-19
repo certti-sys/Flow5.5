@@ -175,27 +175,40 @@ alter table courses add column refund_enabled boolean default false;
 
 ### 5.1 Schema
 ```sql
-checkout_sessions(id, product_id, session_key uuid, step text, -- visit|form_started|form_filled|converted|abandoned
-  utm jsonb, country text, user_agent text, ip_hash text,
-  email text, name text,             -- capturados quando o form é preenchido
-  order_id uuid, form_started_at, form_filled_at, converted_at, abandoned_at, created_at)
-checkout_session_fields(session_id, field_key text, filled_at timestamptz)  -- email,name,cpf,phone,payment_method,submit
+cart_leads(id, product_id, user_id, email, name, phone, cpf, status, stage, stage_started_at,
+  abandoned_at, recovered_at, last_activity_at, metadata, created_at, updated_at)
+  -- status: open | recovered | dismissed | expired
+  -- único por (lower(email), product_id) where status='open'
+cart_recovery_settings(id boolean pk, enabled, stage_minutes int[] default '{10,300,1440}',
+  channel_email, channel_whatsapp, discount_percent)
 ```
-- `ip_hash`: hash do IP (nunca IP puro — LGPD). País vem de header do CDN quando houver; senão `null`.
-- `email`/`name` na própria sessão: são o que permite recuperar quem abandonou **antes** de existir pedido.
+- Tabela própria, **não** `orders.status='draft'`: `payment-ops` cria um pedido novo a cada tentativa, e um rascunho no preenchimento ficaria órfão duplicando o pedido. Além disso toda leitura de `orders` passaria a ver linha que nunca foi cobrança.
+- `ip_hash` não existe: o IP já fica em `orders.metadata.device.ip` e em `cart_leads.metadata.tracking` via UTM; hash ao lado seria duplicação, não privacidade.
 
 ### 5.2 Captura
-- **Edge `checkout-tracking`** (pública, `verify_jwt=false`): `ensureVisit`, `track(step)`, `track_field(field_key)`, `captureIdentity(email, name)`.
-- **Front:** `Checkout.tsx` — `ensureVisit` no mount (assíncrono, fora do caminho crítico); `track('form_started')` no primeiro foco; `track_field()` por campo; `captureIdentity()` no blur do e-mail e do nome; `track('form_filled')` quando a validação passa.
-- **Conversão:** `payment-ops` ao criar o pedido → `step='converted'`, `order_id` (cancela recuperação pendente).
-- **Abandono:** cron `mark-abandoned` — sessão sem conversão e com `form_filled_at` > 10 min → `step='abandoned'`, `abandoned_at=now()`.
+- **RPC `capture_cart_lead(product_id, email, name, phone, cpf, metadata)`**, `security definer`, executável por `anon`/`authenticated`. Chamada direto do PostgREST pelo checkout — sem hop de edge. `status`, `stage` e `recovered_at` não são parâmetros: o visitante não os escolhe.
+- **Front:** `Checkout.tsx` — efeito com debounce de 2,5 s sobre `form.watch`: quando nome (≥3) e e-mail são válidos, chama a RPC. `metadata` leva `tracking` (UTM/click ids do `localStorage`), método de pagamento, bumps e cupom. Falha é silenciosa (`console.debug`) — funil não bloqueia compra.
+- **Conversão:** trigger `mark_cart_leads_recovered` em `orders` (update de status para `paid`) fecha o lead por e-mail + produto. `exception → raise warning`, nunca desfaz o pagamento.
+- **Abandono:** `cart-recovery` (`sweep`, cron `*/5`) marca `abandoned_at` quando `last_activity_at` passou de `stage_minutes[1]` (10 min). Antes disso o lead é `open` sem abandono — quem preencheu e pagou em 3 min não é perda.
 
-### 5.3 Painel do funil
-- `/admin/vendas` ganha bloco "Funil do checkout": **visitas → iniciou formulário → preencheu → converteu**, com taxa etapa-a-etapa, receita recuperada e filtro por produto/período.
-- Segunda visão: lista de abandonos recuperáveis/com recuperação enviada/recuperados (pedido pago depois do toque).
-- **Métrica de sucesso:** receita atribuída à recuperação = pedidos pagos cujo `checkout_sessions.order_id` tem `abandonment_recoveries.status='sent'`.
+### 5.3 Recuperação automática
+- **3 estágios** (`stage_minutes`: 10 min, 5 h, 24 h). `stage` = índice do último contato enviado; o cron compara `stage_started_at` + `stage_minutes[stage]`.
+- **Canais:** e-mail sempre pela fila durável (`email_logs`, tipo `custom`), WhatsApp opcional via `send-whatsapp`. Templates padrão codificados; admin pode trocar a mensagem no contato manual.
+- Lead parado 7 dias após o último estágio vira `expired`.
 
-**Esforço Fase 5:** ~4 dias (subiu de 2,5 por incluir abandono e painel de recuperação). **Risco:** baixo (analítico; nada bloqueia venda).
+### 5.4 Painel — `/admin/carrinho-abandonado`
+- Cards: em aberto, recuperados (com valor salvo), valor em risco, taxa de recuperação.
+- Barra de configuração: funil ativo, canal e-mail, canal WhatsApp (grava em `cart_recovery_settings`).
+- Tabela: cliente (nome/e-mail/telefone), produto e preço, estágio do funil, status, data do abandono.
+- **Contato por lead:** link direto `wa.me` com mensagem pronta, botão de e-mail, e diálogo para envio avulso (WhatsApp ou e-mail) via `cart-recovery` ação `manual`. Contato manual reinicia `stage_started_at` — quem acabou de receber mensagem não leva outra do robô no minuto seguinte.
+- Botão "Processar agora" roda o `sweep` na hora, sem esperar o cron.
+
+### 5.5 Webhook `cart.abandoned`
+- Entra no catálogo (`WebhookOutbound.tsx`), grupo "Funil".
+- Emitido por `enqueue_cart_abandoned_webhook(lead_id)`, chamado pelo `sweep` — não por trigger: abandono é resultado de janela de tempo, não de escrita.
+- Payload: `lead_id`, `product_id`, `product_name`, `customer{name,email,phone}`, `stage`, `abandoned_at`, `checkout_url`, `metadata`.
+
+**Esforço Fase 5:** ~4 dias. **Risco:** baixo (analítico; nada bloqueia venda). **Feito.**
 
 ---
 

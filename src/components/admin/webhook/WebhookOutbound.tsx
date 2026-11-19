@@ -32,6 +32,7 @@ export const OUTBOUND_EVENTS = [
   { value: "order.refunded", label: "Reembolso", group: "Pagamento", description: "Estorno total ou chargeback." },
   { value: "payment.pix_generated", label: "Pix gerado", group: "Pagamento", description: "QR/copia-e-cola emitido (payload traz o código)." },
   { value: "payment.boleto_generated", label: "Boleto gerado", group: "Pagamento", description: "Boleto emitido com linha digitável e vencimento." },
+  { value: "cart.abandoned", label: "Carrinho abandonado", group: "Funil", description: "Formulário preenchido sem pagamento após o período de graça." },
   { value: "access.ready", label: "Acesso liberado", group: "Área de membros", description: "Aluno recebeu acesso a um curso (um por curso)." },
 ] as const;
 

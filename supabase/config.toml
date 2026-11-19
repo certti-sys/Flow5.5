@@ -89,3 +89,9 @@ verify_jwt = false
 
 [functions.sys-health]
 verify_jwt = true
+
+# Drenagem do funil de carrinho abandonado: cron manda o service role no
+# header, painel manda o JWT do admin. A credencial é conferida dentro da
+# função (`isServiceRole` / `isAdmin`).
+[functions.cart-recovery]
+verify_jwt = false

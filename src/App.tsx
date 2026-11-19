@@ -41,6 +41,7 @@ const IntegrationsPage = lazy(() => import("./pages/admin/Integrations"));
 const ProductsPage = lazy(() => import("./pages/admin/Products"));
 const OrdersPage = lazy(() => import("./pages/admin/Orders"));
 const SalesDashboard = lazy(() => import("./pages/admin/SalesDashboard"));
+const AbandonedCarts = lazy(() => import("./pages/admin/AbandonedCarts"));
 const CustomersPage = lazy(() => import("./pages/admin/Customers"));
 const AdminDesignSandbox = lazy(() => import("./pages/admin/DesignSandbox"));
 const CheckoutBuilderPage = lazy(() => import("./pages/admin/CheckoutBuilder"));
@@ -252,6 +253,16 @@ const App = () => (
                     <AdminProtectedRoute>
                       <AdminLayout>
                         <SalesDashboard />
+                      </AdminLayout>
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/carrinho-abandonado"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout>
+                        <AbandonedCarts />
                       </AdminLayout>
                     </AdminProtectedRoute>
                   }

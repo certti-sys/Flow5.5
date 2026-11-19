@@ -65,6 +65,7 @@ const academicItems = [
 // 3. Comercial
 const commercialItems = [
   { title: "Vendas", url: "/admin/vendas", icon: TrendingUp },
+  { title: "Carrinho Abandonado", url: "/admin/carrinho-abandonado", icon: ShoppingCart },
   { title: "Pedidos", url: "/admin/pedidos", icon: ShoppingCart },
   { title: "Clientes", url: "/admin/clientes", icon: UserCheck },
   { title: "Produtos", url: "/admin/produtos", icon: Package },

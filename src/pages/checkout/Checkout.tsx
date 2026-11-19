@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -332,6 +332,73 @@ export default function CheckoutPage() {
     useEffect(() => {
         form.setValue("paymentMethod", selectedMethod);
     }, [selectedMethod, form]);
+
+    // Contexto do lead (método, bumps, cupom) em ref para o efeito de captura
+    // não ser recriado a cada troca de bump/cupom e perder o debounce.
+    const leadContext = useRef({ method: selectedMethod, bumps: selectedBumps, coupon: appliedCoupon?.code ?? null });
+    leadContext.current = { method: selectedMethod, bumps: selectedBumps, coupon: appliedCoupon?.code ?? null };
+
+    /**
+     * Captura o lead do carrinho abandonado.
+     *
+     * Abandono é "formulário preenchido sem pagamento" — não "página aberta".
+     * Por isso o gatilho é nome + e-mail válidos, com debounce de 2,5 s: quem
+     * só passou o olho não entra no funil, e quem digitou o e-mail não gera
+     * uma linha por caractere.
+     *
+     * Falha aqui nunca aparece para o comprador: o funil é observação, não
+     * parte da compra.
+     */
+    useEffect(() => {
+        if (!resolvedProductId) return;
+
+        let timer: number | undefined;
+        let lastSent = "";
+
+        const flush = () => {
+            const values = form.getValues();
+            const email = (values.email ?? "").trim().toLowerCase();
+            const name = (values.name ?? "").trim();
+            const phone = (values.phone ?? "").trim();
+
+            if (!email.includes("@") || email.length < 6 || name.length < 3) return;
+
+            const signature = `${email}|${name}|${phone}`;
+            if (signature === lastSent) return;
+            lastSent = signature;
+
+            supabase
+                .rpc("capture_cart_lead", {
+                    p_product_id: resolvedProductId,
+                    p_email: email,
+                    p_name: name,
+                    p_phone: phone || null,
+                    p_cpf: (values.cpf ?? "").replace(/\D/g, "") || null,
+                    p_metadata: {
+                        tracking: getTracking(),
+                        method: leadContext.current.method,
+                        bumps: leadContext.current.bumps,
+                        coupon: leadContext.current.coupon,
+                    },
+                })
+                .then(({ error }) => {
+                    if (error) console.debug("[checkout] lead não capturado:", error.message);
+                });
+        };
+
+        const schedule = () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(flush, 2500);
+        };
+
+        const sub = form.watch(() => schedule());
+        schedule();
+
+        return () => {
+            window.clearTimeout(timer);
+            sub.unsubscribe();
+        };
+    }, [form, resolvedProductId]);
 
     // Prefill para comprador logado (visitante começa vazio).
     useEffect(() => {
