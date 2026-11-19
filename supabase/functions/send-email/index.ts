@@ -9,6 +9,7 @@ import {
   renderEmail,
   type EmailType,
 } from '../_shared/email.ts'
+import { recordOptOut } from '../_shared/email-queue.ts'
 import { z } from 'https://esm.sh/zod@3.22.4'
 
 const EmailRequestSchema = z.object({
@@ -100,6 +101,11 @@ Deno.serve(async (req) => {
     });
 
     if (!result.success && result.permanent) {
+      // Endereço morto/descadastrado no provedor: registra na lista para que
+      // campanhas e fila não voltem a tentar.
+      if (result.optOut) {
+        await recordOptOut(supabase, to, result.error ?? 'hard bounce');
+      }
       return new Response(JSON.stringify({ success: false, error: result.error }), { status: 422, headers: corsHeaders });
     }
 

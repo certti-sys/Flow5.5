@@ -28,6 +28,25 @@ function nextAttemptDelay(attempt: number): number {
     return Math.min(120 * Math.pow(4, attempt - 1), 7200) * 1000;
 }
 
+/**
+ * Grava o descadastro quando o provedor diz que o endereço está morto
+ * (hard bounce) ou que o contato saiu da lista. Sem isso o mesmo endereço
+ * volta na próxima campanha e o domínio perde reputação à toa.
+ *
+ * Nunca lança: é efeito colateral do envio.
+ */
+export async function recordOptOut(supabase: any, email: string, reason: string): Promise<void> {
+    const normalized = (email ?? "").trim().toLowerCase();
+    if (!normalized) return;
+    const { error } = await supabase
+        .from("email_opt_outs")
+        .upsert(
+            { email: normalized, reason: reason.slice(0, 500), source: "bounce" },
+            { onConflict: "email", ignoreDuplicates: true },
+        );
+    if (error) logger.warn("[email-queue] falha ao registrar opt-out", { email: normalized, error: error.message });
+}
+
 export type EnqueueEmailInput = {
     to: string;
     toName?: string | null;
@@ -182,6 +201,11 @@ export async function dispatchPendingEmails(
                             error_message: result.error ?? "falha no envio",
                         })
                         .eq("id", row.id);
+                    // Endereço morto/descadastrado sai da lista aqui, não na
+                    // próxima campanha.
+                    if (result.optOut) {
+                        await recordOptOut(supabase, row.recipient_email, result.error ?? "hard bounce");
+                    }
                     return;
                 }
 

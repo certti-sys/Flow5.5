@@ -79,7 +79,7 @@ export const logger = {
         level: 'info',
         message,
         details
-      }).catch(err => console.error("Failed to persist log", err));
+      }).then(({ error }) => { if (error) console.error("Failed to persist log", error); });
     }
   },
 
@@ -92,7 +92,7 @@ export const logger = {
         level: 'warn',
         message,
         details
-      }).catch(err => console.error("Failed to persist log", err));
+      }).then(({ error }) => { if (error) console.error("Failed to persist log", error); });
     }
   },
 
@@ -117,7 +117,7 @@ export const logger = {
           error: error instanceof Error ? error.message : error,
           stack: error instanceof Error ? error.stack : undefined
         }
-      }).catch(err => console.error("Failed to persist error log", err));
+      }).then(({ error }) => { if (error) console.error("Failed to persist error log", error); });
     }
   }
 };

@@ -239,6 +239,8 @@ export type DeliveryResult = {
   success: boolean;
   /** `true` quando não adianta insistir (sem chave, destinatário bloqueado). */
   permanent?: boolean;
+  /** `true` quando o endereço está morto/descadastrado: vira opt-out. */
+  optOut?: boolean;
   error?: string;
 };
 
@@ -252,7 +254,9 @@ export async function deliverEmail(
   }
 
   const blocked = await isBrevoBlocked(settings.brevo_api_key, input.to);
-  if (blocked) return { success: false, permanent: true, error: blocked };
+  // O Brevo bloqueia justamente em hard bounce e descadastro: insistir só
+  // queima reputação de domínio. Isso vira opt-out, não retry.
+  if (blocked) return { success: false, permanent: true, optOut: true, error: blocked };
 
   const result = await sendViaBrevo(
     settings.brevo_api_key,

@@ -97,6 +97,7 @@ const systemItems = [
 // 6. Aparência & Design
 const appearanceItems = [
   { title: "Personalização", url: "/admin/personalizacao", icon: Palette },
+  { title: "Sandbox", url: "/admin/sandbox", icon: Layers },
 ];
 
 export function AdminSidebar() {

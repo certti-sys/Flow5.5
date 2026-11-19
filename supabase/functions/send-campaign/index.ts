@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { deliverEmail, loadEmailSettings } from "../_shared/email.ts";
+import { recordOptOut } from "../_shared/email-queue.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 
 /**
@@ -155,6 +156,11 @@ async function drain(supabase: any): Promise<{ sent: number; failed: number; ski
         .from("email_campaign_sends")
         .update({ status: "failed", error: result.error ?? "falha no envio" })
         .eq("id", row.id);
+      // Endereço morto ou descadastrado no provedor: registra para as próximas
+      // campanhas já pularem o destinatário no `prepare`.
+      if (result.optOut) {
+        await recordOptOut(supabase, row.recipient_email, result.error ?? "hard bounce");
+      }
     }));
   }
 

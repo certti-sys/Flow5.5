@@ -34,9 +34,6 @@ verify_jwt = true
 [functions.reset-user-password]
 verify_jwt = true
 
-[functions.video-proxy]
-verify_jwt = true
-
 [functions.lesson-progress]
 verify_jwt = true
 

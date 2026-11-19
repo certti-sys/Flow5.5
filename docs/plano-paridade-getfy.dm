@@ -311,6 +311,64 @@ cart_recovery_settings(id boolean pk, enabled, stage_minutes int[] default '{10,
 
 ---
 
+## FASE 9 — Higiene técnica
+
+> **Implementada.** Não vem do Getfy: são dívidas acumuladas das fases anteriores.
+
+### 9.1 Tipos do Supabase regenerados
+`src/integrations/supabase/types.ts` estava em **UTF-16 LE** e parado antes das Fases 3–5: não conhecia `refund_requests`, `cart_leads`, `email_campaigns`, `lessons.like`, `courses.refund_*`, `certificates.revoked_at`. Regenerado com `supabase gen types typescript --linked` em UTF-8 (112 KB contra 166 KB do arquivo estragado, que tinha o dobro de bytes por causa do encoding).
+
+O `tsc` caiu de **22 para 17 erros**. Saíram os três que vinham de tabela inexistente ou tipo errado: os dois de `system_logs` em `monitoring.ts` e o cast de `certificates` no painel. Os 17 restantes são dívida de formulário (`react-hook-form` com nome dinâmico), `ImageCropper` usando `DialogDescription` sem importar e dois `SelectContent` com `container` — todos pré-existentes e fora do escopo desta fase.
+
+### 9.2 Código morto removido
+- **`supabase/functions/video-proxy`**: 250 linhas completas e 0 chamadas em `src/`. Removida junto com a entrada em `supabase/config.toml`. (A function continua publicada no projeto; apagar de lá é ação manual.)
+- **10 componentes órfãos**: `XPCounter`, `StreakIndicator`, `LevelBadge`, `AchievementBadge`, `ContactCard`, `ProgressOverview`, `QuickStats`, `RecentActivity`, `StatCard`, `CourseProgressItem`.
+- **3 páginas sem rota**: `pages/Index.tsx` (boilerplate "Welcome to Your Blank App"), `pages/Admin.tsx` (versão antiga do painel) e `pages/admin/Placeholder.tsx` (só o import em `App.tsx`, nenhuma `<Route>`).
+
+### 9.3 `/admin/sandbox` entrou no menu
+A rota existia desde a Fase 1 e não tinha item no `AdminSidebar`: só chegava lá quem digitasse a URL. Agora fica em **Aparência & Design**.
+
+### 9.4 `system_logs` criada (o painel prometia e não existia)
+`src/lib/monitoring.ts` fazia `insert` em `system_logs` e `/admin/monitoring` lia dela, mas a tabela nunca foi criada em produção — o insert falhava calado e o contador ficava sempre em zero. Criada com RLS: escrita para `authenticated` (com limite de tamanho no `with check`), leitura e exclusão só para admin. Retenção de 7 dias via `purge_system_logs()`, que é o que a tela já prometia ao admin.
+
+`monitoring.ts` também trocou `.catch()` por `.then(({ error }) => …)`: o builder do PostgREST não é Promise e o `.catch` era erro de tipo.
+
+### 9.5 `retention-cron` no ar (estava escrito e nunca chamado)
+A function existia desde a Fase 7 e **nenhum `cron.schedule` apontava para ela**. Entrou no mesmo desenho dos outros drenadores: URL no vault (`retention_cron_dispatch_url`), `trigger_retention_cron()` com `net.http_post`, agendada para **21:00 UTC** (fim do dia no Brasil — o streak vence ali; de hora em hora repetiria o aviso 24 vezes).
+
+Teste em produção revelou que a function estava **quebrada na origem**: o embed `user_stats → profiles` responde `Could not find a relationship between 'user_stats' and 'profiles' in the schema cache`, porque `user_stats.user_id` referencia `auth.users` e não `profiles`. Trocado por duas consultas (stats, depois `profiles .in(id)`). Resposta agora é `{"success":true,"processed":0}`.
+
+### 9.6 Hard bounce virou opt-out
+`email_logs` tinha **13 linhas `failed`**, sendo a maioria "This contact's email address generated a hard bounce" no Brevo, e `email_opt_outs` com **zero linhas**: cada campanha voltava a tentar os mesmos endereços mortos, queimando reputação do domínio.
+
+`deliverEmail` agora marca `optOut: true` quando o Brevo bloqueia o contato, e três pontos gravam o descadastro: `dispatchPendingEmails` (fila), `send-campaign` (campanha) e `send-email` (envio avulso). `recordOptOut` usa `upsert` com `ignoreDuplicates` e nunca lança.
+
+Validado em produção com `naoexiste-xyz-123@flowmembers.app`: `POST /functions/v1/send-email` → `422 Destinatário bloqueado no Brevo`, e a linha aparece em `email_opt_outs` com `source='bounce'`. Dados do teste removidos depois.
+
+### 9.7 LGPD do funil (expurgo de 90 dias)
+A nota de segurança do plano prometia retenção de 90 dias para lead não convertido, e `cart_leads` crescia sem prazo. `purge_stale_cart_leads()` marca `expired` e apaga o que passou da janela; roda às **03:15 UTC**, junto com `purge_system_logs()` às 03:25.
+
+`ip_hash` **não foi adicionado**: a captura acontece no navegador (`supabase.rpc("capture_cart_lead")`), então o IP real nunca chega ao banco. Hash de IP no cliente só produziria um valor inútil para antifraude. O que existe hoje grava e-mail, nome, telefone, CPF e UTMs — o expurgo cobre esses.
+
+### 9.8 CSS Moderno ganhou aulas
+O curso estava na vitrine com **1 módulo e 0 aulas**: abria com "0/0 aulas", player morto e progresso impossível. Quatro aulas semeadas em `Fundamentos de CSS`, com vídeos públicos conferidos por oembed (freeCodeCamp, Traversy, Web Dev Simplified).
+
+### 9.9 Validação executada em produção
+- `db push` das migrations `20261119150000_hygiene_and_retention.sql` e `20261119151000_retention_cron_secret.sql` — dry-run em transação antes.
+- Deploy de `retention-cron`, `send-email`, `send-campaign`.
+- `trigger_retention_cron()` → **200** com `processed:0`; antes era **500** pelo embed.
+- `send-email` com endereço em hard bounce → **422** e opt-out gravado.
+- 8 `cron.job` ativos (`cart-recovery`, `dispatch-*` ×4, `purge-cart-leads`, `purge-system-logs`, `retention-cron`).
+- `system_logs` aceita insert (testado em transação com rollback).
+- Puppeteer, admin (`leandroaz@gmail.com`): `/admin`, `/admin/certificados`, `/admin/sandbox`, `/admin/monitoring`, `/admin/whatsapp` — **0 erro de console, 0 4xx em `/rest/v1`**, item "Sandbox" presente na sidebar, badge "Concluído"/"Revogado" renderizando.
+- Puppeteer, aluno (`cert.ti@gmail.com`): `/dashboard`, `/perfil`, `/curso/550e8400-…-0004` — 0 erro, "1 módulos • **4 aulas**", primeira aula listada e botão "Marcar Concluída" presente.
+- `npx vite build` OK.
+- Dados de teste removidos (`email_logs` e `email_opt_outs` do endereço fictício).
+
+**Esforço Fase 9:** ~1 dia. **Risco:** baixo — só remoção de código morto, criação de tabela vazia e dois jobs noturnos.
+
+---
+
 ## Ordem recomendada e dependências
 
 ```
@@ -322,13 +380,14 @@ Fase 5 (funil)         ───────────────────
 Fase 3 (campanhas)     ◄── depende de 2 e 5
 Fase 4 (reembolsos)    ◄── independente (usa payment-ops refund)
 Fase 8 (RLS)           ────────────────────►  antes de qualquer feature nova
+Fase 9 (higiene)       ────────────────────►  independente, fazer antes das dívidas funcionais
 ```
 
-**Sequência sugerida:** 1 → 7 → 6 → 2 → 5 → 3 → 4.
+**Sequência sugerida:** 1 → 7 → 6 → 2 → 5 → 3 → 4 → 8 → 9.
 
 Justificativa da troca: a **Fase 5 (funil) passou a ser pré-requisito** da recuperação de abandono — sem saber quem preencheu o formulário e desistiu, não há régua de recuperação. Por isso ela vem antes da 3, e não depois.
 
-**Esforço total estimado:** ~17,5 dias (1 + 2 + 1,5 + 1,5 + 4 + 4 + 3 + 0,5).
+**Esforço total estimado:** ~18,5 dias (1 + 2 + 1,5 + 1,5 + 4 + 4 + 3 + 0,5 + 1).
 
 ---
 
@@ -346,8 +405,8 @@ Justificativa da troca: a **Fase 5 (funil) passou a ser pré-requisito** da recu
 
 ## Nota de segurança / LGPD no funil
 
-O funil grava e-mail, nome, IP (hasheado) e UTM de quem **não** comprou. Isso é dado pessoal de não-cliente:
-- `ip_hash` com sal do servidor, nunca IP puro.
-- Retenção definida (proposta: 90 dias para sessões não convertidas; convertidas ficam pelo prazo fiscal).
-- Todo e-mail de recuperação com link de descadastro funcional (`email_opt_outs`).
-- Exclusão a pedido do titular: apagar `checkout_sessions`/`checkout_session_fields` pelo e-mail.
+O funil grava e-mail, nome, telefone, CPF e UTM de quem **não** comprou. Isso é dado pessoal de não-cliente:
+- ~~`ip_hash` com sal do servidor, nunca IP puro.~~ **Não implementado de propósito** (Fase 9): a captura roda no navegador, o IP real nunca chega ao banco. Hash no cliente não serve para antifraude.
+- Retenção de 90 dias implementada em `purge_stale_cart_leads()` — lead `open` vira `expired`, o resto é apagado. Job diário às 03:15 UTC.
+- Todo e-mail de recuperação com link de descadastro funcional (`email_opt_outs`). Hard bounce no Brevo vira opt-out automático desde a Fase 9.
+- Exclusão a pedido do titular: `delete from cart_leads where lower(email) = lower($1)`.

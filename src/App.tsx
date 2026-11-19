@@ -36,7 +36,6 @@ const EmailSettings = lazy(() => import("./pages/admin/EmailSettings"));
 const EmailCampaigns = lazy(() => import("./pages/admin/EmailCampaigns"));
 const AdminWhatsAppSettings = lazy(() => import("./pages/admin/WhatsAppSettings"));
 const AdminMonitoringSettings = lazy(() => import("./pages/admin/MonitoringSettings"));
-const Placeholder = lazy(() => import("./pages/admin/Placeholder"));
 const GatewaysPage = lazy(() => import("./pages/admin/Gateways"));
 const IntegrationsPage = lazy(() => import("./pages/admin/Integrations"));
 const ProductsPage = lazy(() => import("./pages/admin/Products"));

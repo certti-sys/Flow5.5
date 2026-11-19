@@ -18,27 +18,39 @@ Deno.serve(async (req) => {
     // 1. Last active was yesterday
     // 2. Haven't studied today yet
     // 3. Have a streak > 0
-    const { data: atRiskUsers, error } = await supabase
+    //
+    // Sem embed de `profiles`: `user_stats.user_id` referencia `auth.users`,
+    // então o PostgREST não enxerga relação com `profiles` e o embed inteiro
+    // respondia 500. Duas consultas resolvem.
+    const { data: stats, error } = await supabase
       .from('user_stats')
-      .select(`
-        user_id,
-        current_streak,
-        profiles (
-          name,
-          email,
-          whatsapp
-        )
-      `)
+      .select('user_id, current_streak')
       .eq('last_activity_date', yesterday)
       .eq('lessons_today', 0)
       .gt('current_streak', 0);
 
     if (error) throw error;
 
-    logger.info(`Found ${atRiskUsers?.length || 0} users with streaks at risk.`);
+    const atRiskUsers = stats ?? [];
+    logger.info(`Found ${atRiskUsers.length} users with streaks at risk.`);
 
-    for (const record of (atRiskUsers || [])) {
-      const profile = record.profiles as any;
+    if (atRiskUsers.length === 0) {
+      return new Response(JSON.stringify({ success: true, processed: 0 }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { data: profileRows, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, email, whatsapp')
+      .in('id', atRiskUsers.map((r) => r.user_id));
+
+    if (profilesError) throw profilesError;
+
+    const profilesById = new Map((profileRows ?? []).map((p) => [p.id, p]));
+
+    for (const record of atRiskUsers) {
+      const profile = profilesById.get(record.user_id);
       const userId = record.user_id;
       const streak = record.current_streak;
 
