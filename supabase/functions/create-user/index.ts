@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders, validateCSRF } from '../_shared/cors.ts'
 import { logger } from '../_shared/logger.ts'
 import { checkRateLimit } from '../_shared/rate-limiter.ts'
+import { enqueueEmail } from '../_shared/email-queue.ts'
 import { z } from 'https://esm.sh/zod@3.22.4'
 
 // 'student' era aceito pela UI antiga, mas o enum app_role só tem admin|moderator|user.
@@ -88,8 +89,8 @@ async function grantCourses(supabaseAdmin: any, userId: string, courseIds: strin
   if (error) logger.error('Error granting courses', error);
 }
 
-/** Envia o e-mail de boas-vindas com link de definição de senha. */
-async function sendWelcomeEmail(supabaseUrl: string, serviceKey: string, email: string, name: string) {
+/** Enfileira o e-mail de boas-vindas com link de definição de senha. */
+async function sendWelcomeEmail(supabase: any, supabaseUrl: string, serviceKey: string, email: string, name: string) {
   try {
     const { data: linkData } = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
       method: 'POST',
@@ -99,29 +100,17 @@ async function sendWelcomeEmail(supabaseUrl: string, serviceKey: string, email: 
 
     const loginUrl = linkData?.action_link || '';
 
-    const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
-        'Content-Type': 'application/json',
-        'x-requested-with': 'XMLHttpRequest',
-      },
-      body: JSON.stringify({
-        to: email,
-        toName: name,
-        type: 'welcome',
-        variables: { name, login_url: loginUrl, email },
-      }),
+    // Fila durável: o admin que acabou de criar o aluno não espera o Brevo, e
+    // o e-mail com o link de senha não se perde se o provedor estiver fora.
+    return enqueueEmail(supabase, {
+      to: email,
+      toName: name,
+      type: 'welcome',
+      variables: { name, login_url: loginUrl, email },
+      source: 'create-user',
     });
-
-    if (!res.ok) {
-      logger.warn('Welcome email failed', { email, status: res.status });
-      return false;
-    }
-    return true;
   } catch (error) {
-    logger.error('Error sending welcome email', error);
+    logger.error('Error enqueueing welcome email', error);
     return false;
   }
 }
@@ -250,7 +239,7 @@ Deno.serve(async (req) => {
 
           await grantCourses(supabaseAdmin, userId, courseIds, 'import', callerUser.id);
 
-          const emailSent = sendWelcome ? await sendWelcomeEmail(supabaseUrl, serviceKey, email, user.name) : false;
+          const emailSent = sendWelcome ? await sendWelcomeEmail(supabaseAdmin, supabaseUrl, serviceKey, email, user.name) : false;
           results.push({ email, status: 'created', emailSent });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro desconhecido';

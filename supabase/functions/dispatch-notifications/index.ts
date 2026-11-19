@@ -2,9 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { dispatchPendingNotifications } from "../_shared/notification-dispatch.ts";
+import { dispatchPendingEmails } from "../_shared/email-queue.ts";
 
 /**
- * Drena a fila de notificações no WhatsApp (`notification_deliveries`).
+ * Drena as filas de saída: notificações (`notification_deliveries`) e e-mail
+ * transacional (`email_logs` com `status='queued'`).
+ *
+ * As duas no mesmo cron porque ambas são "o que o minuto anterior deixou
+ * pendente": separar exigiria um segundo job por minuto sem ganho.
  *
  * Dois modos, iguais ao `dispatch-webhooks`:
  *   - painel/admin: drena e devolve o resultado.
@@ -67,7 +72,10 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get("limit") ?? 25) || 25, 100);
 
-    const result = await dispatchPendingNotifications(supabase, limit);
+    const notifications = await dispatchPendingNotifications(supabase, limit);
+    const emails = await dispatchPendingEmails(supabase, limit);
+    const result = { notifications, emails };
+
     logger.info("[dispatch-notifications] rodada concluída", result);
 
     return new Response(JSON.stringify({ ok: true, ...result }), {

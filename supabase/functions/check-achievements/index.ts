@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, validateCSRF } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { enqueueEmail } from "../_shared/email-queue.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 
 interface Achievement {
@@ -99,23 +100,18 @@ Deno.serve(async (req) => {
 
     // --- NOTIFICATIONS DISPATCH ---
     const notify = async (type: string, variables: any) => {
-      const payload = { 
-        to: profile?.email || user.email, 
-        toName: profile?.name || 'Aluno', 
-        type, 
-        variables 
-      };
+      const email = profile?.email || user.email;
+      if (!email) return;
 
-      // Call Email Function
-      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          'x-requested-with': 'XMLHttpRequest'
-        },
-        body: JSON.stringify(payload)
-      }).catch(e => logger.error('Email dispatch error', e));
+      // E-mail vai para a fila durável: se o Brevo estiver fora, a linha fica
+      // `queued` e é retentada pelo cron em vez de se perder.
+      await enqueueEmail(supabaseClient, {
+        to: email,
+        toName: profile?.name || 'Aluno',
+        type,
+        variables,
+        source: 'check-achievements',
+      });
 
       // Call WhatsApp Function if user has whatsapp number
       if (profile?.whatsapp) {

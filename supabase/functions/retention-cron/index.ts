@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
+import { enqueueEmail } from "../_shared/email-queue.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -51,20 +52,13 @@ Deno.serve(async (req) => {
 
       // Dispatch Email
       if (profile?.email) {
-        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'x-requested-with': 'XMLHttpRequest'
-          },
-          body: JSON.stringify({
-            to: profile.email,
-            toName: profile.name,
-            type: 'streak_at_risk',
-            variables
-          })
-        }).catch(err => logger.error(`Email error for ${userId}`, err));
+        await enqueueEmail(supabase, {
+          to: profile.email,
+          toName: profile.name,
+          type: 'streak_at_risk',
+          variables,
+          source: 'retention-cron',
+        });
       }
 
       // Dispatch WhatsApp

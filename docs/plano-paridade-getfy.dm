@@ -61,14 +61,18 @@
 > Objetivo: fechar o buraco de confiabilidade (hoje e-mail é disparo direto: se o provedor falhar, o e-mail se perde).
 
 ### 2.1 E-mail entra na fila durável
-- **Migration:** adicionar `channel = 'email'` em `notification_deliveries` (já é coluna `text`) + colunas `subject`, `template_type` e tornar `phone` nullable.
-- **Edge:** `_shared/notification-dispatch.ts` ganha `sendEmail` reusando a lógica de `send-email`; `dispatch-notifications` passa a drenar os canais `whatsapp|push|email`.
-- **Chamadores:** trocar `fetch(send-email)` por `enqueue('email', ...)` em `payment-ops`, `create-user`, `check-achievements`, `retention-cron`.
-- **Aceite:** derrubar o provedor e ver a linha ficar `pending` com `last_error`, sendo retentada; nada se perde.
+- **Migration (`20261118150000_email_queue.sql`):** `email_logs` ganha `attempts`, `next_attempt_at`, `sent_at` + índice parcial `where status='queued'`. O `CHECK` de `status` já aceitava `queued` desde a criação da tabela.
+- **A fila é `email_logs`, não `notification_deliveries`:** aquela tabela exige `notification_id` (FK) e `user_id` — e-mail de comprador visitante não tem nenhum dos dois. `email_logs` já nasceu como registro de envio de e-mail; só faltava o estado "ainda não saiu".
+- **Edge:** lógica de render/entrega extraída para `_shared/email.ts` (`renderEmail`, `deliverEmail`, `loadEmailSettings`, `isTypeEnabled`); fila em `_shared/email-queue.ts` (`enqueueEmail`, `dispatchPendingEmails`, backoff 2 min → 2 h, 5 tentativas, falha permanente vira `failed` na hora).
+- **Chamadores:** `payment-ops` (boas-vindas do visitante), `create-user`, `check-achievements`, `retention-cron`, `webhook-payment` trocaram `fetch(send-email)` por `enqueueEmail`. `send-email` continua existindo só para envio avulso/teste do painel.
+- **Aceite:** derrubar o provedor e ver a linha ficar `queued` com `error_message`/`attempts`, sendo retentada; nada se perde.
 
 ### 2.2 Histórico de disparos real
-- **Front:** `EmailSettings.tsx:534` e `WhatsAppSettings.tsx:452` — trocar empty state "Em breve" por tabela alimentada por `notification_deliveries` + `email_logs` (filtro por canal/status, paginação).
-- **Aceite:** a aba "Logs" mostra os 28 registros existentes e os novos.
+- **Front:** `EmailSettings.tsx` e `WhatsAppSettings.tsx` — empty state "Em breve" trocado por texto real (as tabelas já eram alimentadas por `email_logs`/`whatsapp_logs`). Badge novo `Na fila (n)` para `status='queued'`, com o motivo no tooltip.
+- **Segurança:** a policy `Authenticated all access` de `email_logs` (`using(true)` para qualquer logado, incluindo DELETE) virou `has_role(auth.uid(),'admin')` só-leitura.
+- **Aceite:** a aba "Logs" mostra os registros existentes e os novos, com o estado da fila.
+
+**Pendência conhecida:** `whatsapp_logs` mantém a mesma policy `Authenticated all access` — qualquer aluno logado lê telefones de todos os compradores. Corrigir junto da fase de mensageria.
 
 **Esforço Fase 2:** ~1,5 dia. **Risco:** médio (mexe no caminho de envio; precisa de teste com provedor em staging).
 

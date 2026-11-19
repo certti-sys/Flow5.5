@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { enqueueEmail } from "../_shared/email-queue.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
 
 // --- SCHEMAS ---
@@ -202,27 +203,21 @@ async function sendWelcomeEmail(
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const loginUrl = supabaseUrl.replace('.supabase.co', '.lovable.app') + '/login';
-    
-    await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+
+    await enqueueEmail(supabase, {
+      to: email,
+      toName: name,
+      type: 'welcome',
+      variables: {
+        user_name: name,
+        user_email: email,
+        temp_password: tempPassword,
+        login_url: loginUrl,
       },
-      body: JSON.stringify({
-        type: 'welcome',
-        to: email,
-        toName: name,
-        data: {
-          user_name: name,
-          user_email: email,
-          temp_password: tempPassword,
-          login_url: loginUrl,
-        }
-      })
+      source: 'webhook-payment',
     });
   } catch (error) {
-    logger.error("Error sending welcome email", error);
+    logger.error("Error enqueueing welcome email", error);
   }
 }
 

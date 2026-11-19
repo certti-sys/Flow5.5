@@ -5,6 +5,7 @@ import { getCorsHeaders, validateCSRF } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { checkRateLimit, checkPendingOrders } from "../_shared/rate-limiter.ts";
 import { notifyOrderPaid, defer } from "../_shared/notify-order.ts";
+import { enqueueEmail } from "../_shared/email-queue.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
 
 // --- SCHEMAS ---
@@ -2131,23 +2132,17 @@ async function sendGuestWelcomeEmail(email: string, name: string, tempPassword: 
             login_url: loginUrl,
         };
 
-        const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                // `send-email` exige este header (validateCSRF); sem ele a
-                // chamada interna leva 403 e o comprador nunca recebe a senha.
-                'x-requested-with': 'XMLHttpRequest',
-            },
-            body: JSON.stringify({ type: 'welcome', to: email, toName: name, variables }),
+        const enqueued = await enqueueEmail(supabaseAdmin, {
+            to: email,
+            toName: name,
+            type: 'welcome',
+            variables,
+            source: 'payment-ops:guest-welcome',
         });
-        if (!res.ok) {
-            // Visitante sem a senha temporária não consegue entrar; deixa o
-            // motivo explícito no log em vez de falhar silenciosamente.
-            logger.error(
-                `E-mail de boas-vindas falhou (${res.status}) para ${email}: ${await res.text()}`,
-            );
+        if (!enqueued) {
+            // Visitante sem a senha temporária não consegue entrar; a fila
+            // devolveu false (settings inativos ou tipo desligado).
+            logger.error(`E-mail de boas-vindas nao enfileirado para ${email}`);
         }
 
         // Mesmo aviso por WhatsApp, quando o comprador informou telefone.

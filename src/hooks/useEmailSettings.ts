@@ -32,6 +32,9 @@ export interface EmailLog {
   status: string;
   error_message: string | null;
   metadata: Record<string, any> | null;
+  attempts: number | null;
+  next_attempt_at: string | null;
+  sent_at: string | null;
   created_at: string | null;
 }
 
