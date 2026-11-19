@@ -11,6 +11,7 @@ import {
   Home,
   MessageSquare,
   Mail,
+  Megaphone,
   MessageCircle,
   ShoppingCart,
   Package,
@@ -78,6 +79,7 @@ const commercialItems = [
 const communicationItems = [
   { title: "Notificações", url: "/admin/notificacoes", icon: Bell },
   { title: "Emails", url: "/admin/emails", icon: Mail },
+  { title: "Campanhas", url: "/admin/campanhas", icon: Megaphone },
   { title: "WhatsApp", url: "/admin/whatsapp", icon: MessageCircle },
 ];
 

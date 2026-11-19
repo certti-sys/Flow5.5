@@ -95,3 +95,12 @@ verify_jwt = true
 # função (`isServiceRole` / `isAdmin`).
 [functions.cart-recovery]
 verify_jwt = false
+
+# Campanhas: cron manda service role, painel manda JWT do admin — a credencial
+# é conferida dentro da função. O rastreio/descadastro é público por natureza
+# (o destinatário não tem JWT); quem autoriza ali é o token da linha.
+[functions.send-campaign]
+verify_jwt = false
+
+[functions.campaign-track]
+verify_jwt = false

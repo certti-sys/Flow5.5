@@ -90,51 +90,52 @@ email_campaigns(id, name, subject, body_html, filter_config jsonb, status text,
 -- status: draft | sending | paused | sent | cancelled
 email_campaign_sends(id, campaign_id, recipient_email, recipient_name, user_id,
   status text, -- pending|sent|failed|skipped
-  error, sent_at, opened_at, clicked_at, created_at)
-email_templates já existe como json em email_settings; promover a tabela própria (opcional)
+  error, sent_at, opened_at, clicked_at, token uuid, created_at,
+  unique(campaign_id, recipient_email))
+email_opt_outs(email pk, reason, source, created_at)
 ```
-- RLS: admin only.
+- RLS: admin only nas três. `email_opt_outs` **sem policy de INSERT de propósito**: grava só a edge com service role. Com INSERT aberto, um POST no PostgREST descadastraria o e-mail de outra pessoa.
+- `token` uuid por envio é o que autoriza o descadastro e o pixel — link não carrega assinatura, e o destinatário só conhece o próprio.
 
 ### 3.2 Segmentação (`filter_config`)
 - `{ all_customers: bool, product_ids: uuid[], course_ids: uuid[] }` — o Getfy filtra por produto; no Flow o equivalente natural é **curso** (via `user_course_access`) e **produto comprado** (via `order_items`).
-- Preview de destinatários antes de enviar (contagem + amostra), como `previewRecipients` do Getfy.
-- **Exclui automaticamente:** `email_opt_outs` e quem já recebeu o mesmo `campaign_id`.
+- Base: `profiles.email` **union** `orders.customer_email` (comprador sem conta), deduplicado por `lower(email)` — e-mail é a chave de envio, não o usuário.
+- `campaign_recipients(filter, limit)` / `campaign_recipient_count(filter)`: `security definer`, chamadas pela edge com service role. **Sem filtro o resultado é vazio** — "todos" precisa ser explícito, senão um filtro mal montado dispararia para a base inteira.
+- Contagem do painel vem do banco (RPC), não de lista montada no cliente: número do editor tem que bater com o do envio.
+- **Exclui automaticamente** `email_opt_outs`; o `unique(campaign_id, recipient_email)` cobre reenvio da mesma campanha.
 
 ### 3.3 Envio
-- **Edge `send-campaign`:** pega lote de 30 pendentes, envia via provider, respeita `backoff_until`, marca `sent/failed`, atualiza contadores; congela em `paused` quando erro de provedor > N.
-- **Cron:** novo job `dispatch-campaigns * * * * *` (mesmo padrão dos 3 existentes).
-- **Pausa/retomada/cancelamento:** ações no admin que só trocam `status` (o worker respeita).
+- **Edge `send-campaign`** (3 ações): `prepare` materializa o segmento em `email_campaign_sends` (`upsert` ignorando duplicados — reexecutar só acrescenta quem entrou depois); `drain` entrega 30 por rodada; `test` manda cópia sem tocar em contador.
+- **Cron:** `dispatch-campaigns * * * * *`, mesmo padrão dos outros drenadores (`vault` + `net.http_post`).
+- Contadores somados por `bump_campaign_counts` (`sent_count = sent_count + n` num UPDATE só): dois drenadores sobrepostos não sobrescrevem o número um do outro.
+- **Backoff:** lote cheio 100% falho = provedor fora do ar → `backoff_until` de 5 min. Sem isso o cron queima 30 tentativas por minuto contra provedor caído.
+- **Pausa/retomada/cancelamento** só trocam `status`; o worker respeita.
 
 ### 3.4 Tracking
-- Pixel 1x1 `GET /functions/v1/campaign-open?id=...` → grava `opened_at`.
-- Rewrite de links → `campaign-click?id=...&url=...` → grava `clicked_at` e redireciona.
-- **Atenção CSP:** `nginx.conf` precisa liberar a URL da edge em `img-src`/`connect-src` para o pixel (já cobre `*.supabase.co`).
+- Pixel 1×1 e link de descadastro na mesma edge pública `campaign-track`: `?a=open` grava `opened_at` (só a primeira abertura) e devolve GIF; `?a=unsubscribe` grava o opt-out e mostra página mínima.
+- Pixel devolve GIF mesmo com token inválido: imagem quebrada no cliente de e-mail é pior que abertura não contada.
+- Links do corpo **não** são reescritos (`clicked_at` fica sem uso por enquanto) — reescrever HTML do admin exige parser e quebra links relativos.
+- Rodapé de descadastro e pixel são injetados no envio, não no editor: o admin apagaria sem notar.
 
-### 3.5 Recuperação de abandono (funil completo)
-- **Decisão:** abandono = **visitante preencheu o formulário (nome/e-mail/CPF capturados) e não pagou**. Cobre também quem gerou PIX/boleto e não pagou.
-- **Régua única, dois toques** (sem duplicar): a recuperação é agendada a partir de `checkout_sessions` (Fase 5), não de `orders`:
-  - `step = 'converted'` → cancela qualquer recuperação pendente.
-  - `step = 'form_filled'` e `form_filled_at` > 10 min sem pedido pago → enfileira toque 1 (e-mail).
-  - Se continua abandonado após 24 h → toque 2. Depois disso, encerra.
-  - Se houver PIX/boleto gerado, o toque inclui o QR/linha digitável (puxa de `payments`).
-- **Controle de duplicidade:** `abandonment_recoveries(checkout_session_id, touch int, status, sent_at)` com `unique(checkout_session_id, touch)` — o cron pode rodar quantas vezes quiser que não repete.
-- **Canal:** e-mail na 1ª versão; WhatsApp como segundo canal quando a fila da Fase 2 estiver no ar (`notification_deliveries` já tem `channel`).
-- **Opt-out:** todo e-mail de recuperação leva link de descadastro; `email_opt_outs(email)` é consultada antes de enfileirar (exigência legal, não opcional).
+### 3.5 Opt-out no caminho existente
+- `email-queue.ts` consulta `email_opt_outs` para `custom`, `notification` e `streak_at_risk`.
+- **Transacional fica fora**: senha, acesso ao curso e boas-vindas continuam saindo — barrar esses trancaria o aluno fora da própria conta.
 
 ### 3.6 UI
-- `src/pages/admin/EmailCampaigns.tsx` (lista: nome, status, progresso "X/Y", ações pausar/retomar/cancelar)
-- `src/pages/admin/EmailCampaignEditor.tsx` (assunto, corpo HTML, seletor de segmento, preview de destinatários, agendar)
-- Rota em `App.tsx` + item no `AdminSidebar`.
-- Aba dentro de `/admin/emails` (reaproveita o hub existente) é preferível a uma rota nova.
+- `/admin/campanhas` (`EmailCampaigns.tsx`): lista com status, progresso `X/Y`, aberturas e % ; editor com assunto + HTML + segmento (checkbox "todos", produtos, cursos) e contagem viva; diálogo de prévia em `iframe sandbox` com envio de teste.
+- Item "Campanhas" no grupo Canais de Comunicação do `AdminSidebar`.
+- Rota própria em vez de aba em `/admin/emails`: campanha é operação de dias, não configuração.
 
-**Esforço Fase 3:** ~4 dias. **Risco:** médio-alto (envio em massa; precisa de throttle e teste controlado).
+**Esforço Fase 3:** ~4 dias. **Risco:** médio-alto (envio em massa; precisa de throttle e teste controlado). **Feito.**
 
 ### 3.7 Aceite da fase
-- Criar campanha para "todos os alunos do curso X" → preview mostra a contagem correta.
-- Enviar → status vai a `sending`, contadores sobem, `email_logs`/`email_campaign_sends` registram cada envio.
+- Criar campanha para "todos os alunos do curso X" → contagem no editor bate com a do envio.
+- Enviar → status vai a `sending`, contadores sobem, uma linha por destinatário em `email_campaign_sends`.
 - Pausar no meio → para de enviar; retomar → continua de onde parou; cancelar → não envia mais.
-- Abrir/clicar (em ambiente com pixel ativo) → `opened_at`/`clicked_at` preenchidos e refletidos no painel.
-- Abandono: preencher formulário, sair → em 10 min aparece na lista de abandonos; toque 1 sai; pagar depois → recuperação cancelada e pedido marcado como recuperado.
+- Descadastrar por um link → `email_opt_outs` ganha a linha, o próximo lote marca aquele destinatário como `skipped`.
+- Abrir o e-mail → `opened_at` preenchido e refletido na coluna de aberturas.
+
+> Nota: a recuperação de abandono saiu desta fase e foi entregue na **Fase 5** (`cart_leads` + `cart-recovery`), porque a captura não precisa de `checkout_sessions`.
 
 ---
 

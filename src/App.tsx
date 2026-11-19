@@ -33,6 +33,7 @@ const ThemeCustomization = lazy(() => import("./pages/admin/ThemeCustomization")
 const WebhookHub = lazy(() => import("./pages/admin/WebhookHub"));
 const AdminComments = lazy(() => import("./pages/admin/Comments"));
 const EmailSettings = lazy(() => import("./pages/admin/EmailSettings"));
+const EmailCampaigns = lazy(() => import("./pages/admin/EmailCampaigns"));
 const AdminWhatsAppSettings = lazy(() => import("./pages/admin/WhatsAppSettings"));
 const AdminMonitoringSettings = lazy(() => import("./pages/admin/MonitoringSettings"));
 const Placeholder = lazy(() => import("./pages/admin/Placeholder"));
@@ -363,6 +364,16 @@ const App = () => (
                     <AdminProtectedRoute>
                       <AdminLayout>
                         <EmailSettings />
+                      </AdminLayout>
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/campanhas"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout>
+                        <EmailCampaigns />
                       </AdminLayout>
                     </AdminProtectedRoute>
                   }

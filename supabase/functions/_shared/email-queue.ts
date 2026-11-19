@@ -17,6 +17,13 @@ import { deliverEmail, isTypeEnabled, loadEmailSettings, renderEmail, type Email
 const MAX_ATTEMPTS = 5;
 const CONCURRENCY = 3;
 
+/**
+ * Tipos que respeitam descadastro. `custom` entra porque é o tipo dos avisos de
+ * marketing (recuperação de carrinho); senha, acesso e boas-vindas ficam de fora
+ * de propósito — barrar esses trancaria o aluno fora da própria conta.
+ */
+const OPTOUT_TYPES = new Set<EmailType>(["custom", "notification", "streak_at_risk"]);
+
 function nextAttemptDelay(attempt: number): number {
     return Math.min(120 * Math.pow(4, attempt - 1), 7200) * 1000;
 }
@@ -49,6 +56,21 @@ export async function enqueueEmail(supabase: any, input: EnqueueEmailInput): Pro
         if (!isTypeEnabled(settings, input.type)) {
             logger.info(`[email-queue] tipo ${input.type} desligado pelo admin; ignorado`);
             return false;
+        }
+
+        // Descadastro vale para tudo que é comunicação de marketing/relacionamento.
+        // Transacional (senha, acesso, recibo) continua saindo: bloquear isso
+        // trancaria o aluno fora da própria conta.
+        if (OPTOUT_TYPES.has(input.type)) {
+            const { data: optOut } = await supabase
+                .from("email_opt_outs")
+                .select("email")
+                .eq("email", input.to.toLowerCase())
+                .maybeSingle();
+            if (optOut) {
+                logger.info("[email-queue] destinatário descadastrado; ignorado", { type: input.type });
+                return false;
+            }
         }
 
         const { error } = await supabase.from("email_logs").insert({
