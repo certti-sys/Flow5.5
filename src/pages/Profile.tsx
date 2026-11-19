@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { MyProfileCourses } from "@/components/profile/MyProfileCourses";
+import { RefundRequests } from "@/components/profile/RefundRequests";
 import { useGamification } from "@/hooks/useGamification";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
 import { Target, Trophy, BookOpen, Clock, CheckCircle, TrendingUp, Award, ArrowRight, CheckCircle2, Lock } from "lucide-react";
@@ -249,6 +250,13 @@ const Profile = () => {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Reembolso: só aparece em curso com a política ligada */}
+            {!accessLoading && (
+              <RefundRequests
+                courses={userAccessedCourses.map((c: any) => ({ id: c.id, title: c.title }))}
+              />
             )}
 
             {/* Achievements - Limited to 8 */}

@@ -47,7 +47,7 @@ async function hmacHex(secret: string, payload: string): Promise<string> {
 function mapStatus(status: string): InternalStatus {
     const s = (status || "").toLowerCase();
     if (s === "paid") return "paid";
-    if (s === "canceled" || s === "cancelled" || s === "expired") return "failed";
+    if (s === "canceled" || s === "cancelled" || s === "expired" || s === "refunded") return "failed";
     return "pending";
 }
 
@@ -153,6 +153,7 @@ serve(async (req) => {
 
     const pushinStatus = String(transaction?.status ?? body?.status ?? "").toLowerCase();
     const internalStatus = mapStatus(pushinStatus);
+    const isRefund = pushinStatus === "refunded" || pushinStatus === "partially_refunded";
     const externalPaymentId = String(transaction?.id ?? transactionId);
 
     // PushinPay não guarda external_reference: o vínculo está em payments.
@@ -201,17 +202,21 @@ serve(async (req) => {
     if (order.status === "paid" && internalStatus === "pending") {
         return json({ ok: true, ignored: "paid order, pending event" });
     }
-    if (order.status === "paid" && internalStatus === "failed") {
+    if (order.status === "paid" && internalStatus === "failed" && !isRefund) {
         return json({ ok: true, ignored: "paid order, non-refund event" });
+    }
+    // Pedido já estornado não volta atrás por evento tardio.
+    if (order.status === "refunded" && !isRefund) {
+        return json({ ok: true, ignored: "refunded order, non-refund event" });
     }
 
     const paidAt = internalStatus === "paid" ? new Date().toISOString() : null;
     const orderUpdate: Record<string, any> = {
-        status: internalStatus,
+        status: isRefund ? "refunded" : internalStatus,
         external_id: externalPaymentId,
     };
     if (paidAt) orderUpdate.paid_at = paidAt;
-    if (internalStatus === "failed") {
+    if (internalStatus === "failed" && !isRefund) {
         orderUpdate.error_message = pushinStatus || "Cobrança PIX cancelada";
     }
 
@@ -237,9 +242,9 @@ serve(async (req) => {
         await admin
             .from("payments")
             .update({
-                status: internalStatus,
-                paid_at: paidAt,
-                error_message: internalStatus === "failed" ? pushinStatus : null,
+                status: isRefund ? "refunded" : internalStatus,
+                ...(paidAt ? { paid_at: paidAt } : {}),
+                error_message: internalStatus === "failed" && !isRefund ? pushinStatus : null,
             })
             .eq("id", paymentRow.id);
     } else {
@@ -247,7 +252,7 @@ serve(async (req) => {
             order_id: order.id,
             gateway_id: gateway.id,
             external_payment_id: externalPaymentId,
-            status: internalStatus,
+            status: isRefund ? "refunded" : internalStatus,
             amount: amountCents,
             currency: "BRL",
             payment_method_type: "pix",

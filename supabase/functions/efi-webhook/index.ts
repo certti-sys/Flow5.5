@@ -447,15 +447,19 @@ serve(async (req) => {
     if (order.status === "paid" && internalStatus === "failed" && !isRefund) {
         return json({ ok: true, ignored: "paid order, non-refund failure event" });
     }
+    // Pedido já estornado não volta atrás por evento tardio.
+    if (order.status === "refunded" && !isRefund) {
+        return json({ ok: true, ignored: "refunded order, non-refund event" });
+    }
 
     const paidAt = internalStatus === "paid" ? new Date().toISOString() : null;
     const orderUpdate: Record<string, any> = {
-        status: internalStatus,
+        status: isRefund ? "refunded" : internalStatus,
         external_id: externalId,
     };
     if (paidAt) orderUpdate.paid_at = paidAt;
-    if (internalStatus === "failed") {
-        orderUpdate.error_message = isRefund ? "Pagamento estornado no Efí" : (statusText || "Cobrança não paga");
+    if (internalStatus === "failed" && !isRefund) {
+        orderUpdate.error_message = statusText || "Cobrança não paga";
     }
 
     const { error: updateError } = await admin
@@ -476,11 +480,9 @@ serve(async (req) => {
         await admin
             .from("payments")
             .update({
-                status: internalStatus,
-                paid_at: paidAt,
-                error_message: internalStatus === "failed"
-                    ? (isRefund ? "Pagamento estornado no Efí" : statusText)
-                    : null,
+                status: isRefund ? "refunded" : internalStatus,
+                ...(paidAt ? { paid_at: paidAt } : {}),
+                error_message: internalStatus === "failed" && !isRefund ? statusText : null,
             })
             .eq("id", paymentByExternal.id);
     } else {
@@ -488,7 +490,7 @@ serve(async (req) => {
             order_id: order.id,
             gateway_id: gateway.id,
             external_payment_id: externalId,
-            status: internalStatus,
+            status: isRefund ? "refunded" : internalStatus,
             amount: amountCents,
             currency: "BRL",
             payment_method_type: /^\d+$/.test(externalId) ? "charge" : "pix",
@@ -524,29 +526,6 @@ serve(async (req) => {
             );
             if (error) {
                 console.error("[efi-webhook] erro ao liberar acesso", { courseId, error });
-            }
-        }
-    }
-
-    // Estorno: revoga o acesso se não houver outra compra paga.
-    if (internalStatus === "failed" && order.user_id && isRefund) {
-        for (const courseId of courseIds) {
-            const { data: otherPaid } = await admin
-                .from("order_items")
-                .select("order_id, orders!inner(id, user_id, status), products!inner(course_id)")
-                .eq("products.course_id", courseId)
-                .eq("orders.user_id", order.user_id)
-                .eq("orders.status", "paid")
-                .neq("order_id", order.id)
-                .limit(1);
-
-            if (!otherPaid || otherPaid.length === 0) {
-                await admin
-                    .from("user_course_access")
-                    .delete()
-                    .eq("user_id", order.user_id)
-                    .eq("course_id", courseId)
-                    .eq("source", "checkout");
             }
         }
     }

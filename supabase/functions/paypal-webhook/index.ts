@@ -379,15 +379,19 @@ serve(async (req) => {
     if (orderRow.status === "paid" && internalStatus === "failed" && !isRefund) {
         return json({ ok: true, ignored: "paid order, non-refund failure event" });
     }
+    // Pedido já estornado não volta atrás por evento tardio.
+    if (orderRow.status === "refunded" && !isRefund) {
+        return json({ ok: true, ignored: "refunded order, non-refund event" });
+    }
 
     const paidAt = internalStatus === "paid" ? new Date().toISOString() : null;
     const orderUpdate: Record<string, any> = {
-        status: internalStatus,
+        status: isRefund ? "refunded" : internalStatus,
         external_id: paypalOrderId,
     };
     if (paidAt) orderUpdate.paid_at = paidAt;
-    if (internalStatus === "failed") {
-        orderUpdate.error_message = isRefund ? "Pagamento estornado no PayPal" : (captureStatus || eventType);
+    if (internalStatus === "failed" && !isRefund) {
+        orderUpdate.error_message = captureStatus || eventType;
     }
 
     const { error: updateError } = await admin
@@ -410,10 +414,10 @@ serve(async (req) => {
         await admin
             .from("payments")
             .update({
-                status: internalStatus,
-                paid_at: paidAt,
-                error_message: internalStatus === "failed"
-                    ? (isRefund ? "Pagamento estornado no PayPal" : (captureStatus || eventType))
+                status: isRefund ? "refunded" : internalStatus,
+                ...(paidAt ? { paid_at: paidAt } : {}),
+                error_message: internalStatus === "failed" && !isRefund
+                    ? (captureStatus || eventType)
                     : null,
             })
             .eq("id", paymentByOrder.id);
@@ -422,7 +426,7 @@ serve(async (req) => {
             order_id: orderId,
             gateway_id: gateway.id,
             external_payment_id: paypalOrderId,
-            status: internalStatus,
+            status: isRefund ? "refunded" : internalStatus,
             amount: Number.isFinite(amountValue) ? Math.round(amountValue * 100) : 0,
             currency: String(order?.purchase_units?.[0]?.amount?.currency_code ?? "USD").toUpperCase(),
             payment_method_type: "paypal",
@@ -458,29 +462,6 @@ serve(async (req) => {
             );
             if (error) {
                 console.error("[paypal-webhook] erro ao liberar acesso", { courseId, error });
-            }
-        }
-    }
-
-    // Estorno/chargeback: revoga o acesso se não houver outra compra paga.
-    if (internalStatus === "failed" && orderRow.user_id && isRefund) {
-        for (const courseId of courseIds) {
-            const { data: otherPaid } = await admin
-                .from("order_items")
-                .select("order_id, orders!inner(id, user_id, status), products!inner(course_id)")
-                .eq("products.course_id", courseId)
-                .eq("orders.user_id", orderRow.user_id)
-                .eq("orders.status", "paid")
-                .neq("order_id", orderId)
-                .limit(1);
-
-            if (!otherPaid || otherPaid.length === 0) {
-                await admin
-                    .from("user_course_access")
-                    .delete()
-                    .eq("user_id", orderRow.user_id)
-                    .eq("course_id", courseId)
-                    .eq("source", "checkout");
             }
         }
     }

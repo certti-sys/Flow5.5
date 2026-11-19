@@ -11,9 +11,14 @@ import { z } from "https://esm.sh/zod@3.25.76";
 // --- SCHEMAS ---
 
 const PaymentOpsSchema = z.object({
-  action: z.enum(['create_paymentIntent', 'check_payment_status', 'test_connection']),
+  action: z.enum(['create_paymentIntent', 'check_payment_status', 'test_connection', 'refund']),
   payload: z.object({
     orderId: z.string().optional(),
+    // Reembolso: approve = estorna no gateway; reject = nega; confirm = admin
+    // estornou manualmente no painel do provedor.
+    refundRequestId: z.string().uuid().optional(),
+    decision: z.enum(['approve', 'reject', 'confirm']).optional(),
+    notes: z.string().optional(),
     productId: z.string().optional(),
     gatewayId: z.string().optional(),
     amount: z.number().optional(),
@@ -541,6 +546,25 @@ class CajuPayProvider implements PaymentProvider {
         } catch {
             return false;
         }
+    }
+
+    /** Estorno PIX: só existe para cobranças PIX (cartão é no painel). */
+    async requestPixRefund(paymentId: string): Promise<any> {
+        return await this.request(
+            `/api/payments/${encodeURIComponent(paymentId)}/pix-refund`,
+            "POST",
+            {},
+            `flow55-${paymentId}-refund`,
+        );
+    }
+
+    /** Retoma estorno que ficou em `failed`/`pending_balance` (409 no primeiro POST). */
+    async retryPixRefund(paymentId: string): Promise<any> {
+        return await this.request(
+            `/api/payments/${encodeURIComponent(paymentId)}/pix-refund/retry`,
+            "POST",
+            {},
+        );
     }
 
     async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
@@ -1168,6 +1192,34 @@ class PayPalProvider implements PaymentProvider {
         } catch {
             return false;
         }
+    }
+
+    /** Captura vinculada à Order: o estorno do PayPal é por captura, não por pedido. */
+    async getCaptureId(paypalOrderId: string): Promise<string | null> {
+        try {
+            const order = await this.request(`/v2/checkout/orders/${paypalOrderId}`, "GET");
+            const captures = order?.purchase_units?.[0]?.payments?.captures ?? [];
+            const usable = captures.find((c: any) => String(c?.status).toUpperCase() === "COMPLETED")
+                ?? captures[0];
+            return usable?.id ? String(usable.id) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    async refundCapture(captureId: string, amountCents: number): Promise<any> {
+        const body: Record<string, any> = {
+            amount: {
+                value: (Math.max(1, Math.round(amountCents)) / 100).toFixed(2),
+                currency_code: "USD",
+            },
+        };
+        return await this.request(
+            `/v2/payments/captures/${captureId}/refund`,
+            "POST",
+            body,
+            { "PayPal-Request-Id": `refund-${captureId}`.slice(0, 108) },
+        );
     }
 
     async createPaymentIntent(order: OrderContext): Promise<PaymentIntentResult> {
@@ -2110,6 +2162,178 @@ function createPaymentProvider(
 }
 
 
+/**
+ * Estorno no gateway. Devolve `manual: true` quando o provedor não tem API de
+ * reembolso (ou quando o formato guardado não permite chamá-la) — nesse caso o
+ * admin estorna no painel do provedor e confirma depois.
+ */
+async function refundViaGateway(
+    slug: string,
+    cred: any,
+    externalId: string,
+    amountCents: number,
+    paymentMethodType: string | null,
+): Promise<{ ok: boolean; manual?: boolean; refundId?: string; error?: string; detail?: string }> {
+    const sandbox = cred.env === 'test';
+
+    try {
+        if (slug === 'stripe') {
+            // Estorno é sobre o PaymentIntent, não sobre a charge.
+            const res = await fetch('https://api.stripe.com/v1/refunds', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${cred.secret_key}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    payment_intent: externalId,
+                    amount: String(amountCents),
+                }).toString(),
+            });
+            const data = await res.json();
+            if (!res.ok) return { ok: false, error: data?.error?.message || res.statusText };
+            return { ok: true, refundId: String(data.id ?? ''), detail: data?.status };
+        }
+
+        if (slug === 'mercadopago') {
+            const token = cred.access_token || cred.secret_key;
+            const res = await fetch(`https://api.mercadopago.com/v1/payments/${externalId}/refunds`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: '{}',
+            });
+            const data = await res.json();
+            if (!res.ok) return { ok: false, error: data?.message || res.statusText };
+            return { ok: true, refundId: String(data.id ?? ''), detail: data?.status };
+        }
+
+        if (slug === 'asaas') {
+            if (externalId.startsWith('checkout:')) {
+                return { ok: false, manual: true, error: 'Cobrança criada como sessão hospedada: estorne no painel do Asaas.' };
+            }
+            const base = sandbox ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3';
+            const res = await fetch(`${base}/payments/${externalId}/refund`, {
+                method: 'POST',
+                headers: {
+                    access_token: cred.secret_key,
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Flow55-Checkout/1.0',
+                },
+                body: JSON.stringify({ value: amountCents / 100 }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                return { ok: false, error: data?.errors?.[0]?.description || data?.message || res.statusText };
+            }
+            return { ok: true, refundId: String(data.id ?? data.payment ?? ''), detail: data?.status };
+        }
+
+        if (slug === 'pagarme') {
+            // Link de cartão (`paymentlink:<id>`) não tem charge para estornar.
+            if (externalId.startsWith('paymentlink:')) {
+                return { ok: false, manual: true, error: 'Link de pagamento do Pagar.me: estorne na cobrança pelo painel.' };
+            }
+            const base = sandbox ? 'https://sdx-api.pagar.me/core/v5' : 'https://api.pagar.me/core/v5';
+            const res = await fetch(`${base}/charges/${externalId}/refund`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Basic ${btoa(`${cred.secret_key}:`)}`,
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Flow55-Checkout/1.0',
+                },
+                body: JSON.stringify({ amount: amountCents }),
+            });
+            const data = await res.json();
+            if (!res.ok) return { ok: false, error: data?.message || res.statusText };
+            return { ok: true, refundId: String(data.id ?? ''), detail: data?.status };
+        }
+
+        if (slug === 'paypal') {
+            const clientId = cred.public_key || cred.client_id;
+            const provider = new PayPalProvider({
+                clientId,
+                clientSecret: cred.secret_key,
+                sandbox,
+            });
+            // O estorno é sobre a captura; o id guardado é do pedido no PayPal.
+            const captureId = await provider.getCaptureId(externalId);
+            if (!captureId) {
+                return { ok: false, manual: true, error: 'Captura do PayPal não localizada: estorne no painel.' };
+            }
+            const data = await provider.refundCapture(captureId, amountCents);
+            return { ok: true, refundId: String(data?.id ?? ''), detail: data?.status };
+        }
+
+        if (slug === 'cajupay') {
+            if (!paymentMethodType?.includes('pix')) {
+                return { ok: false, manual: true, error: 'CajuPay só permite estorno por API em cobranças PIX.' };
+            }
+            const provider = new CajuPayProvider({
+                publicKey: cred.public_key || cred.api_key,
+                secretKey: cred.secret_key,
+            });
+            let data = await provider.requestPixRefund(externalId);
+            let status = String(data?.status ?? '').toLowerCase();
+            // 409/failed pode ser apenas saldo pendente: um retry resolve.
+            if (status === 'failed') {
+                try {
+                    data = await provider.retryPixRefund(externalId);
+                    status = String(data?.status ?? '').toLowerCase();
+                } catch {
+                    // mantem o primeiro resultado
+                }
+            }
+            if (status === 'failed') {
+                return { ok: false, error: data?.last_error || 'CajuPay recusou o estorno.' };
+            }
+            return { ok: true, refundId: String(data?.id ?? ''), detail: status };
+        }
+
+        // pushinpay, efi e afins: sem endpoint de estorno no fluxo atual.
+        return { ok: false, manual: true, error: `Estorno automático não disponível para o gateway ${slug}.` };
+    } catch (e: any) {
+        return { ok: false, error: e?.message || 'Falha ao chamar o gateway.' };
+    }
+}
+
+/**
+ * Fecha o reembolso: marca pagamento (dispara `order.refunded` no webhook de
+ * saída e o aviso ao admin), marca o pedido como `refunded` (o trigger
+ * `revoke_access_on_refund` tira o acesso) e conclui a solicitação.
+ */
+async function finalizeRefund(
+    admin: any,
+    refundRequest: any,
+    adminId: string,
+    notes: string | null,
+) {
+    const orderId = refundRequest.order_id ?? refundRequest.order?.id;
+
+    await admin
+        .from('payments')
+        .update({ status: 'refunded', error_message: null })
+        .eq('order_id', orderId)
+        .eq('status', 'paid');
+
+    await admin
+        .from('orders')
+        .update({ status: 'refunded', error_message: null })
+        .eq('id', orderId);
+
+    await admin
+        .from('refund_requests')
+        .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            manual_refund_required: false,
+            last_error: null,
+            reviewed_by: adminId,
+            reviewed_at: refundRequest.reviewed_at ?? new Date().toISOString(),
+            ...(notes ? { admin_notes: notes } : {}),
+        })
+        .eq('id', refundRequest.id);
+}
+
 /** Senha temporária legível para o e-mail de boas-vindas do comprador. */
 function generateTempPassword(): string {
     const bytes = new Uint8Array(12);
@@ -3027,6 +3251,159 @@ Deno.serve(async (req) => {
             }
 
             return new Response(JSON.stringify({ ok, env: cred.env, gateway: slug, detail }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        // --- ACTION: refund ---
+        // Aprovação/negação de solicitação do aluno. Só admin: o estorno move
+        // dinheiro e revoga acesso.
+        if (action === 'refund') {
+            if (!user) throw new Error("Não autenticado");
+            const { data: adminRole } = await supabaseAdmin
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', user.id)
+                .eq('role', 'admin')
+                .maybeSingle();
+            if (!adminRole) throw new Error("Acesso restrito a administradores");
+
+            const requestId = payload.refundRequestId;
+            const decision = payload.decision;
+            if (!requestId || !decision) throw new Error("refundRequestId e decision são obrigatórios");
+
+            const { data: refundRequest } = await supabaseAdmin
+                .from('refund_requests')
+                .select('*, order:orders(id, user_id, total_amount, status, external_id, payments(status, external_payment_id, gateway_id, gateway:gateways(slug), payment_method_type, amount))')
+                .eq('id', requestId)
+                .maybeSingle();
+
+            if (!refundRequest) throw new Error("Solicitação não encontrada");
+
+            if (decision === 'reject') {
+                if (!['pending', 'processing', 'failed'].includes(refundRequest.status)) {
+                    throw new Error("Esta solicitação não pode ser recusada.");
+                }
+                await supabaseAdmin
+                    .from('refund_requests')
+                    .update({
+                        status: 'rejected',
+                        admin_notes: payload.notes ?? null,
+                        reviewed_by: user.id,
+                        reviewed_at: new Date().toISOString(),
+                    })
+                    .eq('id', requestId);
+                return new Response(JSON.stringify({ ok: true, status: 'rejected' }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+
+            if (decision === 'confirm') {
+                // Admin estornou no painel do provedor e confirma aqui.
+                if (!['pending', 'processing', 'failed'].includes(refundRequest.status)) {
+                    throw new Error("Esta solicitação já foi concluída.");
+                }
+                await finalizeRefund(supabaseAdmin, refundRequest, user.id, payload.notes ?? null);
+                return new Response(JSON.stringify({ ok: true, status: 'completed' }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+
+            // `processing` fica de fora de propósito: clique duplo durante a
+            // chamada do gateway não pode estornar duas vezes.
+            if (!['pending', 'failed'].includes(refundRequest.status)) {
+                throw new Error("Esta solicitação já está em processamento.");
+            }
+            if (refundRequest.order?.status !== 'paid') {
+                throw new Error("Só é possível estornar pedido pago.");
+            }
+
+            // Idempotência: estorno já aceito pelo gateway não é reenviado se o
+            // banco falhou depois da chamada. Fecha o que faltou.
+            if (refundRequest.gateway_refund_id) {
+                await finalizeRefund(supabaseAdmin, refundRequest, user.id, payload.notes ?? null);
+                return new Response(JSON.stringify({ ok: true, status: 'completed' }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+
+            const payments = (refundRequest.order.payments ?? []) as any[];
+            const payment = payments.find((p) => p.status === 'paid') ?? payments[0];
+
+            const amount = payment?.amount ?? refundRequest.order.total_amount ?? 0;
+
+            await supabaseAdmin
+                .from('refund_requests')
+                .update({
+                    status: 'processing',
+                    reviewed_by: user.id,
+                    reviewed_at: new Date().toISOString(),
+                    admin_notes: payload.notes ?? null,
+                    last_error: null,
+                })
+                .eq('id', requestId);
+
+            // Sem pagamento ou sem id externo não há como chamar o gateway:
+            // cai no fluxo manual em vez de mentir que estornou.
+            const slug = payment?.gateway?.slug;
+            const externalId = payment?.external_payment_id;
+            if (!slug || !externalId) {
+                await supabaseAdmin
+                    .from('refund_requests')
+                    .update({
+                        status: 'processing',
+                        manual_refund_required: true,
+                        last_error: 'Pagamento sem identificador no gateway: estorne no painel do provedor e confirme aqui.',
+                    })
+                    .eq('id', requestId);
+                return new Response(JSON.stringify({
+                    ok: true,
+                    status: 'processing',
+                    manual: true,
+                    message: 'Estorne no painel do provedor e confirme o reembolso aqui.',
+                }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+
+            const { data: credRows } = await supabaseAdmin
+                .from('gateway_credentials')
+                .select('*')
+                .eq('gateway_id', payment.gateway_id)
+                .eq('is_active', true)
+                .order('env', { ascending: true })
+                .limit(2);
+            const cred = credRows?.find((c: any) => c.env === 'live') ?? credRows?.[0];
+            if (!cred) throw new Error(`Credencial do gateway ${slug} não configurada.`);
+
+            const result = await refundViaGateway(slug, cred, externalId, amount, payment.payment_method_type);
+
+            if (!result.ok) {
+                const manual = result.manual === true;
+                await supabaseAdmin
+                    .from('refund_requests')
+                    .update({
+                        status: 'failed',
+                        manual_refund_required: manual,
+                        last_error: result.error ?? 'Gateway recusou o estorno.',
+                    })
+                    .eq('id', requestId);
+                return new Response(JSON.stringify({
+                    ok: false,
+                    status: 'failed',
+                    manual,
+                    error: result.error,
+                    message: manual
+                        ? 'Estorne no painel do provedor e confirme o reembolso aqui.'
+                        : 'O gateway recusou o estorno. Corrija e tente novamente.',
+                }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+
+            await supabaseAdmin
+                .from('refund_requests')
+                .update({ gateway_refund_id: result.refundId ?? null, gateway_response: result.detail ?? null })
+                .eq('id', requestId);
+
+            await finalizeRefund(supabaseAdmin, refundRequest, user.id, payload.notes ?? null);
+            return new Response(JSON.stringify({ ok: true, status: 'completed', refundId: result.refundId }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
         }

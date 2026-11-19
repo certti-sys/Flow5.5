@@ -49,6 +49,13 @@ const courseSchema = z.object({
     .max(100, "Máximo 100%")
     .default(100),
   checkout_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  refund_enabled: z.boolean().default(false),
+  refund_window_days: z.coerce
+    .number()
+    .int("Use um número inteiro")
+    .min(1, "Mínimo 1 dia")
+    .max(365, "Máximo 365 dias")
+    .default(7),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
@@ -78,6 +85,8 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
       show_category_badge: true,
       certificates_enabled: false,
       certificate_min_percent: 100,
+      refund_enabled: false,
+      refund_window_days: 7,
       checkout_url: "",
     },
   });
@@ -125,6 +134,8 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
         show_category_badge: course.show_category_badge !== false,
         certificates_enabled: course.certificates_enabled === true,
         certificate_min_percent: course.certificate_min_percent ?? 100,
+        refund_enabled: course.refund_enabled === true,
+        refund_window_days: course.refund_window_days ?? 7,
         checkout_url: course.checkout_url || "",
       });
       setThumbnailPreview(course.thumbnail);
@@ -638,6 +649,58 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
                         </FormControl>
                         <p className="text-xs text-muted-foreground">
                           Aulas de bônus que não devem contar: baixe o percentual. Padrão 100.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Reembolso: desligado por padrão — ligar cria obrigação de estorno */}
+                <FormField
+                  control={form.control}
+                  name="refund_enabled"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-white/10 bg-black/20 p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-white/80 font-medium">
+                          Permitir solicitação de reembolso
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground pt-1">
+                          O aluno pede pelo perfil; você aprova em Reembolsos
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("refund_enabled") && (
+                  <FormField
+                    control={form.control}
+                    name="refund_window_days"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80 font-medium">
+                          Prazo para solicitar (dias após o pagamento)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={365}
+                            {...field}
+                            className="bg-transparent border-white/10 focus-visible:ring-primary/50 text-white h-[44px]"
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Contado a partir de <code>paid_at</code> do pedido.
                         </p>
                         <FormMessage />
                       </FormItem>

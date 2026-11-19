@@ -287,43 +287,6 @@ async function grantCourseAccess(admin: any, orderId: string, userId: string) {
     }
 }
 
-async function revokeCourseAccess(admin: any, orderId: string, userId: string) {
-    const { data: items } = await admin
-        .from("order_items")
-        .select("product_id, products:product_id(course_id)")
-        .eq("order_id", orderId);
-
-    const courseIds = new Set<string>();
-    for (const item of items ?? []) {
-        const courseId = (item.products as any)?.course_id;
-        if (courseId) courseIds.add(courseId);
-    }
-
-    for (const courseId of courseIds) {
-        // Mantém o acesso se houver outra compra paga do mesmo curso.
-        const { data: otherPaid } = await admin
-            .from("order_items")
-            .select("order_id, orders!inner(id, user_id, status), products!inner(course_id)")
-            .eq("products.course_id", courseId)
-            .eq("orders.user_id", userId)
-            .eq("orders.status", "paid")
-            .neq("order_id", orderId)
-            .limit(1);
-
-        if (!otherPaid || otherPaid.length === 0) {
-            const { error } = await admin
-                .from("user_course_access")
-                .delete()
-                .eq("user_id", userId)
-                .eq("course_id", courseId)
-                .eq("source", "checkout");
-            if (error) {
-                logger.error(`[stripe-webhook] erro ao revogar curso ${courseId}`, error);
-            }
-        }
-    }
-}
-
 /** payment_intent.succeeded */
 async function handlePaymentSuccess(admin: any, gatewayId: string, paymentIntent: any) {
     const orderId = paymentIntent?.metadata?.order_id;
@@ -339,6 +302,12 @@ async function handlePaymentSuccess(admin: any, gatewayId: string, paymentIntent
 
     if (!order) {
         logger.error("[stripe-webhook] pedido não encontrado", { orderId });
+        return;
+    }
+
+    if (order.status === "refunded") {
+        // Estorno é terminal: evento `succeeded` repetido não devolve o acesso.
+        logger.info(`[stripe-webhook] pedido ${orderId} já estornado; evento ignorado`);
         return;
     }
 
@@ -382,7 +351,7 @@ async function handlePaymentFailed(admin: any, gatewayId: string, paymentIntent:
     if (!order) return;
 
     // Nunca rebaixa pedido pago: pode ser uma tentativa anterior do mesmo fluxo.
-    if (order.status === "paid" || order.status === "canceled") {
+    if (order.status === "paid" || order.status === "canceled" || order.status === "refunded") {
         logger.info(`[stripe-webhook] falha ignorada para pedido ${order.status} ${orderId}`);
         return;
     }
@@ -414,7 +383,7 @@ async function handlePaymentCanceled(admin: any, gatewayId: string, paymentInten
         logger.info(`[stripe-webhook] cancelamento ignorado: pedido ${orderId} já pago`);
         return;
     }
-    if (order.status === "canceled") {
+    if (order.status === "canceled" || order.status === "refunded") {
         return;
     }
 
@@ -433,9 +402,9 @@ async function handlePaymentCanceled(admin: any, gatewayId: string, paymentInten
 
 /**
  * charge.refunded
- * Reembolso total -> pedido vira `failed` (o enum de orders não aceita
- * "refunded") e o acesso é revogado. Reembolso parcial apenas registra o
- * estorno em `payments` e mantém o acesso.
+ * Reembolso total -> pedido vira `refunded` e o trigger
+ * `revoke_access_on_refund` revoga o acesso. Reembolso parcial apenas registra
+ * o estorno em `payments` e mantem o acesso.
  */
 async function handleRefund(admin: any, charge: any) {
     const paymentIntentId = typeof charge?.payment_intent === "string"
@@ -489,17 +458,12 @@ async function handleRefund(admin: any, charge: any) {
         return;
     }
 
-    const order = await getOrder(admin, orderId);
-    if (!order) return;
-
+    // `refunded` é distinto de `failed` (cartão recusado). O trigger
+    // `revoke_access_on_refund` em orders revoga o acesso.
     await admin
         .from("orders")
-        .update({ status: "failed", error_message: "Pagamento reembolsado" })
+        .update({ status: "refunded", error_message: "Pagamento reembolsado" })
         .eq("id", orderId);
-
-    if (order.user_id) {
-        await revokeCourseAccess(admin, orderId, order.user_id);
-    }
 }
 
 /** payment_intent.requires_action — mantém pendente, nunca rebaixa pedido pago. */
@@ -510,7 +474,7 @@ async function handleRequiresAction(admin: any, paymentIntent: any) {
     const order = await getOrder(admin, orderId);
     if (!order) return;
 
-    if (order.status === "paid" || order.status === "canceled") {
+    if (order.status === "paid" || order.status === "canceled" || order.status === "refunded") {
         return;
     }
 

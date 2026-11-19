@@ -80,6 +80,18 @@ const statusConfig: Record<string, { label: string; color: string; icon: any; bo
     border: "border-slate-500/20",
     icon: RefreshCw
   },
+  canceled: {
+    label: "Cancelado",
+    color: "bg-slate-500/10 text-slate-400",
+    border: "border-slate-500/20",
+    icon: XCircle
+  },
+  expired: {
+    label: "Expirado",
+    color: "bg-slate-500/10 text-slate-400",
+    border: "border-slate-500/20",
+    icon: Clock
+  },
 };
 
 const container = {
@@ -271,7 +283,8 @@ export default function Orders() {
               { id: 'all', label: 'Todos' },
               { id: 'paid', label: 'Pagos' },
               { id: 'pending', label: 'Pendentes' },
-              { id: 'failed', label: 'Falhos' }
+              { id: 'failed', label: 'Falhos' },
+              { id: 'refunded', label: 'Reembolsados' }
             ].map((f) => (
               <button
                 key={f.id}

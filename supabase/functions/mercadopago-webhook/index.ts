@@ -238,9 +238,22 @@ serve(async (req) => {
     return json({ ok: true, ignored: "paid order, non-refund failure event" });
   }
 
+  // Estorno vira `refunded`, não `failed`: `failed` é cartão recusado, e a
+  // diferença aparece no relatório. O trigger `revoke_access_on_refund`
+  // cuida do acesso.
+  const orderStatus = internalStatus === "paid"
+    ? "paid"
+    : isRefund
+      ? "refunded"
+      : internalStatus === "failed" ? "failed" : "pending";
+
+  // Pedido já estornado não volta atrás por evento tardio do gateway.
+  if (order.status === "refunded" && !isRefund) {
+    return json({ ok: true, ignored: "refunded order, non-refund event" });
+  }
   const paidAt = internalStatus === "paid" ? new Date().toISOString() : null;
   const orderUpdate: Record<string, any> = {
-    status: internalStatus === "paid" ? "paid" : internalStatus === "failed" ? "failed" : "pending",
+    status: orderStatus,
     external_id: externalPaymentId,
   };
   if (paidAt) orderUpdate.paid_at = paidAt;
@@ -262,6 +275,11 @@ serve(async (req) => {
     await notifyOrderPaid(admin, order.id);
   }
 
+  // `payments.status='refunded'` dispara o webhook `order.refunded` e o aviso
+  // ao admin (trigger em payments). Como o webhook do gateway pode repetir,
+  // `paid_at` nulo preserva a data original do pagamento.
+  const paymentStatus = isRefund ? "refunded" : internalStatus;
+
   // Atualiza (ou cria) o registro em payments — webhook pode chegar antes do insert.
   const { data: existingPayment } = await admin
     .from("payments")
@@ -274,9 +292,11 @@ serve(async (req) => {
     await admin
       .from("payments")
       .update({
-        status: internalStatus,
-        paid_at: paidAt,
-        error_message: internalStatus === "failed" ? (payment.status_detail ?? mpStatus) : null,
+        status: paymentStatus,
+        ...(paidAt ? { paid_at: paidAt } : {}),
+        error_message: internalStatus === "failed" && !isRefund
+          ? (payment.status_detail ?? mpStatus)
+          : null,
       })
       .eq("id", existingPayment.id);
   } else {
@@ -284,7 +304,7 @@ serve(async (req) => {
       order_id: order.id,
       gateway_id: mpGateway.id,
       external_payment_id: externalPaymentId,
-      status: internalStatus,
+      status: paymentStatus,
       amount: Math.round((payment.transaction_amount ?? 0) * 100),
       currency: "BRL",
       payment_method_type: payment.payment_type_id ?? payment.payment_method_id ?? "mercadopago",
@@ -322,30 +342,6 @@ serve(async (req) => {
           courseId,
           error,
         });
-      }
-    }
-  }
-
-  // Estorno/chargeback: remove o acesso apenas se o usuário não tiver outra compra paga
-  // do mesmo curso.
-  if (internalStatus === "failed" && order.user_id && (mpStatus === "refunded" || mpStatus === "charged_back")) {
-    for (const courseId of courseIds) {
-      const { data: otherPaid } = await admin
-        .from("order_items")
-        .select("order_id, orders!inner(id, user_id, status), products!inner(course_id)")
-        .eq("products.course_id", courseId)
-        .eq("orders.user_id", order.user_id)
-        .eq("orders.status", "paid")
-        .neq("order_id", order.id)
-        .limit(1);
-
-      if (!otherPaid || otherPaid.length === 0) {
-        await admin
-          .from("user_course_access")
-          .delete()
-          .eq("user_id", order.user_id)
-          .eq("course_id", courseId)
-          .eq("source", "checkout");
       }
     }
   }

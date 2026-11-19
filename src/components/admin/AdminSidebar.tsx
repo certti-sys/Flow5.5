@@ -20,6 +20,7 @@ import {
   Activity,
   CreditCard,
   TrendingUp,
+  Undo2,
   UserCheck,
   Tag,
   ChevronLeft,
@@ -66,7 +67,9 @@ const academicItems = [
 // 3. Comercial
 const commercialItems = [
   { title: "Vendas", url: "/admin/vendas", icon: TrendingUp },
+  { title: "Reembolsos", url: "/admin/reembolsos", icon: Undo2 },
   { title: "Carrinho Abandonado", url: "/admin/carrinho-abandonado", icon: ShoppingCart },
+
   { title: "Pedidos", url: "/admin/pedidos", icon: ShoppingCart },
   { title: "Clientes", url: "/admin/clientes", icon: UserCheck },
   { title: "Produtos", url: "/admin/produtos", icon: Package },

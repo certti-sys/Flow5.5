@@ -141,30 +141,42 @@ email_opt_outs(email pk, reason, source, created_at)
 
 ## FASE 4 — Reembolsos
 
-> Espelha `RefundService` + `RefundRequest` do Getfy.
+> Espelha `RefundService` + `RefundRequest` do Getfy. **Implementada.**
 
-### 4.1 Schema
+### 4.1 Schema (`20261119120000_refunds.sql`)
 ```sql
-refund_requests(id, order_id, product_id, user_id, status, -- requested|approved|rejected
-  reason_code, reason_text, requested_at, reviewed_by, reviewed_at, gateway_refund_id, created_at)
-alter table courses add column refund_window_days integer;        -- null = sem reembolso
-alter table courses add column refund_enabled boolean default false;
+refund_requests(id, order_id, product_id, user_id, status, reason, gateway,
+  gateway_refund_id, gateway_response, manual_refund_required, last_error, admin_notes,
+  reviewed_by, reviewed_at, completed_at, created_at, updated_at)
+-- status: pending | processing | completed | rejected | failed
+alter table courses add column refund_enabled boolean not null default false;
+alter table courses add column refund_window_days integer not null default 7
+  check (refund_window_days between 1 and 365);
 ```
-- **Status do pedido:** `orders.status` hoje não tem `refunded` (check: draft|pending|paid|failed|canceled|expired). Adicionar `refunded` ao check + ao `statusConfig` de `Orders.tsx` (já tem a entrada visual, só não é alcançável).
+- **Índice único parcial** em `order_id` para `pending|processing|failed`: clique duplo não abre duas solicitações, e "tentar novamente" reaproveita a linha.
+- **Status do pedido:** `orders.status` ganhou `refunded` no check. Todos os webhooks de gateway (Stripe, MP, Asaas, Pagar.me, PayPal, Efí, CajuPay, PushinPay) agora gravam `refunded` em estorno — antes gravavam `failed`, que é cartão recusado e sumia com o `order.refunded`.
+- RLS: admin lê/atualiza tudo; aluno lê só as próprias (`user_id = auth.uid()`). **Sem policy de INSERT** — quem cria é a RPC `request_refund`, que valida janela e pedido. INSERT aberto deixaria pedir reembolso de compra alheia.
 
 ### 4.2 Fluxo do aluno
-- Botão "Solicitar reembolso" na página do curso (`Course.tsx`), visível só quando: curso tem `refund_enabled`, pedido está `paid`, dentro da janela `refund_window_days` a partir de `paid_at`, e não há solicitação aberta. Mensagem com dias restantes (igual ao Getfy).
+- RPC `refund_eligibility(course_id)` → `jsonb` com `enabled, can_request, reason_code, message, window_days, order_id, days_remaining`. Motivos: `disabled | no_order | already_refunded | pending_request | deadline_passed | eligible`.
+- RPC `request_refund(course_id, reason)` valida o motivo (≥10 caracteres) e reusa a linha `failed` se houver.
+- UI em **`/perfil`** (`RefundRequests.tsx`), não em `Course.tsx`: quem tem acesso é redirecionado para a aula, então a página do curso nunca seria vista.
 
 ### 4.3 Fluxo do admin
-- Tela em `/admin/pedidos` (ou nova `/admin/reembolsos`): lista solicitações, aprovar (chama gateway de estorno) ou rejeitar com motivo.
-- **Estorno no gateway (decisão: automático):** `payment-ops` ganha `action: "refund"` com suporte por provider — Stripe (`refunds`), Mercado Pago (`/v1/payments/{id}/refunds`), Asaas (`/v3/payments/{id}/refund`), Pagar.me (`/core/v5/charges/{id}/refund`), PayPal (`/v2/payments/captures/{id}/refund`), Efí (`PUT /v2/cob/{txid}` com status devolvido), CajuPay (endpoint de cancelamento).
-- **Fallback obrigatório:** provider sem suporte à API de estorno → a aprovação **não** falha silenciosamente: marca `refund_requests.status='approved'` + `gateway_refund_id=null` + campo `manual_refund_required=true`, exibe aviso no painel com link para o gateway e exige confirmação humana do estorno antes de fechar o pedido.
-- **Idempotência:** antes de chamar o gateway, checa `gateway_refund_id` existente — clique duplo não estorna duas vezes.
-- **Erro do gateway:** a solicitação fica `approved` com `last_error` e botão "Tentar novamente"; o acesso **só é revogado após estorno confirmado**.
+- Tela `/admin/reembolsos` (`Refunds.tsx`): filtros em aberto/reembolsados/todos, cards com valor devolvido, diálogo com o motivo do aluno.
+- `payment-ops` ganhou `action: "refund"` (admin-only) com `decision: approve | reject | confirm`:
+  - **approve** — estorna no gateway. Stripe (`POST /v1/refunds`), Mercado Pago (`POST /v1/payments/{id}/refunds`), Asaas (`POST /v3/payments/{id}/refund`), Pagar.me (`POST /core/v5/charges/{id}/refund`), PayPal (`POST /v2/payments/captures/{id}/refund` após resolver a captura), CajuPay (`POST /api/payments/{id}/pix-refund`, só PIX).
+  - **confirm** — admin estornou no painel do provedor; fecha aqui.
+  - **reject** — recusa com observação, pedido continua pago.
+- **Fallback obrigatório:** provider sem API de estorno (PushinPay, Efí, CajuPay cartão, checkout hospedado do Asaas, link do Pagar.me) devolve `manual: true` → `status='processing'`, `manual_refund_required=true`, aviso com link para o painel do provedor.
+- **Idempotência:** `gateway_refund_id` já gravado → fecha direto sem reenviar. `processing` não aceita segundo `approve`.
+- **Erro do gateway:** `failed` + `last_error` + botão "Tentar novamente". O acesso **só é revogado após estorno confirmado**.
+- **Efeitos no fechamento** (`finalizeRefund`): `payments.status='refunded'` (dispara `order.refunded` no webhook de saída + aviso ao admin, triggers já existentes) → `orders.status='refunded'` → trigger `revoke_access_on_refund` revoga `user_course_access` `source='checkout'` se não houver outra compra paga do mesmo curso → `refund_requests.status='completed'`.
 
-### 4.4 Efeitos
-- Aprovado → `orders.status='refunded'` → trigger `enqueue_refund_deliveries` (já existe) emite webhook + revoga acesso via `revoke_access_on_refund` (trigger novo em `orders`, análogo ao `grant_order_access`).
-- Certificado: revogar ou manter? Getfy mantém o registro e sinaliza. **Proposta:** manter histórico, marcar `revoked_at`.
+### 4.4 Efeitos e webhooks
+- Trigger novo `revoke_access_on_refund` em `orders` substitui o bloco copiado em cada um dos 7 webhooks (`revokeCourseAccess` do Stripe removido). Mantém `raise warning` em erro — reembolso nunca desfaz o status do pedido.
+- Webhooks agora ignoram evento tardio sobre pedido `refunded` (não volta para `paid`/`pending`/`failed`).
+- Certificado: mantido o registro. `certificates` não tem `revoked_at` — fica para fase futura (hoje o certificado continua acessível por URL, mas o curso não abre).
 
 **Esforço Fase 4:** ~3 dias. **Risco:** médio (dinheiro envolvido; precisa de teste com gateway em sandbox).
 
