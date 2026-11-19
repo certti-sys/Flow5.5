@@ -270,6 +270,47 @@ cart_recovery_settings(id boolean pk, enabled, stage_minutes int[] default '{10,
 
 ---
 
+## FASE 8 — RLS: fechar as 30 tabelas com `Authenticated all access`
+
+> **Implementada.** Não vem do Getfy: é dívida acumulada do próprio Flow5.5.
+
+### 8.1 Problema medido
+`Authenticated all access` (`using true` + `with check true`) existia em **30 tabelas**. Com uma conta de aluno sem role admin, em produção:
+
+| Tabela | O que passava |
+|---|---|
+| `gateway_credentials` | lia `secret_key` do Stripe/Mercado Pago |
+| `orders` / `payments` / `order_items` | lia pedido e pagamento de outro comprador |
+| `user_course_access` | concedia curso a si mesmo (INSERT liberado) |
+| `courses` | `PATCH` respondia 200 e alterava o título |
+| `whatsapp_logs` | telefone de todos os compradores |
+| `platform_settings` | `webhook_secret`, `monitoring_sentry_dsn` |
+
+### 8.2 Regra aplicada (`20261119130000_rls_lockdown.sql`)
+- **Admin gerencia tudo** nas 30 tabelas (`Admins manage <tabela>`, `for all`, `has_role(auth.uid(),'admin')`).
+- **Leitura de catálogo liberada ao aluno** (`select using true`): `courses`, `modules`, `lessons`, `lesson_materials`, `products`, `carousels`, `carousel_courses`, `order_bumps`, `achievements`. Nenhuma tem dado de terceiro.
+- **Leitura "o próprio ou admin"**: `orders`, `order_items`, `payments`, `user_course_access`, `user_achievements`.
+- **Admin-only (sem leitura para aluno)**: `gateway_credentials`, `gateways`, `platform_settings`, `email_settings`, `whatsapp_settings`, `whatsapp_logs`, `customers`, `prices`, `subscriptions`, `entitlements`, `audit_logs`, `webhook_events`, `message_templates`, `course_categories`, `user_course_categories`.
+- **Cupons**: escrita era aberta a `authenticated` em `coupons`/`coupon_products`/`coupon_usage` e em `products` (INSERT/UPDATE/DELETE). Agora só admin. Leitura pública de `coupons`/`coupon_products` continua pela policy `Anyone can read active coupons`, que `validate-coupon` usa com o JWT do visitante.
+- **`products` para `authenticated`**: `active = true or admin` — o painel precisa ver inativos, o comprador precisa do produto do link.
+
+### 8.3 Efeito colateral tratado (`20261119131000_profiles_public_view.sql`)
+`profiles` passou a ser legível só pelo dono ou admin (tem e-mail, whatsapp, status e motivo de suspensão). A thread de comentários é social e precisa do nome/avatar de quem escreveu. Criada a view `profiles_public(id, name, avatar_url, is_admin)` com `security_invoker = false` e `grant select` apenas para `authenticated` (anon recebe `permission denied`).
+
+`fetchLessonComments` passou a ler a view em vez do embed `profiles (name, avatar_url)`. A flag `is_admin` também substituiu a consulta em `user_roles` — que só devolvia as roles do próprio usuário e, por isso, a etiqueta de admin nunca aparecia nos comentários.
+
+### 8.4 Validação executada em produção
+- Aluno (`cert.ti@gmail.com`): 23/23 checagens — segredos e logs invisíveis, `PATCH courses` sem efeito, `INSERT user_course_access`/`coupons`/`user_achievements`/`user_progress`/`certificates`/`notifications`/`push_subscriptions` em nome alheio = 403, catálogo lendo normal.
+- Comprador (`leandroalzevedo@gmail.com`): vê o próprio pedido/pagamento/itens, não vê credenciais nem auditoria.
+- Admin (`leandroaz@gmail.com`): 14/14 leituras amplas OK + escritas (credencial, acesso, notificação, order bump, personalização, aula) OK.
+- `anon`: `profiles_public` negado, `platform_settings_public`/`theme_settings`/`products active`/`order_bumps` OK, `courses`/`orders`/`gateway_credentials` vazios.
+- UI com Puppeteer: 6 telas do aluno e 24 do admin sem 4xx em `/rest/v1` e sem erro de console; curtir, marcar concluída e comentar funcionando; checkout público (`/c/:slug`) renderizando; `validate-coupon` respondendo como anon.
+- Dados de teste removidos (comentário, progresso, categoria, order bump, notificação); `user_stats` do aluno de teste restaurado zerado.
+
+**Esforço Fase 8:** ~1 dia. **Risco:** alto na aplicação (DDL sem rollback automático; qualquer tela que dependesse de leitura ampla cai até ajuste).
+
+---
+
 ## Ordem recomendada e dependências
 
 ```
@@ -280,6 +321,7 @@ Fase 2 (fila e-mail)   ───────────────────
 Fase 5 (funil)         ────────────────────►  pré-requisito da Fase 3 (abandono)
 Fase 3 (campanhas)     ◄── depende de 2 e 5
 Fase 4 (reembolsos)    ◄── independente (usa payment-ops refund)
+Fase 8 (RLS)           ────────────────────►  antes de qualquer feature nova
 ```
 
 **Sequência sugerida:** 1 → 7 → 6 → 2 → 5 → 3 → 4.

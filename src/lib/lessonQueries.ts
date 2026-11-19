@@ -69,22 +69,31 @@ export const fetchLessonComments = async (lessonId: string): Promise<LessonComme
   // Comentários da aula
   const { data: commentsData, error: commentsError } = await supabase
     .from("comments")
-    .select(`
-      *,
-      profiles (name, avatar_url)
-    `)
+    .select("*")
     .eq("lesson_id", lessonId)
     .order("created_at", { ascending: true });
 
   if (commentsError) throw commentsError;
 
-  // Usuários admin (para marcar a etiqueta nos comentários)
-  const { data: adminRoles } = await supabase
-    .from("user_roles")
-    .select("user_id")
-    .eq("role", "admin");
+  // Autor do comentário. `profiles` só é legível pelo dono ou admin (tem
+  // e-mail, whatsapp e status), então nome/avatar/flag de admin vêm da view
+  // pública. A flag substitui a consulta antiga em `user_roles`, que só
+  // devolvia as roles do próprio usuário - por isso a etiqueta de admin
+  // nunca aparecia para o aluno.
+  const authorIds = [...new Set((commentsData || []).map((c: any) => c.user_id))];
+  const { data: authors } = authorIds.length
+    ? await supabase
+        .from("profiles_public")
+        .select("id, name, avatar_url, is_admin")
+        .in("id", authorIds)
+    : { data: [] as { id: string; name: string; avatar_url: string | null; is_admin: boolean }[] };
 
-  const adminUserIds = new Set((adminRoles || []).map((r) => r.user_id));
+  const authorById = new Map(
+    (authors || []).map((a: any) => [
+      a.id,
+      { name: a.name, avatar_url: a.avatar_url, is_admin: !!a.is_admin },
+    ]),
+  );
 
   // Monta as threads: mapa de todos e depois liga respostas aos pais
   const commentsMap = new Map<string, LessonComment>();
@@ -93,7 +102,8 @@ export const fetchLessonComments = async (lessonId: string): Promise<LessonComme
   (commentsData || []).forEach((comment: any) => {
     commentsMap.set(comment.id, {
       ...comment,
-      isAuthorAdmin: adminUserIds.has(comment.user_id),
+      profiles: authorById.get(comment.user_id) ?? null,
+      isAuthorAdmin: authorById.get(comment.user_id)?.is_admin ?? false,
       replies: [],
     });
   });
