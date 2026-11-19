@@ -20,6 +20,7 @@ interface CertificateData {
   course_id: string;
   issued_at: string | null;
   created_at: string | null;
+  revoked_at: string | null;
   profiles: { name: string | null; email: string | null; avatar_url: string | null };
   courses: { title: string | null } | null;
 }
@@ -47,8 +48,16 @@ const CertificateCard = ({ cert }: { cert: CertificateData }) => {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[12px] uppercase font-bold px-2 py-0.5 rounded-md">
-            Concluído
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[12px] uppercase font-bold px-2 py-0.5 rounded-md",
+              cert.revoked_at
+                ? "bg-destructive/10 text-destructive border-destructive/20"
+                : "bg-primary/10 text-primary border-primary/20",
+            )}
+          >
+            {cert.revoked_at ? "Revogado" : "Concluído"}
           </Badge>
         </div>
         <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -117,12 +126,13 @@ export default function CertificatesDashboard() {
           created_at,
           user_id,
           course_id,
+          revoked_at,
           profiles (name, email, avatar_url),
           courses (title)
         `)
         .order("issued_at", { ascending: false });
       if (error) throw error;
-      return data as CertificateData[];
+      return data as unknown as CertificateData[];
     },
   });
 

@@ -82,6 +82,7 @@ const Profile = () => {
           courses ( title )
         `)
         .eq("user_id", user.id)
+        .is("revoked_at", null)
         .order("issued_at", { ascending: false });
 
       if (error) throw error;

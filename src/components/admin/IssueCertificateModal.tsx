@@ -81,13 +81,15 @@ export function IssueCertificateModal({ open, onOpenChange }: IssueCertificateMo
 
   const issueMutation = useMutation({
     mutationFn: async ({ userId, courseId }: FormValues) => {
-      // Certificado é único por (user_id, course_id): devolve o existente
-      // em vez de estourar o unique constraint.
+      // Certificado é único por (user_id, course_id) enquanto válido: devolve o
+      // existente em vez de estourar o índice. Se o anterior foi revogado por
+      // estorno, esta emissão cria uma linha nova (o link antigo segue morto).
       const { data: existing, error: existingError } = await supabase
         .from("certificates")
         .select("id")
         .eq("user_id", userId)
         .eq("course_id", courseId)
+        .is("revoked_at", null)
         .maybeSingle();
 
       if (existingError) throw existingError;

@@ -48,9 +48,10 @@ export const LessonSidebar = ({
       
       const { data: existingCert } = await supabase
         .from('certificates')
-        .select('*')
+        .select('id')
         .eq('user_id', user.id)
         .eq('course_id', courseId)
+        .is('revoked_at', null)
         .maybeSingle();
 
       if (existingCert) {

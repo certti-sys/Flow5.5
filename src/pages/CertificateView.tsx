@@ -15,6 +15,7 @@ interface CertData {
   id: string;
   issued_at: string;
   course_id: string;
+  revoked_at?: string | null;
   user?: { name?: string; email?: string } | null;
   course?: { title?: string; duration?: string } | null;
 }
@@ -418,6 +419,26 @@ export default function CertificateView() {
         <ShieldCheck className="w-16 h-16 text-destructive opacity-50" />
         <h2 className="text-2xl font-bold">Certificado não encontrado</h2>
         <p className="text-muted-foreground">O código fornecido é incorreto ou o certificado foi revogado.</p>
+        <Link to="/dashboard">
+          <Button variant="outline" className="mt-4">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Início
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // ── Revogado (estorno) ──
+  if (cert.revoked_at) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <ShieldCheck className="w-16 h-16 text-destructive opacity-50" />
+        <h2 className="text-2xl font-bold">Certificado revogado</h2>
+        <p className="text-muted-foreground text-center max-w-sm">
+          Este certificado foi invalidado em{' '}
+          {format(new Date(cert.revoked_at), "dd/MM/yyyy", { locale: ptBR })}.
+          Se a compra foi refeita, o mesmo link volta a valer.
+        </p>
         <Link to="/dashboard">
           <Button variant="outline" className="mt-4">
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Início
