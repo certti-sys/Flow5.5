@@ -176,7 +176,7 @@ alter table courses add column refund_window_days integer not null default 7
 ### 4.4 Efeitos e webhooks
 - Trigger novo `revoke_access_on_refund` em `orders` substitui o bloco copiado em cada um dos 7 webhooks (`revokeCourseAccess` do Stripe removido). Mantém `raise warning` em erro — reembolso nunca desfaz o status do pedido.
 - Webhooks agora ignoram evento tardio sobre pedido `refunded` (não volta para `paid`/`pending`/`failed`).
-- Certificado: mantido o registro. `certificates` não tem `revoked_at` — fica para fase futura (hoje o certificado continua acessível por URL, mas o curso não abre).
+- Certificado: na Fase 4 o registro era mantido (`certificates` não tinha `revoked_at`), então o link continuava abrindo mesmo com o curso fechado. **Resolvido na Fase 10.**
 
 **Esforço Fase 4:** ~3 dias. **Risco:** médio (dinheiro envolvido; precisa de teste com gateway em sandbox).
 
@@ -365,7 +365,77 @@ O curso estava na vitrine com **1 módulo e 0 aulas**: abria com "0/0 aulas", pl
 - `npx vite build` OK.
 - Dados de teste removidos (`email_logs` e `email_opt_outs` do endereço fictício).
 
-**Esforço Fase 9:** ~1 dia. **Risco:** baixo — só remoção de código morto, criação de tabela vazia e dois jobs noturnos.
+### 9.10 `tsc` zerado (limpeza posterior)
+A regeneração de tipos da Fase 9 levou o `tsc` de 22 para 17 erros. Os 17 restantes eram todos cast de tipo, não bug de runtime — fechados depois, agrupados por causa:
+
+| Causa | Ocorrências | Correção |
+|---|---|---|
+| `form.setError(err.path[0] as string)` — `react-hook-form` exige literal union do schema | 8 | `as never` |
+| `DialogDescription` usado sem importar | 2 (`ImageCropper`) | adicionado ao import |
+| `SelectContent container={document.body}` — prop não existe no Radix | 2 (`IssueCertificateModal`) | removida; `z-[10001]` já resolvia |
+| `event.orderId` fora do narrowing de `Purchase` | 1 (`pixels.ts`) | condicionado a `event.name === "Purchase"` |
+| `selectedMethod: string` vs union `CheckoutMethod` | 1 (`Checkout`) | `as CheckoutMethod` |
+| `dynamic` como bíblia de props do dnd-kit | 1 (`CourseModuleAccordion`) | assinatura usa `Active`/`Over` |
+
+**Um achado deixou de ser só tipo:** `Checkout.tsx` lia `appliedCoupon?.code`, mas `CouponValidationResult` guarda o código em `coupon.code`. O campo do funil (`metadata.coupon`) ia **sempre nulo** desde a Fase 5 — a captura do lead nunca registrava qual cupom o visitante usou. Corrigido para `appliedCoupon?.coupon?.code`.
+
+`npx tsc --noEmit` → **0 erros**. `npx vite build` OK.
+
+**Esforço Fase 9:** ~1 dia (+ ~1 h para zerar o `tsc`). **Risco:** baixo — só remoção de código morto, criação de tabela vazia e dois jobs noturnos.
+
+---
+
+## FASE 10 — Estorno revoga certificado e acesso de qualquer origem
+
+> **Implementada.** Fecha as duas dívidas que a Fase 4 deixou em aberto.
+
+### 10.1 Problema medido
+Dois furos no estorno, ambos verificados em produção antes da correção:
+
+1. **Certificado sobrevivia ao reembolso.** `certificates` não tinha como ser invalidado. O trigger da Fase 4 fechava o curso, mas `/certificado/<id>` continuava abrindo o PDF — o aluno pegava o dinheiro e ficava com o certificado.
+2. **Acesso concedido fora do checkout sobrevivia.** `revoke_access_on_refund` filtrava `source = 'checkout'`. Quem recebeu o curso por `manual`, `import` ou `webhook` mantinha o acesso após o estorno.
+
+### 10.2 Schema (`20261119140000_refund_revokes_certificate.sql`)
+```sql
+alter table certificates add column revoked_at timestamptz;
+
+-- O unique global (user_id, course_id) sai: certificado revogado deixaria de
+-- poder ser reemitido. Entra índice único parcial.
+alter table certificates drop constraint certificates_user_id_course_id_key;
+create unique index idx_certificates_active_unique
+  on certificates (user_id, course_id) where revoked_at is null;
+create index idx_certificates_active
+  on certificates (user_id, course_id) where revoked_at is null;
+```
+
+### 10.3 Trigger reescrito
+`revoke_access_on_refund` resolve os cursos do pedido uma vez e aplica as duas ações com a **mesma regra de escape**: se existe outra compra paga do mesmo curso (order bump, segunda matrícula), nada é revogado.
+
+- `delete from user_course_access` **sem filtro de `source`** — o dinheiro voltou, o curso sai do ar.
+- `update certificates set revoked_at = now()`.
+
+Bloqueado por `exception → raise warning`: estorno nunca desfaz a mudança de status do pedido.
+
+### 10.4 UI
+- `CertificateView.tsx`: `revoked_at` na interface; tela própria "Certificado revogado" com a data, em vez de "não encontrado".
+- `Profile.tsx`: lista filtra `.is("revoked_at", null)`.
+- `CertificatesDashboard.tsx`: coluna `revoked_at` na query e badge **Revogado** (vermelho) / **Concluído**.
+- `LessonSidebar.tsx` e `IssueCertificateModal.tsx`: só reaproveitam certificado **ativo**. Se o anterior foi revogado, a emissão cria linha nova — o link antigo segue morto, o histórico fica auditável.
+
+### 10.5 Validação executada em produção
+Testes em transação com `rollback` (nada ficou no banco):
+
+| Cenário | Resultado |
+|---|---|
+| Pedido pago com acesso `checkout` nos cursos 0003 e 0001 + certificado ativo em 0003, estornado | acesso `checkout` dos dois cursos removido, certificado revogado |
+| Acesso `manual` no curso do pedido (0003) e em curso fora do pedido (0004), estornado | 0003 removido, **0004 mantido** |
+| Segunda compra paga paralela do curso 0001 | acesso de 0001 **mantido** (guarda de recompra) |
+| Reemissão após revogação | linha nova aceita (índice parcial) |
+| Duas linhas ativas do mesmo curso | `unique_violation` — bloqueado |
+
+Aplicado com `db push`; `tsc` e `vite build` OK.
+
+**Esforço Fase 10:** ~0,5 dia. **Risco:** médio-baixo — o trigger só é exercitado em estorno, e erro nele não desfaz pagamento.
 
 ---
 
@@ -381,13 +451,14 @@ Fase 3 (campanhas)     ◄── depende de 2 e 5
 Fase 4 (reembolsos)    ◄── independente (usa payment-ops refund)
 Fase 8 (RLS)           ────────────────────►  antes de qualquer feature nova
 Fase 9 (higiene)       ────────────────────►  independente, fazer antes das dívidas funcionais
+Fase 10 (estorno)      ◄── depende de 4 (trigger de reembolso) e 8 (RLS fechada)
 ```
 
-**Sequência sugerida:** 1 → 7 → 6 → 2 → 5 → 3 → 4 → 8 → 9.
+**Sequência sugerida:** 1 → 7 → 6 → 2 → 5 → 3 → 4 → 8 → 9 → 10.
 
 Justificativa da troca: a **Fase 5 (funil) passou a ser pré-requisito** da recuperação de abandono — sem saber quem preencheu o formulário e desistiu, não há régua de recuperação. Por isso ela vem antes da 3, e não depois.
 
-**Esforço total estimado:** ~18,5 dias (1 + 2 + 1,5 + 1,5 + 4 + 4 + 3 + 0,5 + 1).
+**Esforço total estimado:** ~19 dias (1 + 2 + 1,5 + 1,5 + 4 + 4 + 3 + 0,5 + 1 + 0,5).
 
 ---
 

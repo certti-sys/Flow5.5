@@ -330,13 +330,13 @@ export default function CheckoutPage() {
     });
 
     useEffect(() => {
-        form.setValue("paymentMethod", selectedMethod);
+        form.setValue("paymentMethod", selectedMethod as CheckoutMethod);
     }, [selectedMethod, form]);
 
     // Contexto do lead (método, bumps, cupom) em ref para o efeito de captura
     // não ser recriado a cada troca de bump/cupom e perder o debounce.
-    const leadContext = useRef({ method: selectedMethod, bumps: selectedBumps, coupon: appliedCoupon?.code ?? null });
-    leadContext.current = { method: selectedMethod, bumps: selectedBumps, coupon: appliedCoupon?.code ?? null };
+    const leadContext = useRef({ method: selectedMethod, bumps: selectedBumps, coupon: appliedCoupon?.coupon?.code ?? null });
+    leadContext.current = { method: selectedMethod, bumps: selectedBumps, coupon: appliedCoupon?.coupon?.code ?? null };
 
     /**
      * Captura o lead do carrinho abandonado.
@@ -475,7 +475,7 @@ export default function CheckoutPage() {
           if (!validation.success) {
             validation.error.issues.forEach((err) => {
               if (err.path[0]) {
-                form.setError(err.path[0] as string, { message: err.message });
+                form.setError(err.path[0] as never, { message: err.message });
               }
             });
             setIsProcessing(false);

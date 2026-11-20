@@ -143,7 +143,7 @@ export function IssueCertificateModal({ open, onOpenChange }: IssueCertificateMo
                             <SelectValue placeholder={loadingStudents ? "Carregando..." : "Selecione o aluno"} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent container={document.body} className="z-[10001] max-h-[280px]">
+                        <SelectContent className="z-[10001] max-h-[280px]">
                           {students.map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.name || s.email || s.id}
@@ -168,7 +168,7 @@ export function IssueCertificateModal({ open, onOpenChange }: IssueCertificateMo
                             <SelectValue placeholder={loadingCourses ? "Carregando..." : "Selecione o curso"} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent container={document.body} className="z-[10001] max-h-[280px]">
+                        <SelectContent className="z-[10001] max-h-[280px]">
                           {courses.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               {c.title || c.id}

@@ -20,6 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
+import type { Active, Over } from "@dnd-kit/core";
 
 interface CourseModuleAccordionProps {
   modules: any[];
@@ -29,7 +30,7 @@ interface CourseModuleAccordionProps {
   onEditModule: (module: any, courseId: string) => void;
   onDeleteModule: (module: any) => void;
   onEditLesson: (lesson: any, courseId: string) => void;
-  onReorder: (active: { id: string }, over: { id: string }) => void;
+  onReorder: (active: Active, over: Over) => void;
 }
 
 export function CourseModuleAccordion({

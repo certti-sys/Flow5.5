@@ -281,7 +281,7 @@ export const CourseFormModal = ({ open, onOpenChange, course }: CourseFormModalP
     if (!validation.success) {
       validation.error.issues.forEach((err) => {
         if (err.path[0]) {
-          form.setError(err.path[0] as string, { message: err.message });
+          form.setError(err.path[0] as never, { message: err.message });
         }
       });
       return;

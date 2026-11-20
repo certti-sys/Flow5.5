@@ -296,7 +296,7 @@ export function trackPixel(event: PixelEvent, options: TrackOptions = {}): void 
         value: slice ? brl(slice.value) : brl("value" in event ? event.value : 0),
         currency: "currency" in event ? event.currency ?? "BRL" : "BRL",
         content_id: slice
-          ? slice.contentIds?.[0] ?? event.orderId
+          ? slice.contentIds?.[0] ?? (event.name === "Purchase" ? event.orderId : undefined)
           : "contentIds" in event
           ? event.contentIds?.[0]
           : undefined,
