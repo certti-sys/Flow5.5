@@ -321,7 +321,7 @@ cart_recovery_settings(id boolean pk, enabled, stage_minutes int[] default '{10,
 O `tsc` caiu de **22 para 17 erros**. Saíram os três que vinham de tabela inexistente ou tipo errado: os dois de `system_logs` em `monitoring.ts` e o cast de `certificates` no painel. Os 17 restantes são dívida de formulário (`react-hook-form` com nome dinâmico), `ImageCropper` usando `DialogDescription` sem importar e dois `SelectContent` com `container` — todos pré-existentes e fora do escopo desta fase.
 
 ### 9.2 Código morto removido
-- **`supabase/functions/video-proxy`**: 250 linhas completas e 0 chamadas em `src/`. Removida junto com a entrada em `supabase/config.toml`. (A function continua publicada no projeto; apagar de lá é ação manual.)
+- **`supabase/functions/video-proxy`**: 250 linhas e 0 chamadas em `src/`. Removida do repo, a entrada em `supabase/config.toml` e também do projeto remoto (`functions delete video-proxy`, 28 functions restantes). Era o único caminho que devolvia `.mp4`/`.m3u8` cru extraído por scraping de Vimeo/Panda/Bunny via proxies CORS públicos — player sempre usa embed, então o endpoint contrariava a política de vídeo. Recuperável em `git show 57ec4d4:supabase/functions/video-proxy/index.ts`.
 - **10 componentes órfãos**: `XPCounter`, `StreakIndicator`, `LevelBadge`, `AchievementBadge`, `ContactCard`, `ProgressOverview`, `QuickStats`, `RecentActivity`, `StatCard`, `CourseProgressItem`.
 - **3 páginas sem rota**: `pages/Index.tsx` (boilerplate "Welcome to Your Blank App"), `pages/Admin.tsx` (versão antiga do painel) e `pages/admin/Placeholder.tsx` (só o import em `App.tsx`, nenhuma `<Route>`).
 
