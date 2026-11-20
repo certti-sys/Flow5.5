@@ -61,6 +61,8 @@ export default function YouTubePlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [showPoster, setShowPoster] = useState(true);
+  // Fallback de tela cheia onde `requestFullscreen` em <div> não existe (iOS).
+  const [immersive, setImmersive] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [reloadCount, setReloadCount] = useState(0);
@@ -68,13 +70,28 @@ export default function YouTubePlayer({
   // Alguns bloqueadores/redes barram um dos domínios do YouTube. Alternar no
   // "Tentar novamente" cobre esse caso sem depender de configuração do aluno.
   const [embedHost, setEmbedHost] = useState<"www.youtube.com" | "www.youtube-nocookie.com">(
-    "www.youtube.com",
+    "www.youtube-nocookie.com",
   );
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [apiReady, setApiReady] = useState(false);
   const [apiErrorCode, setApiErrorCode] = useState<number | null>(null);
+  // Piscada preta curta: o embed do YouTube desenha logo/título/menus durante
+  // play, pause e seek mesmo com controls=0. Cobrir a transição esconde isso.
+  const [maskVisible, setMaskVisible] = useState(false);
+  const maskTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  const flashMask = (ms: number) => {
+    if (maskTimeoutRef.current) clearTimeout(maskTimeoutRef.current);
+    setMaskVisible(true);
+    maskTimeoutRef.current = setTimeout(() => setMaskVisible(false), ms);
+  };
+
+  useEffect(() => () => {
+    if (maskTimeoutRef.current) clearTimeout(maskTimeoutRef.current);
+  }, []);
+
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
+  const thumbnailFallbackUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   const getIframeSrc = () => {
@@ -83,13 +100,13 @@ export default function YouTubePlayer({
     const params = new URLSearchParams({
       autoplay: isMobile ? "0" : "1",
       mute: "1",
-      controls: isMobile ? "1" : "0",
+      controls: "0",
       showinfo: "0",
       modestbranding: "1",
       rel: "0",
       iv_load_policy: "3",
-      disablekb: isMobile ? "0" : "1",
-      fs: "1",
+      disablekb: "1",
+      fs: "0",
       cc_load_policy: "0",
       playsinline: "1",
       enablejsapi: "1",
@@ -250,8 +267,12 @@ export default function YouTubePlayer({
         }
         
         if (data.event === "onStateChange" && data.info === 0) {
+          setIsPlaying(false);
+          // Fim do vídeo: volta o pôster para não exibir a grade de
+          // recomendações do YouTube.
+          setShowPoster(true);
+          flashMask(700);
           if (!completed) {
-            setIsPlaying(false);
             handleMarkCompleted();
           }
         }
@@ -259,8 +280,12 @@ export default function YouTubePlayer({
         if (data.event === "onStateChange" && data.info === 1) {
           autoplayPendingRef.current = false;
           setIsPlaying(true);
+          flashMask(450);
         }
-        if (data.event === "onStateChange" && data.info === 2) setIsPlaying(false);
+        if (data.event === "onStateChange" && data.info === 2) {
+          setIsPlaying(false);
+          flashMask(700);
+        }
         // -1 = não iniciado: o autoplay não pegou. Tenta tocar de novo, mas
         // só enquanto o aluno já pediu play e o vídeo ainda não começou.
         if (data.event === "onStateChange" && data.info === -1 && hasStartedRef.current) {
@@ -324,6 +349,7 @@ export default function YouTubePlayer({
       sendCommand("playVideo");
       setIsPlaying(true);
     }
+    flashMask(450);
   };
 
   const handleSeek = (value: number[]) => {
@@ -331,6 +357,7 @@ export default function YouTubePlayer({
     const seekTime = newPlayed * duration;
     sendCommand("seekTo", [seekTime, true]);
     setPlayed(newPlayed);
+    flashMask(450);
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -355,15 +382,27 @@ export default function YouTubePlayer({
     const currentTime = played * duration;
     const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
     sendCommand("seekTo", [newTime, true]);
+    flashMask(450);
   };
 
   const toggleFullscreen = async () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      await containerRef.current.requestFullscreen();
-    } else {
-      await document.exitFullscreen();
+    // iOS Safari não permite `requestFullscreen` em <div>: cai para modo
+    // imersivo (container fixo cobrindo a viewport).
+    const el = containerRef.current;
+    if (!el) return;
+    if (immersive) {
+      setImmersive(false);
+      return;
     }
+    try {
+      if (!document.fullscreenElement) {
+        await el.requestFullscreen();
+        return;
+      }
+      await document.exitFullscreen();
+      return;
+    } catch {}
+    setImmersive(true);
   };
 
   const handleMarkCompleted = async () => {
@@ -433,15 +472,30 @@ export default function YouTubePlayer({
   return (
     <div
       ref={containerRef}
-      className="relative w-full bg-black rounded-lg overflow-hidden group"
-      style={{ aspectRatio: "16/9", userSelect: "none" }}
+      className={`relative w-full bg-black overflow-hidden group ${
+        immersive ? "fixed inset-0 z-[9999] rounded-none" : "rounded-lg"
+      }`}
+      style={immersive ? undefined : { aspectRatio: "16/9", userSelect: "none" }}
       onMouseMove={() => setShowControls(true)}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onContextMenu={(e) => e.preventDefault()}
     >
       {showPoster && (
-        <div className="absolute inset-0 z-40 cursor-pointer" onClick={handleFirstPlay}>
-          <img src={thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover" />
+        <div
+          // Antes do play fica acima de tudo; no fim do vídeo desce para
+          // baixo dos controles, senão a barra deixa de responder.
+          className={`absolute inset-0 cursor-pointer ${hasStarted ? "z-20" : "z-40"}`}
+          onClick={handleFirstPlay}
+        >
+          <img
+            src={thumbnailUrl}
+            alt="Video thumbnail"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (!img.src.endsWith("hqdefault.jpg")) img.src = thumbnailFallbackUrl;
+            }}
+          />
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
             <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-2xl">
               <Play className="h-10 w-10 text-primary-foreground ml-1" fill="currentColor" />
@@ -464,14 +518,30 @@ export default function YouTubePlayer({
             // envio da origem mesmo que a página use uma política restritiva.
             referrerPolicy="strict-origin-when-cross-origin"
             title="YouTube video player"
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+            // Overscan proposital: o embed desenha logo no canto, título no
+            // hover e a grade final. Ampliar e cortar tira essas bordas de
+            // vista. pointer-events:none impediria o hover de reativar o
+            // chrome do YouTube — quem captura o clique é o véu abaixo.
+            style={{
+              position: "absolute",
+              top: "-10%",
+              left: "-4%",
+              width: "108%",
+              height: "124%",
+              maxWidth: "none",
+              border: 0,
+              pointerEvents: "none",
+            }}
           />
-          <div 
-            className="absolute inset-0 z-10 hidden md:block"
+          <div
+            className="absolute inset-0 z-10"
             style={{ pointerEvents: "auto", background: "transparent" }}
             onClick={togglePlay}
             onDoubleClick={toggleFullscreen}
           />
+          {maskVisible && (
+            <div className="absolute inset-0 z-20 bg-black pointer-events-none" aria-hidden="true" />
+          )}
         </div>
       )}
 
