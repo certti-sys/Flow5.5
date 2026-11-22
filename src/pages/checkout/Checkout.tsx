@@ -24,7 +24,8 @@ import { StripeCardElement } from "@/components/checkout/StripeCardElement";
 import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
 import { normalizeCheckoutConfig, type CheckoutTheme } from "@/types/checkout-config";
-import { readableTextOn } from "@/lib/colorGenerator";
+import { findCheckoutPreset } from "@/types/checkout-presets";
+import { readableTextOn, readableForeground } from "@/lib/colorGenerator";
 import { getTracking } from "@/lib/tracking";
 import { initPixels, trackPixel } from "@/lib/pixels";
 import {
@@ -108,6 +109,18 @@ export default function CheckoutPage() {
         return override === 'light' || override === 'dark' ? override : config.appearance.theme;
     }, [config.appearance.theme]);
 
+    // `?checkoutPreset=<id>` (ou `none`) pré-visualiza um preset sem gravar.
+    const checkoutPreset = useMemo<string | null>(() => {
+        const override = new URLSearchParams(window.location.search).get('checkoutPreset');
+        if (override === 'none') return null;
+        if (findCheckoutPreset(override)) return override;
+        return config.appearance.preset;
+    }, [config.appearance.preset]);
+
+    // Com preset ativo, o botão de compra usa o `--primary` do preset em vez
+    // das cores manuais — senão o preset não muda nada visível.
+    const activePreset = findCheckoutPreset(checkoutPreset);
+
     // Tema claro/escuro do checkout. Fica no <body> (e não no layout) porque o
     // CSS do tema vence por herança as variáveis inline que o tema da
     // plataforma escreve em :root.
@@ -122,6 +135,28 @@ export default function CheckoutPage() {
             document.body.removeAttribute('data-checkout-theme');
         };
     }, [checkoutTheme]);
+
+    // Preset de tema: escreve os tokens no <body> (nunca no :root, que é onde o
+    // ThemeProvider pinta o painel) e remove tudo ao desmontar.
+    useEffect(() => {
+        const preset = findCheckoutPreset(checkoutPreset);
+        if (!preset) return;
+
+        const tokens: Record<string, string> = { ...preset[checkoutTheme] };
+        if (preset.radius) tokens['--radius'] = preset.radius;
+        // Contraste do CTA: recalcula por WCAG sobre o `--primary` do preset
+        // (mesma regra de `buildThemeVariables` para o tema da plataforma).
+        if (tokens['--primary']) tokens['--primary-foreground'] = readableForeground(tokens['--primary']);
+
+        const style = document.body.style;
+        for (const [token, value] of Object.entries(tokens)) style.setProperty(token, value);
+        if (preset.font) style.setProperty('font-family', preset.font);
+
+        return () => {
+            for (const token of Object.keys(tokens)) style.removeProperty(token);
+            style.removeProperty('font-family');
+        };
+    }, [checkoutPreset, checkoutTheme]);
 
     // SEO / metadados do checkout configurados no admin.
     useEffect(() => {
@@ -176,9 +211,11 @@ export default function CheckoutPage() {
     }, [product, config]);
 
     // Cor de fundo do checkout (aplicada no layout via --checkout-bg).
+    // Com preset ativo a cor vem do preset (`--background`), não das cores
+    // manuais — senão o preset não apareceria.
     useEffect(() => {
         const root = document.documentElement;
-        const background = config.appearance.background_color;
+        const background = activePreset ? '' : config.appearance.background_color;
 
         if (background) root.style.setProperty('--checkout-bg', background);
         else root.style.removeProperty('--checkout-bg');
@@ -186,7 +223,7 @@ export default function CheckoutPage() {
         return () => {
             root.style.removeProperty('--checkout-bg');
         };
-    }, [config.appearance.background_color]);
+    }, [config.appearance.background_color, activePreset]);
 
     // Pixels configurados no admin. Carrega depois do produto para respeitar
     // o filtro por produto e dispara PageView/InitiateCheckout.
@@ -889,7 +926,11 @@ export default function CheckoutPage() {
     }
     if (!product) return <ErrorState title="Produto não encontrado" description="O link deste checkout pode estar incorreto ou o produto foi removido." />;
 
-    const buyButtonColor = config.appearance.buy_button_color || config.appearance.primary_color || undefined;
+    // Com preset, o botão herda o `--primary` do preset (classe bg-primary) e
+    // o `--primary-foreground` já calculado por ele; sem preset, cores manuais.
+    const buyButtonColor = activePreset
+        ? undefined
+        : config.appearance.buy_button_color || config.appearance.primary_color || undefined;
     const buyButtonText = config.appearance.buy_button_text?.trim();
     // Texto do CTA escolhido por contraste: o `--primary-foreground` global é
     // calculado para a cor do tema da plataforma, não para a cor avulsa do botão.

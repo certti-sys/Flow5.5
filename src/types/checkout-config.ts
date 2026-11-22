@@ -6,6 +6,8 @@
  * apagar configurações de fases futuras (gateways, timer, upsell, etc.).
  */
 
+import { findCheckoutPreset } from './checkout-presets';
+
 export type CheckoutImageFormat = 'hero' | 'wide' | 'portrait' | 'square';
 export type CheckoutBlockPlacement = 'main' | 'sidebar';
 export type CheckoutTextAlign = 'left' | 'center' | 'right';
@@ -75,6 +77,8 @@ export interface CheckoutConfig {
         content_blocks: CheckoutContentBlock[];
         /** Tema do checkout público. `dark` é o padrão histórico. */
         theme: CheckoutTheme;
+        /** Preset de tema (`CHECKOUT_PRESETS`). `null` = cores manuais. */
+        preset: string | null;
     };
 
     customer_fields: {
@@ -164,6 +168,7 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         order_bump_inner_color: '#86EFAC',
         content_blocks: [],
         theme: 'dark',
+        preset: null,
     },
     customer_fields: {
         name: true,
@@ -320,6 +325,8 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
 
     config.appearance.content_blocks = normalizeBlocks(config.appearance.content_blocks);
     config.appearance.theme = config.appearance.theme === 'light' ? 'light' : 'dark';
+    // Preset inexistente (removido do catálogo) cai em `null` = cores manuais.
+    config.appearance.preset = findCheckoutPreset(asString(config.appearance.preset)) ? config.appearance.preset : null;
     config.reviews = normalizeReviews(config.reviews);
 
     for (const key of ['card', 'pix', 'boleto'] as const) {

@@ -62,6 +62,10 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // `rounded-xl/2xl/3xl` seguem o preset (antes eram fixas do Tailwind).
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+        "3xl": "calc(var(--radius) + 12px)",
       },
       transitionDuration: {
         stagger: "var(--duration-stagger)",

@@ -44,6 +44,8 @@ temp/
 
 # Scripts e evidencias locais (tmp-*)
 tmp-*
+probe-*.json
+probe-*.txt
 
 # Scripts locais de auditoria (contem credenciais de teste)
 audit-*.mjs

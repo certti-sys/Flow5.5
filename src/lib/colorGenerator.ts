@@ -180,8 +180,9 @@ export function readableTextOn(hex: string): string {
 /**
  * Escolhe texto claro ou escuro para ficar sobre a cor informada,
  * comparando a razão de contraste WCAG dos dois candidatos.
+ * Exportada também para o preset do checkout reaproveitar a regra.
  */
-function readableForeground(hsl: string): string {
+export function readableForeground(hsl: string): string {
   const [h, s, l] = hsl.split(' ').map((v) => parseFloat(v));
   // HSL -> luminância relativa
   const sat = s / 100;

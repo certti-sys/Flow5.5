@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { CheckoutPresetsTab } from "@/components/admin/CheckoutPresetsTab";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -382,8 +383,9 @@ export default function CheckoutBuilder() {
                 </div>
 
                 <Tabs defaultValue="geral" className="space-y-4">
-                    <TabsList variant="sliding" className="grid w-full grid-cols-4 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-8">
+                    <TabsList variant="sliding" className="grid w-full grid-cols-3 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-9">
                         <TabsTrigger value="geral">Geral</TabsTrigger>
+                        <TabsTrigger value="presets">Presets</TabsTrigger>
                         <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
                         <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                         <TabsTrigger value="campos">Campos</TabsTrigger>
@@ -499,9 +501,15 @@ export default function CheckoutBuilder() {
                                 ))}
                             </div>
 
+                            {config.appearance.preset && (
+                                <p className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3 text-[11px] text-amber-200">
+                                    Com um preset ativo (aba Presets), as cores acima são ignoradas no
+                                    checkout público. Escolha “Cores manuais” nos Presets para usá-las.
+                                </p>
+                            )}
+
                             <div className="space-y-1.5">
-                                <Label className="text-[12px] text-white/70">Texto do botão</Label>
-                                <Input
+                                <Label className="text-[12px] text-white/70">Texto do botão</Label>                                <Input
                                     value={config.appearance.buy_button_text}
                                     onChange={(event) =>
                                         patch((current) => ({
@@ -700,6 +708,24 @@ export default function CheckoutBuilder() {
                                     className={inputClass}
                                 />
                             </div>
+                        </SectionCard>
+                    </TabsContent>
+
+                    {/* PRESETS */}
+                    <TabsContent value="presets" className="space-y-4">
+                        <SectionCard
+                            title="Presets de tema"
+                            description="Paletas prontas de cores, bordas e fontes para o checkout público."
+                        >
+                            <CheckoutPresetsTab
+                                value={config.appearance.preset}
+                                onChange={(preset) =>
+                                    patch((current) => ({
+                                        ...current,
+                                        appearance: { ...current.appearance, preset },
+                                    }))
+                                }
+                            />
                         </SectionCard>
                     </TabsContent>
 
