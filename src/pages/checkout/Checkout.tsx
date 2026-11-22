@@ -7,7 +7,7 @@ import { initMercadoPago } from "@mercadopago/sdk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/payment";
 import { checkoutFormSchema, CheckoutFormValues } from "@/types/checkout-form";
-import { OrderSummary } from "@/components/checkout/OrderSummary";
+import { OrderSummary, OrderSummaryBullets } from "@/components/checkout/OrderSummary";
 import { CustomerForm } from "@/components/checkout/CustomerForm";
 import { BoletoAddressForm } from "@/components/checkout/BoletoAddressForm";
 import { PaymentMethods } from "@/components/checkout/PaymentMethods";
@@ -15,7 +15,7 @@ import { CustomCardForm } from "@/components/checkout/CustomCardForm";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, Zap } from "lucide-react";
 import { cardUtils } from "@/lib/card-utils";
 import { OrderBumpCard } from "@/components/checkout/OrderBumpCard";
 import { CouponInput } from "@/features/coupons/components/CouponInput";
@@ -23,7 +23,8 @@ import { CouponValidationResult } from "@/features/coupons/types";
 import { StripeCardElement } from "@/components/checkout/StripeCardElement";
 import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
-import { normalizeCheckoutConfig } from "@/types/checkout-config";
+import { normalizeCheckoutConfig, type CheckoutTheme } from "@/types/checkout-config";
+import { readableTextOn } from "@/lib/colorGenerator";
 import { getTracking } from "@/lib/tracking";
 import { initPixels, trackPixel } from "@/lib/pixels";
 import {
@@ -99,6 +100,28 @@ export default function CheckoutPage() {
     const showCpfField = config.customer_fields.cpf || gatewayRequiresCpf;
     const showPhoneField = config.customer_fields.phone;
     const showCouponField = config.customer_fields.coupon;
+    const checkoutTheme = useMemo<CheckoutTheme>(() => {
+        // `?checkoutTheme=light|dark` permite pré-visualizar sem salvar no
+        // banco. Serve ao admin e aos testes; o valor salvo continua valendo
+        // quando o parâmetro não está presente.
+        const override = new URLSearchParams(window.location.search).get('checkoutTheme');
+        return override === 'light' || override === 'dark' ? override : config.appearance.theme;
+    }, [config.appearance.theme]);
+
+    // Tema claro/escuro do checkout. Fica no <body> (e não no layout) porque o
+    // CSS do tema vence por herança as variáveis inline que o tema da
+    // plataforma escreve em :root.
+    useEffect(() => {
+        if (checkoutTheme === 'light') {
+            document.body.setAttribute('data-checkout-theme', 'light');
+        } else {
+            document.body.removeAttribute('data-checkout-theme');
+        }
+
+        return () => {
+            document.body.removeAttribute('data-checkout-theme');
+        };
+    }, [checkoutTheme]);
 
     // SEO / metadados do checkout configurados no admin.
     useEffect(() => {
@@ -868,6 +891,9 @@ export default function CheckoutPage() {
 
     const buyButtonColor = config.appearance.buy_button_color || config.appearance.primary_color || undefined;
     const buyButtonText = config.appearance.buy_button_text?.trim();
+    // Texto do CTA escolhido por contraste: o `--primary-foreground` global é
+    // calculado para a cor do tema da plataforma, não para a cor avulsa do botão.
+    const buyButtonForeground = buyButtonColor ? `hsl(${readableTextOn(buyButtonColor)})` : undefined;
 
     return (
         <div className="space-y-8">
@@ -876,9 +902,10 @@ export default function CheckoutPage() {
                 storageKey={`checkout-timer:${resolvedProductId ?? slug ?? "produto"}`}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                {/* Coluna Esquerda: Formulários */}
-                <div className="lg:col-span-7 space-y-6">
+            {/* Banner/logo/vídeo: largura total, antes de tudo — igual à
+                referência, onde o hero aparece antes do resumo e do form. */}
+            {(config.logo_url || config.banner_url || config.youtube_position === 'top') && (
+                <div className="space-y-4">
                     {config.logo_url && (
                         <img
                             src={config.logo_url}
@@ -899,7 +926,35 @@ export default function CheckoutPage() {
                     {config.youtube_position === 'top' && (
                         <CheckoutYoutube url={config.youtube_url} />
                     )}
+                </div>
+            )}
 
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                {/* Resumo: primeiro no mobile (o preço aparece antes da decisão),
+                    à direita e sticky no desktop. */}
+                <div className="lg:col-span-5 lg:order-2 lg:sticky lg:top-8 space-y-4">
+                    <OrderSummary
+                        product={product}
+                        isLoading={loadingProduct}
+                        selectedBumps={selectedBumps}
+                        orderBumps={orderBumps as any}
+                        appliedCoupon={appliedCoupon}
+                        previousPrice={config.summary.previous_price ? config.summary.previous_price / 100 : null}
+                        discountText={config.summary.discount_text}
+                        showDescription={config.summary.show_description}
+                        theme={checkoutTheme}
+                    />
+
+                    <div className="hidden lg:block space-y-4">
+                        <CheckoutContentBlocks
+                            blocks={config.appearance.content_blocks}
+                            placement="sidebar"
+                        />
+                    </div>
+                </div>
+
+                {/* Coluna do formulário */}
+                <div className="lg:col-span-7 lg:order-1 space-y-6">
                     <CheckoutContentBlocks
                         blocks={config.appearance.content_blocks}
                         placement="main"
@@ -915,7 +970,7 @@ export default function CheckoutPage() {
                                     toast.error('Verifique os campos obrigatórios do checkout.');
                                 }
                             )}
-                            className="space-y-6"
+                            className="space-y-4"
                         >
                             <CustomerForm
                                 form={form}
@@ -925,6 +980,35 @@ export default function CheckoutPage() {
 
                             {selectedMethod === 'bolbradesco' && (
                                 <BoletoAddressForm form={form} />
+                            )}
+
+                            {/* Order bumps antes do pagamento: a oferta é vista
+                                antes de o cliente digitar o cartão. */}
+                            {orderBumps && orderBumps.length > 0 && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <Zap className="w-4 h-4 text-amber-500" />
+                                        <h2 className="text-lg font-semibold">Oportunidade única</h2>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground -mt-2">
+                                        Adicione ofertas especiais ao seu pedido.
+                                    </p>
+                                    {orderBumps.map((bump: any) => (
+                                        <OrderBumpCard
+                                            key={bump.id}
+                                            bump={bump}
+                                            selected={selectedBumps.includes(bump.id)}
+                                            themeMode={checkoutTheme}
+                                            onToggle={(id) => {
+                                                setSelectedBumps(prev =>
+                                                    prev.includes(id)
+                                                        ? prev.filter(b => b !== id)
+                                                        : [...prev, id]
+                                                )
+                                            }}
+                                        />
+                                    ))}
+                                </div>
                             )}
 
                             {/* Stripe Payment Element */}
@@ -958,6 +1042,7 @@ export default function CheckoutPage() {
                                 <>
                                     <PaymentMethods
                                         form={form}
+                                        theme={checkoutTheme}
                                         onMethodChange={(m) => {
                                             setSelectedMethod(m);
                                             // Mantém o formulário sincronizado para que a
@@ -986,23 +1071,28 @@ export default function CheckoutPage() {
                                 </>
                             )}
 
-                            {/* Order Bumps */}
-                            {orderBumps && orderBumps.length > 0 && (
-                                <div className="space-y-3">
-                                    {orderBumps.map((bump: any) => (
-                                        <OrderBumpCard
-                                            key={bump.id}
-                                            bump={bump}
-                                            selected={selectedBumps.includes(bump.id)}
-                                            onToggle={(id) => {
-                                                setSelectedBumps(prev =>
-                                                    prev.includes(id)
-                                                        ? prev.filter(b => b !== id)
-                                                        : [...prev, id]
-                                                )
-                                            }}
-                                        />
-                                    ))}
+                            {/* Cupom antes do CTA: aplicar desconto depois do botão
+                                de pagar obrigava o cliente a rolar de volta. */}
+                            {showCouponField && resolvedProductId && (
+                                <div className="bg-card border rounded-xl p-5 shadow-sm">
+                                    <CouponInput
+                                        productId={resolvedProductId}
+                                        amount={(() => {
+                                            const basePrice = product?.price || 1000;
+                                            const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
+                                                const bump = orderBumps?.find((b: any) => b.id === bumpId);
+                                                if (bump?.offer_product) {
+                                                    const offerProduct = bump.offer_product as any;
+                                                    const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
+                                                    return acc + discounted;
+                                                }
+                                                return acc;
+                                            }, 0);
+                                            return (basePrice + bumpsTotal) / 100;
+                                        })()}
+                                        onApply={(result) => setAppliedCoupon(result)}
+                                        disabled={isProcessing}
+                                    />
                                 </div>
                             )}
 
@@ -1012,9 +1102,9 @@ export default function CheckoutPage() {
                                 <>
                                     <Button
                                         type="submit"
-                                        className="w-full h-12 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                                        className="w-full h-12 sm:h-11 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                                         disabled={isProcessing}
-                                        style={buyButtonColor ? { backgroundColor: buyButtonColor } : undefined}
+                                        style={buyButtonColor ? { backgroundColor: buyButtonColor, color: buyButtonForeground } : undefined}
                                     >
                                         {isProcessing ? (
                                             <>
@@ -1049,9 +1139,13 @@ export default function CheckoutPage() {
                                         )}
                                     </Button>
 
+                                    <p className="text-center text-xs text-muted-foreground">
+                                        Ao continuar, você concorda com os Termos de Uso.
+                                    </p>
+
                                     <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
                                         <Lock className="w-3 h-3" />
-                                        Ambiente Criptografado e Seguro
+                                        Ambiente criptografado e seguro
                                     </div>
                                 </>
                             )}
@@ -1062,50 +1156,15 @@ export default function CheckoutPage() {
                     {config.youtube_position === 'bottom' && (
                         <CheckoutYoutube url={config.youtube_url} />
                     )}
-                </div>
 
-                {/* Coluna Direita: Resumo (Sticky) */}
-                <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-4">
-                    {showCouponField && (
-                        <div className="bg-card border rounded-lg p-6 shadow-sm">
-                            <CouponInput
-                                productId={resolvedProductId!}
-                                amount={(() => {
-                                    const basePrice = product?.price || 1000;
-                                    const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
-                                        const bump = orderBumps?.find((b: any) => b.id === bumpId);
-                                        if (bump?.offer_product) {
-                                            const offerProduct = bump.offer_product as any;
-                                            const discounted = Math.round(offerProduct.price * (1 - bump.discount_percent / 100));
-                                            return acc + discounted;
-                                        }
-                                        return acc;
-                                    }, 0);
-                                    return (basePrice + bumpsTotal) / 100;
-                                })()}
-                                onApply={(result) => setAppliedCoupon(result)}
-                                disabled={isProcessing}
-                            />
-                        </div>
-                    )}
+                    <OrderSummaryBullets theme={checkoutTheme} className="rounded-xl border bg-card p-5 shadow-sm" />
 
-                    <OrderSummary
-                        product={product}
-                        isLoading={loadingProduct}
-                        selectedBumps={selectedBumps}
-                        orderBumps={orderBumps as any}
-                        appliedCoupon={appliedCoupon}
-                        previousPrice={config.summary.previous_price ? config.summary.previous_price / 100 : null}
-                        discountText={config.summary.discount_text}
-                        showDescription={config.summary.show_description}
-                    />
-
-                    {/* Blocos laterais ficam abaixo do resumo: no topo eles
-                        empurravam o pedido para fora da primeira dobra. */}
-                    <CheckoutContentBlocks
-                        blocks={config.appearance.content_blocks}
-                        placement="sidebar"
-                    />
+                    <div className="lg:hidden space-y-4">
+                        <CheckoutContentBlocks
+                            blocks={config.appearance.content_blocks}
+                            placement="sidebar"
+                        />
+                    </div>
 
                     <CheckoutReviews reviews={config.reviews} />
                 </div>

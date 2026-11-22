@@ -18,10 +18,10 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
     const showDocumentRow = showCpf || showPhone;
 
     return (
-        <div className="bg-card text-card-foreground p-6 rounded-lg border shadow-sm space-y-4 animate-in fade-in duration-300">
-            <div className="flex items-center gap-2 mb-2">
-                <User className="w-5 h-5 text-muted-foreground" />
-                <h2 className="text-xl font-semibold">Seus dados</h2>
+        <div className="bg-card text-card-foreground p-6 rounded-xl border shadow-sm space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <h2 className="text-lg font-semibold">Seus dados</h2>
             </div>
 
             {/* Honeypot: humano não vê nem alcança por Tab. Bot que lê o HTML e
@@ -115,7 +115,7 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
                 </div>
             )}
 
-            <div className="text-[12px] text-green-600 font-medium cursor-help hover:underline decoration-dotted underline-offset-2">
+            <div className="text-[12px] font-medium text-green-600 cursor-help hover:underline decoration-dotted underline-offset-2 [body[data-checkout-theme='light']_&]:text-emerald-700">
                 Por que pedimos esse dado?
             </div>
         </div>

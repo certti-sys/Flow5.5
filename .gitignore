@@ -42,6 +42,9 @@ coverage/
 tmp/
 temp/
 
+# Scripts e evidencias locais (tmp-*)
+tmp-*
+
 # Scripts locais de auditoria (contem credenciais de teste)
 audit-*.mjs
 diag-*.mjs

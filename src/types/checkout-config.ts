@@ -9,6 +9,7 @@
 export type CheckoutImageFormat = 'hero' | 'wide' | 'portrait' | 'square';
 export type CheckoutBlockPlacement = 'main' | 'sidebar';
 export type CheckoutTextAlign = 'left' | 'center' | 'right';
+export type CheckoutTheme = 'dark' | 'light';
 
 export interface CheckoutImageBlock {
     id: string;
@@ -72,6 +73,8 @@ export interface CheckoutConfig {
         order_bump_color: string;
         order_bump_inner_color: string;
         content_blocks: CheckoutContentBlock[];
+        /** Tema do checkout público. `dark` é o padrão histórico. */
+        theme: CheckoutTheme;
     };
 
     customer_fields: {
@@ -160,6 +163,7 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         order_bump_color: '#F59E0B',
         order_bump_inner_color: '#86EFAC',
         content_blocks: [],
+        theme: 'dark',
     },
     customer_fields: {
         name: true,
@@ -315,6 +319,7 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
         : null;
 
     config.appearance.content_blocks = normalizeBlocks(config.appearance.content_blocks);
+    config.appearance.theme = config.appearance.theme === 'light' ? 'light' : 'dark';
     config.reviews = normalizeReviews(config.reviews);
 
     for (const key of ['card', 'pix', 'boleto'] as const) {

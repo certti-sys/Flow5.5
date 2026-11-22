@@ -1,7 +1,6 @@
-
 import { Product } from "@/types/payment";
 import { ShieldCheck, CheckCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CouponValidationResult } from "@/features/coupons/types";
 
@@ -29,8 +28,17 @@ interface OrderSummaryProps {
     discountText?: string;
     /** Config `summary.show_description`. */
     showDescription?: boolean;
+    /** Tema visual do checkout. */
+    theme?: "dark" | "light";
 }
 
+const formatBRL = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+
+/**
+ * Resumo compacto, no padrão do checkout de referência: item, adicionais,
+ * desconto e total — nada de banners ou listas de benefícios. Os benefícios
+ * ficam em `OrderSummaryBullets`, no rodapé da página.
+ */
 export function OrderSummary({
     product,
     isLoading,
@@ -40,17 +48,16 @@ export function OrderSummary({
     previousPrice = null,
     discountText = "",
     showDescription = true,
+    theme = "dark",
 }: OrderSummaryProps) {
     if (isLoading) {
-        return <div className="animate-pulse h-64 bg-gray-200 rounded-lg"></div>;
+        return <div className="animate-pulse h-56 bg-muted rounded-xl"></div>;
     }
 
     if (!product) return null;
 
-    // Usa preço do produto (em centavos) ou fallback para checkout_config
     const priceInCents = (product as any).price || product.checkout_config?.price || 0;
 
-    // Calcular total dos bumps selecionados
     const bumpsTotal = selectedBumps.reduce((acc, bumpId) => {
         const bump = orderBumps.find(b => b.id === bumpId);
         if (bump?.offer_product) {
@@ -61,150 +68,128 @@ export function OrderSummary({
     }, 0);
 
     const couponDiscountInCents = appliedCoupon?.valid ? Math.round((appliedCoupon.discount_applied || 0) * 100) : 0;
-
     const totalInCents = Math.max(0, priceInCents + bumpsTotal - couponDiscountInCents);
-    const displayPrice = `R$ ${(totalInCents / 100).toFixed(2).replace(".", ",")}`;
-    const productPrice = `R$ ${(priceInCents / 100).toFixed(2).replace(".", ",")}`;
-
-    // Bumps selecionados para exibir
     const selectedBumpItems = orderBumps.filter(b => selectedBumps.includes(b.id));
+    const light = theme === "light";
 
     return (
-        <div className="space-y-6">
-            <Card className="border-t-4 border-t-primary shadow-md overflow-hidden">
-                <CardHeader className="bg-primary/5 pb-4">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-green-600" />
-                        Compra Segura
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4">
-                    {/* Produto Principal */}
-                    <div className="flex gap-4">
-                        {product.image_url ? (
-                            <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className="w-20 h-20 rounded-md object-cover border"
-                            />
-                        ) : (
-                            <div className="w-20 h-20 bg-muted rounded-md flex items-center justify-center text-xs text-center p-1">
-                                Sem Imagem
-                            </div>
+        <Card className="overflow-hidden rounded-xl border shadow-sm">
+            <CardContent className="p-5 space-y-4">
+                <h2 className="text-sm font-semibold text-foreground">Resumo da compra</h2>
+
+                <div className="flex items-start gap-3">
+                    {product.image_url ? (
+                        <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-14 h-14 rounded-lg object-cover border shrink-0"
+                        />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm leading-snug">{product.name}</h3>
+                        {showDescription && product.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                {product.description}
+                            </p>
                         )}
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg leading-tight">{product.name}</h3>
-                            {showDescription && product.description && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    {product.description.slice(0, 60)}...
-                                </p>
-                            )}
-                            <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                                {previousPrice != null && previousPrice > 0 && (
-                                    <span className="text-sm text-muted-foreground line-through">
-                                        R$ {previousPrice.toFixed(2).replace(".", ",")}
+                    </div>
+                    <div className="text-right shrink-0">
+                        {previousPrice != null && previousPrice > 0 && (
+                            <span className="block text-xs text-muted-foreground line-through">
+                                {formatBRL(previousPrice * 100)}
+                            </span>
+                        )}
+                        <span className="text-sm font-medium text-foreground tabular-nums">
+                            {formatBRL(priceInCents)}
+                        </span>
+                    </div>
+                </div>
+
+                {selectedBumpItems.length > 0 && (
+                    <div className="space-y-2 border-t pt-3">
+                        {selectedBumpItems.map(bump => {
+                            const discountedPrice = Math.round(bump.offer_product.price * (1 - bump.discount_percent / 100));
+                            return (
+                                <div key={bump.id} className="flex items-center justify-between gap-2 text-sm">
+                                    <span className="flex items-center gap-1.5 min-w-0 text-muted-foreground">
+                                        <CheckCircle className={light ? "w-3.5 h-3.5 shrink-0 text-emerald-700" : "w-3.5 h-3.5 shrink-0 text-green-500"} />
+                                        <span className="truncate">{bump.offer_product.name}</span>
                                     </span>
-                                )}
-                                <p className="text-sm font-medium text-primary">{productPrice}</p>
-                                {discountText && (
-                                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600">
-                                        {discountText}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+                                    <span className="tabular-nums shrink-0">{formatBRL(discountedPrice)}</span>
+                                </div>
+                            );
+                        })}
                     </div>
+                )}
 
-                    {/* Order Bumps Selecionados */}
-                    {selectedBumpItems.length > 0 && (
-                        <>
-                            <Separator />
-                            <div className="space-y-3">
-                                {selectedBumpItems.map(bump => {
-                                    const discountedPrice = Math.round(bump.offer_product.price * (1 - bump.discount_percent / 100));
-                                    return (
-                                        <div key={bump.id} className="flex items-center gap-3 p-2 bg-orange-500/10 rounded-md border border-orange-500/30">
-                                            {bump.offer_product.image_url ? (
-                                                <img
-                                                    src={bump.offer_product.image_url}
-                                                    alt={bump.offer_product.name}
-                                                    className="w-10 h-10 rounded object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs">
-                                                    Img
-                                                </div>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium truncate">{bump.offer_product.name}</p>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <span className="line-through text-muted-foreground">
-                                                        R$ {(bump.offer_product.price / 100).toFixed(2).replace(".", ",")}
-                                                    </span>
-                                                    <span className="text-green-500 font-semibold">
-                                                        R$ {(discountedPrice / 100).toFixed(2).replace(".", ",")}
-                                                    </span>
-                                                    <span className="text-orange-400 text-xs">
-                                                        ({bump.discount_percent}% OFF)
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    )}
-
-                    {/* Desconto do Cupom */}
-                    {appliedCoupon?.valid && (
-                        <>
-                            <Separator />
-                            <div className="flex justify-between items-center text-green-600 bg-green-50 p-2 rounded-md border border-green-200">
-                                <span className="text-sm font-medium flex items-center gap-1">
-                                    <CheckCircle className="w-4 h-4" />
-                                    Cupom: {appliedCoupon.coupon?.code}
-                                </span>
-                                <span className="text-sm font-bold">
-                                    - R$ {(appliedCoupon.discount_applied || 0).toFixed(2).replace(".", ",")}
-                                </span>
-                            </div>
-                        </>
-                    )}
-
-                    <Separator />
-
-                    <div className="flex justify-between items-end">
-                        <span className="text-sm font-medium text-muted-foreground">Total</span>
-                        <div className="text-right">
-                            <span className="text-2xl font-bold text-primary block">{displayPrice}</span>
-                            <span className="text-xs text-muted-foreground">à vista</span>
-                        </div>
+                {appliedCoupon?.valid && (
+                    <div className={light
+                        ? "flex justify-between items-center text-sm rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800"
+                        : "flex justify-between items-center text-sm rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-green-400"}
+                    >
+                        <span className="font-medium truncate">
+                            Cupom {appliedCoupon.coupon?.code}
+                        </span>
+                        <span className="font-bold tabular-nums">
+                            - {formatBRL((appliedCoupon.discount_applied || 0) * 100)}
+                        </span>
                     </div>
+                )}
 
-                    <div className="bg-muted/30 p-3 rounded text-xs text-center text-muted-foreground flex flex-col gap-1 items-center">
-                        <div className="flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>Ambiente Criptografado</span>
-                        </div>
-                        <p>Seus dados estão protegidos.</p>
+                {discountText && (
+                    <span className={light
+                        ? "inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800"
+                        : "inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-400"}>
+                        {discountText}
+                    </span>
+                )}
+
+                <Separator />
+
+                <div className="flex items-end justify-between">
+                    <span className="text-sm font-semibold text-foreground">Total a pagar</span>
+                    <div className="text-right">
+                        <span className={light ? "block text-xl font-bold tabular-nums text-emerald-700" : "block text-xl font-bold tabular-nums text-primary"}>
+                            {formatBRL(totalInCents)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">à vista</span>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
 
-            <div className="bg-card border rounded-lg p-4 space-y-3 shadow-sm">
-                <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                    <span className="text-sm">Liberação imediata</span>
+                <div className="flex items-center justify-center gap-1.5 border-t pt-3 text-xs text-muted-foreground">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Compra segura · dados criptografados</span>
                 </div>
-                <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                    <span className="text-sm">7 dias de garantia</span>
-                </div>
-                <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                    <span className="text-sm">Pagamento via Pix, Boleto ou Cartão</span>
-                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+interface OrderSummaryBulletsProps {
+    /** Texto do item de garantia; oculto quando vazio. */
+    guaranteeText?: string;
+    theme?: "dark" | "light";
+    className?: string;
+}
+
+/** Benefícios do pedido. Ficam no rodapé, abaixo do formulário. */
+export function OrderSummaryBullets({
+    guaranteeText = "7 dias de garantia",
+    theme = "dark",
+    className,
+}: OrderSummaryBulletsProps) {
+    const light = theme === "light";
+    const items = ["Liberação imediata", guaranteeText, "Pagamento via Pix, Boleto ou Cartão"].filter(Boolean);
+
+    return (
+        <div className={className}>
+            <div className="grid gap-3 sm:grid-cols-3">
+                {items.map((item) => (
+                    <div key={item} className="flex items-start gap-2">
+                        <CheckCircle className={light ? "w-4 h-4 mt-0.5 shrink-0 text-emerald-700" : "w-4 h-4 mt-0.5 shrink-0 text-green-500"} />
+                        <span className="text-sm">{item}</span>
+                    </div>
+                ))}
             </div>
         </div>
     );

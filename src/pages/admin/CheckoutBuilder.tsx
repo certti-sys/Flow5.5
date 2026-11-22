@@ -425,6 +425,38 @@ export default function CheckoutBuilder() {
                         </SectionCard>
 
                         <SectionCard title="Cores e botão" description="Aparência do botão de compra e do fundo">
+                            <div className="space-y-1.5">
+                                <Label className="text-[12px] text-white/70">Tema do checkout</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {([
+                                        { key: "dark", label: "Escuro" },
+                                        { key: "light", label: "Claro" },
+                                    ] as const).map((option) => (
+                                        <button
+                                            key={option.key}
+                                            type="button"
+                                            onClick={() =>
+                                                patch((current) => ({
+                                                    ...current,
+                                                    appearance: { ...current.appearance, theme: option.key },
+                                                }))
+                                            }
+                                            className={cn(
+                                                "h-11 rounded-lg border text-sm font-medium transition-colors",
+                                                config.appearance.theme === option.key
+                                                    ? "border-primary bg-primary/10 text-white"
+                                                    : "border-white/10 bg-white/[0.02] text-white/60 hover:border-white/25"
+                                            )}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">
+                                    O tema claro clareia só o checkout público; o painel continua escuro.
+                                </p>
+                            </div>
+
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 {[
                                     { key: "primary_color", label: "Cor primária" },

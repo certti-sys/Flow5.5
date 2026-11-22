@@ -162,6 +162,22 @@ export function generatePalette(hexColor: string): ColorPalette {
 }
 
 /**
+ * Texto legível (branco ou quase-preto, em HSL) para uma cor de fundo em HEX.
+ * Usado quando a cor vem de config por produto e não da paleta do tema.
+ */
+export function readableTextOn(hex: string): string {
+    const normalized = hex.replace('#', '').trim();
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return '0 0% 100%';
+
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(normalized.slice(i, i + 2), 16) / 255);
+    const lin = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const contrast = (x: number) => (Math.max(x, lum) + 0.05) / (Math.min(x, lum) + 0.05);
+
+    return contrast(1) >= contrast(0.01) ? '0 0% 100%' : '240 10% 10%';
+}
+
+/**
  * Escolhe texto claro ou escuro para ficar sobre a cor informada,
  * comparando a razão de contraste WCAG dos dois candidatos.
  */

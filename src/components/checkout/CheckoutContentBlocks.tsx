@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { isSafeUrl, youtubeEmbedUrl, type CheckoutContentBlock } from "@/types/checkout-config";
 
@@ -23,8 +24,14 @@ export function CheckoutContentBlocks({
     placement = "main",
     className,
 }: CheckoutContentBlocksProps) {
+    // Imagem que falha no carregamento sai da página: sem isso o bloco vira
+    // uma caixa vazia do tamanho do aspect-ratio (ex.: URL externa fora do ar).
+    const [broken, setBroken] = useState<string[]>([]);
+
     const visible = blocks.filter((block) => {
-        if (block.type === "image") return block.placement === placement;
+        if (block.type === "image") {
+            return block.placement === placement && !broken.includes(block.url);
+        }
         return placement === "main";
     });
 
@@ -63,6 +70,7 @@ export function CheckoutContentBlocks({
                         src={block.url}
                         alt={block.alt || "Imagem do checkout"}
                         loading={block.format === "hero" ? "eager" : "lazy"}
+                        onError={() => setBroken((prev) => (prev.includes(block.url) ? prev : [...prev, block.url]))}
                         className="h-full w-full object-cover"
                     />
                 );

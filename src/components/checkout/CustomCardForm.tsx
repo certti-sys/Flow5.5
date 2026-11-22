@@ -16,11 +16,11 @@ interface CustomCardFormProps {
 
 export function CustomCardForm({ form, installmentOptions = [], onCardNumberChange }: CustomCardFormProps) {
     return (
-        <div className="bg-card text-card-foreground p-6 rounded-lg border shadow-sm space-y-4 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between mb-2">
+        <div className="bg-card text-card-foreground p-6 rounded-xl border shadow-sm space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-muted-foreground" />
-                    <h2 className="text-xl font-semibold text-foreground">Dados do Cartão</h2>
+                    <CreditCard className="w-4 h-4 text-muted-foreground" />
+                    <h2 className="text-lg font-semibold text-foreground">Dados do Cartão</h2>
                 </div>
                 <Lock className="w-4 h-4 text-muted-foreground/70" />
             </div>
