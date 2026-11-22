@@ -13,6 +13,8 @@ interface CheckoutContentBlocksProps {
     blocks: CheckoutContentBlock[];
     placement?: "main" | "sidebar";
     className?: string;
+    /** Largura total, colado nas bordas (hero do topo, igual à referência). */
+    bleed?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export function CheckoutContentBlocks({
     blocks,
     placement = "main",
     className,
+    bleed = false,
 }: CheckoutContentBlocksProps) {
     // Imagem que falha no carregamento sai da página: sem isso o bloco vira
     // uma caixa vazia do tamanho do aspect-ratio (ex.: URL externa fora do ar).
@@ -71,15 +74,22 @@ export function CheckoutContentBlocks({
                         alt={block.alt || "Imagem do checkout"}
                         loading={block.format === "hero" ? "eager" : "lazy"}
                         onError={() => setBroken((prev) => (prev.includes(block.url) ? prev : [...prev, block.url]))}
-                        className="h-full w-full object-cover"
+                        className={cn(
+                            "w-full",
+                            bleed
+                                ? "h-auto object-contain"
+                                : "h-full object-cover",
+                        )}
                     />
                 );
 
                 const content = (
                     <div
                         className={cn(
-                            "w-full overflow-hidden rounded-xl border bg-muted/30",
-                            ASPECT_CLASS[block.format] ?? ASPECT_CLASS.wide,
+                            "w-full overflow-hidden bg-muted/30",
+                            bleed
+                                ? "rounded-b-xl"
+                                : cn("rounded-xl border", ASPECT_CLASS[block.format] ?? ASPECT_CLASS.wide),
                         )}
                     >
                         {image}

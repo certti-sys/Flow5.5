@@ -895,12 +895,53 @@ export default function CheckoutPage() {
     // calculado para a cor do tema da plataforma, não para a cor avulsa do botão.
     const buyButtonForeground = buyButtonColor ? `hsl(${readableTextOn(buyButtonColor)})` : undefined;
 
+    // Hero do topo: primeiro bloco de imagem da coluna principal, com formato
+    // largo. Ele sai do grid para ocupar a largura do container (desktop) e
+    // sangrar até as bordas no mobile — o resto dos blocos fica no form.
+    const mainBlocks = config.appearance.content_blocks.filter((b) => b.placement === "main");
+    const heroBlock = mainBlocks.find((b) => b.type === "image" && (b.format === "hero" || b.format === "wide"));
+    const inlineBlocks = config.appearance.content_blocks.filter((b) => b.id !== heroBlock?.id);
+
     return (
         <div className="space-y-8">
-            <CheckoutTimer
-                config={config.timer}
-                storageKey={`checkout-timer:${resolvedProductId ?? slug ?? "produto"}`}
-            />
+            {/* Contador + hero no mesmo grupo: o `space-y-8` do pai não se
+                aplica entre eles, então o hero encosta no contador.
+                O `-mx-4` cancela o padding do <main> para o contador ficar com
+                a mesma largura do hero (no afcode o contador sangra a tela). */}
+            <div className="-mx-4">
+                <CheckoutTimer
+                    config={config.timer}
+                    storageKey={`checkout-timer:${resolvedProductId ?? slug ?? "produto"}`}
+                />
+
+                {/* Hero em largura de container, colado sob o contador — igual à
+                    referência. No mobile a imagem sangra até as bordas. */}
+                {heroBlock && (
+                    <CheckoutContentBlocks blocks={[heroBlock]} bleed />
+                )}
+
+                {config.banner_url && (
+                    <img
+                        src={config.banner_url}
+                        alt=""
+                        className="w-full rounded-b-xl object-contain"
+                        loading="eager"
+                    />
+                )}
+
+                {config.youtube_position === 'top' && config.youtube_url && (
+                    <CheckoutYoutube url={config.youtube_url} />
+                )}
+            </div>
+
+            {/* Logo fica na coluna do formulário, acima dos dados. */}
+            {config.logo_url && (
+                <img
+                    src={config.logo_url}
+                    alt={product.name}
+                    className="h-12 w-auto object-contain"
+                />
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                 {/* Resumo: primeiro no mobile (o preço aparece antes da decisão),
@@ -928,38 +969,9 @@ export default function CheckoutPage() {
 
                 {/* Coluna do formulário */}
                 <div className="lg:col-span-7 lg:order-1 space-y-6">
-                    {/* Logo/banner/vídeo no topo da coluna do formulário: no
-                        desktop ocupa a largura do form (alinhado a "Seus dados")
-                        e no mobile cai depois do resumo, por causa do `order`. */}
-                    {(config.logo_url || config.banner_url || config.youtube_position === 'top') && (
-                        <div className="space-y-4">
-                            {config.logo_url && (
-                                <img
-                                    src={config.logo_url}
-                                    alt={product.name}
-                                    className="h-12 w-auto object-contain"
-                                />
-                            )}
-
-                            {config.banner_url && (
-                                <img
-                                    src={config.banner_url}
-                                    alt=""
-                                    className="w-full rounded-xl border object-cover"
-                                    loading="eager"
-                                />
-                            )}
-
-                            {config.youtube_position === 'top' && (
-                                <CheckoutYoutube url={config.youtube_url} />
-                            )}
-                        </div>
+                    {inlineBlocks.length > 0 && (
+                        <CheckoutContentBlocks blocks={inlineBlocks} placement="main" />
                     )}
-
-                    <CheckoutContentBlocks
-                        blocks={config.appearance.content_blocks}
-                        placement="main"
-                    />
 
                     <Form {...form}>
                         <form
