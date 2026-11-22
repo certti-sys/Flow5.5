@@ -902,33 +902,6 @@ export default function CheckoutPage() {
                 storageKey={`checkout-timer:${resolvedProductId ?? slug ?? "produto"}`}
             />
 
-            {/* Banner/logo/vídeo: largura total, antes de tudo — igual à
-                referência, onde o hero aparece antes do resumo e do form. */}
-            {(config.logo_url || config.banner_url || config.youtube_position === 'top') && (
-                <div className="space-y-4">
-                    {config.logo_url && (
-                        <img
-                            src={config.logo_url}
-                            alt={product.name}
-                            className="h-12 w-auto object-contain"
-                        />
-                    )}
-
-                    {config.banner_url && (
-                        <img
-                            src={config.banner_url}
-                            alt=""
-                            className="w-full rounded-xl border object-cover"
-                            loading="eager"
-                        />
-                    )}
-
-                    {config.youtube_position === 'top' && (
-                        <CheckoutYoutube url={config.youtube_url} />
-                    )}
-                </div>
-            )}
-
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                 {/* Resumo: primeiro no mobile (o preço aparece antes da decisão),
                     à direita e sticky no desktop. */}
@@ -955,6 +928,34 @@ export default function CheckoutPage() {
 
                 {/* Coluna do formulário */}
                 <div className="lg:col-span-7 lg:order-1 space-y-6">
+                    {/* Logo/banner/vídeo no topo da coluna do formulário: no
+                        desktop ocupa a largura do form (alinhado a "Seus dados")
+                        e no mobile cai depois do resumo, por causa do `order`. */}
+                    {(config.logo_url || config.banner_url || config.youtube_position === 'top') && (
+                        <div className="space-y-4">
+                            {config.logo_url && (
+                                <img
+                                    src={config.logo_url}
+                                    alt={product.name}
+                                    className="h-12 w-auto object-contain"
+                                />
+                            )}
+
+                            {config.banner_url && (
+                                <img
+                                    src={config.banner_url}
+                                    alt=""
+                                    className="w-full rounded-xl border object-cover"
+                                    loading="eager"
+                                />
+                            )}
+
+                            {config.youtube_position === 'top' && (
+                                <CheckoutYoutube url={config.youtube_url} />
+                            )}
+                        </div>
+                    )}
+
                     <CheckoutContentBlocks
                         blocks={config.appearance.content_blocks}
                         placement="main"
