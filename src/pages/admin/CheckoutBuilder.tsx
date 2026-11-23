@@ -714,14 +714,17 @@ export default function CheckoutBuilder() {
                     {/* PRESETS */}
                     <TabsContent value="presets" className="space-y-4">
                         <SectionCard
-                            title="Presets de tema"
-                            description="Paletas prontas de cores, bordas e fontes para o checkout público."
+                            title="Presets do checkout"
+                            description="Cores, bordas e fontes prontas para a página de vendas deste produto."
                         >
                             <CheckoutPresetsTab
                                 value={config.appearance.preset}
                                 onChange={(preset) =>
                                     patch((current) => ({
                                         ...current,
+                                        // Reset: só solta o preset. As cores manuais do produto
+                                        // continuam intactas, então o checkout volta a ser
+                                        // exatamente o que era antes.
                                         appearance: { ...current.appearance, preset },
                                     }))
                                 }

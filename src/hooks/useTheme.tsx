@@ -17,6 +17,8 @@ export interface ThemeSettings {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  /** Preset global aplicado (`theme-presets.ts`). `null` = paleta manual. */
+  preset?: string | null;
 }
 
 /**
@@ -37,6 +39,7 @@ const buildInitialTheme = (): ThemeSettings | undefined => {
     is_active: true,
     created_at: "",
     updated_at: "",
+    preset: cached.preset ?? null,
   };
 };
 
@@ -76,6 +79,7 @@ const consumeThemeBootstrap = async (): Promise<ThemeSettings | null | undefined
       is_active: true,
       created_at: row.created_at ?? "",
       updated_at: row.updated_at ?? "",
+      preset: (row as { preset?: string | null }).preset ?? null,
     };
   } catch {
     return undefined;
@@ -112,9 +116,9 @@ export const useTheme = () => {
   // Apply theme and update cache when data changes
   useEffect(() => {
     if (activeTheme?.color_palette) {
-      applyThemeToCSSVariables(activeTheme.color_palette);
+      applyThemeToCSSVariables(activeTheme.color_palette, activeTheme.preset);
       // Update localStorage cache for instant loading next time
-      cacheTheme(activeTheme.primary_color, activeTheme.color_palette);
+      cacheTheme(activeTheme.primary_color, activeTheme.color_palette, activeTheme.preset);
     } else if (activeTheme === null) {
       // Explicitly null means no active theme in DB - reset to default
       resetThemeToDefault();
@@ -128,13 +132,17 @@ export const useTheme = () => {
     mutationFn: async ({
       primaryColor,
       colorPalette,
+      preset,
     }: {
       primaryColor: string;
       colorPalette: ColorPalette;
+      /** Preset global escolhido em Personalização. `null` = paleta manual. */
+      preset?: string | null;
     }) => {
       const { data, error } = await supabase.rpc("save_active_theme", {
         p_primary_color: primaryColor,
         p_color_palette: colorPalette,
+        p_preset: preset ?? null,
       });
 
       if (error) throw error;
@@ -145,7 +153,7 @@ export const useTheme = () => {
       // ainda devolve o tema antigo (ou nenhum) depois de salvar.
       if (data) {
         queryClient.setQueryData(["activeTheme"], data);
-        cacheTheme(data.primary_color, data.color_palette);
+        cacheTheme(data.primary_color, data.color_palette, data.preset ?? null);
       }
       queryClient.invalidateQueries({ queryKey: ["activeTheme"] });
       toast.success("Tema salvo com sucesso!", {
@@ -160,8 +168,8 @@ export const useTheme = () => {
   });
 
   // Apply temporary preview (doesn't save to database)
-  const applyPreview = (palette: ColorPalette) => {
-    applyThemeToCSSVariables(palette);
+  const applyPreview = (palette: ColorPalette, preset?: string | null) => {
+    applyThemeToCSSVariables(palette, preset ?? null);
     toast.success("Preview aplicado!", {
       description: "As cores são temporárias. Clique em 'Salvar e Publicar' para manter.",
     });

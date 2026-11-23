@@ -1,14 +1,14 @@
 /**
- * Presets de tema do checkout.
+ * Presets de tema da plataforma.
  *
- * Portados de `Checkout_Pro_v1.2/src/lib/themes.ts` (OKLCH) para HSL, que e'
+ * Portados de `Checkout_Pro_v1.2/src/lib/themes.ts` (OKLCH) para HSL, que é
  * o formato usado pelo Tailwind deste projeto (`hsl(var(--token))`).
  *
- * Aplicados em `<body>` e nao em `:root>`: o `ThemeProvider` escreve as
- * variaveis da plataforma inline no `:root`, e sobrescrever ali pintaria o
- * painel admin inteiro com as cores do checkout.
+ * Aplicados globalmente: painel admin, área de membros e aulas. O checkout
+ * público continua com a própria configuração (`appearance.theme` e
+ * `appearance.preset` em `products.checkout_config`).
  */
-export type CheckoutThemeToken =
+export type ThemeToken =
     | '--background' | '--foreground'
     | '--card' | '--card-foreground'
     | '--popover' | '--popover-foreground'
@@ -19,18 +19,18 @@ export type CheckoutThemeToken =
     | '--destructive' | '--destructive-foreground'
     | '--border' | '--input' | '--ring';
 
-export interface CheckoutPreset {
+export interface ThemePreset {
     id: string;
     name: string;
     /** Raio de borda do preset, ou `null` para manter o atual. */
     radius: string | null;
     /** Família de fonte do preset, ou `null` para manter a atual. */
     font: string | null;
-    light: Partial<Record<CheckoutThemeToken, string>>;
-    dark: Partial<Record<CheckoutThemeToken, string>>;
+    light: Partial<Record<ThemeToken, string>>;
+    dark: Partial<Record<ThemeToken, string>>;
 }
 
-export const CHECKOUT_PRESETS: CheckoutPreset[] = [
+export const THEME_PRESETS: CheckoutPreset[] = [
     {
         id: "default",
         name: "Padrão (Slate)",
@@ -866,5 +866,5 @@ export const CHECKOUT_PRESETS: CheckoutPreset[] = [
     },
 ];
 
-export const findCheckoutPreset = (id?: string | null): CheckoutPreset | null =>
-    CHECKOUT_PRESETS.find((preset) => preset.id === id) ?? null;
+export const findThemePreset = (id?: string | null): ThemePreset | null =>
+    THEME_PRESETS.find((preset) => preset.id === id) ?? null;

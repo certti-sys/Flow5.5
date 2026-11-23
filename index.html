@@ -102,12 +102,14 @@
             supabaseUrl.indexOf('%VITE_') !== 0 && supabaseKey.indexOf('%VITE_') !== 0) {
           window.__themeBootstrap = fetch(
             supabaseUrl.replace(/\/+$/, '') +
-              '/rest/v1/theme_settings?select=id,primary_color,color_palette,is_active&is_active=eq.true',
+              '/rest/v1/theme_settings?select=id,primary_color,color_palette,is_active,preset&is_active=eq.true',
             { headers: { apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey } }
           )
             .then(function (res) { return res.ok ? res.json() : null; })
             .then(function (rows) {
-              if (rows && rows[0] && rows[0].color_palette) {
+              // Preset global vence a paleta manual; nesse caso não pinta a
+              // paleta para não mostrar uma cor que o React vai trocar.
+              if (rows && rows[0] && rows[0].color_palette && !rows[0].preset) {
                 applyPalette(rows[0].color_palette);
               }
               return rows;

@@ -1,3 +1,5 @@
+import { findThemePreset } from '@/types/theme-presets';
+
 export interface ColorPalette {
   50: string;
   100: string;
@@ -198,13 +200,84 @@ export function readableForeground(hsl: string): string {
 }
 
 /**
+ * Tokens que um preset pode escrever. Guardados aqui para que o reset saiba
+ * exatamente o que remover do `:root`.
+ */
+const PRESET_TOKENS: string[] = [
+  '--background', '--foreground',
+  '--card', '--card-foreground',
+  '--popover', '--popover-foreground',
+  '--primary', '--primary-foreground',
+  '--secondary', '--secondary-foreground',
+  '--muted', '--muted-foreground',
+  '--accent', '--accent-foreground',
+  '--destructive', '--destructive-foreground',
+  '--border', '--input', '--ring',
+  '--radius', '--radius-xl', '--radius-2xl', '--radius-3xl',
+];
+
+/**
+ * Raios derivados do preset. `--radius` é o raio base (sidebar, botões) e os
+ * `--radius-xl/2xl/3xl` são os cards, que o Tailwind lê em `borderRadius`.
+ */
+export function presetRadiusVariables(radius: string | null | undefined): Record<string, string> {
+  if (!radius) return {};
+  return {
+    '--radius': radius,
+    '--radius-xl': radius,
+    '--radius-2xl': `calc(${radius} + 4px)`,
+    '--radius-3xl': `calc(${radius} + 12px)`,
+  };
+}
+
+/**
+ * Variáveis de CSS de um preset global.
+ *
+ * Devolve mapa vazio quando não há preset — o `:root` do `index.css` continua
+ * valendo. A paleta usada é sempre a escura: a plataforma não alterna
+ * claro/escuro.
+ */
+export function buildPresetVariables(presetId: string | null | undefined): Record<string, string> {
+  const preset = findThemePreset(presetId);
+  if (!preset) return {};
+
+  const vars: Record<string, string> = { ...preset.dark };
+
+  const primary = preset.dark['--primary'];
+  if (primary) {
+    const h = primary.split(' ')[0];
+    vars['--primary-foreground'] = readableForeground(primary);
+    // Tokens derivados que não vêm do preset: sidebar e brilho do gradiente
+    // precisam seguir a cor do preset, senão ficam na cor manual antiga.
+    vars['--sidebar-primary'] = primary;
+    vars['--sidebar-ring'] = primary;
+    vars['--sidebar-accent'] = preset.dark['--accent'] ?? primary;
+    vars['--gradient-primary'] = `linear-gradient(135deg, hsl(${primary}) 0%, hsl(${h} 95% 55%) 100%)`;
+    vars['--shadow-glow'] = `0 0 40px hsl(${primary} / 0.3)`;
+  }
+
+  if (preset.radius) Object.assign(vars, presetRadiusVariables(preset.radius));
+  if (preset.font) vars['--preset-font'] = preset.font;
+
+  return vars;
+}
+
+/**
  * Mapeia a paleta para as variáveis CSS do tema.
  *
  * Existe separado de `applyThemeToCSSVariables` porque o mesmo conjunto é
  * gravado no cache local e aplicado pelo script inline do `index.html` antes
  * do React montar (evita o flash de cor padrão).
+ *
+ * Com `presetId`, o preset vence a paleta: é a aplicação global escolhida em
+ * Personalização (admin, área de membros e aulas).
  */
-export function buildThemeVariables(palette: ColorPalette): Record<string, string> {
+export function buildThemeVariables(
+  palette: ColorPalette,
+  presetId?: string | null,
+): Record<string, string> {
+  if (findThemePreset(presetId)) return buildPresetVariables(presetId);
+
   const h = palette[500].split(' ')[0];
 
   const vars: Record<string, string> = {
@@ -229,13 +302,26 @@ export function buildThemeVariables(palette: ColorPalette): Record<string, strin
 }
 
 /**
- * Apply theme palette to CSS variables
+ * Apply theme palette to CSS variables. Com `presetId`, o preset global vence.
  */
-export function applyThemeToCSSVariables(palette: ColorPalette): void {
+export function applyThemeToCSSVariables(palette: ColorPalette, presetId?: string | null): void {
   const root = document.documentElement;
-  Object.entries(buildThemeVariables(palette)).forEach(([name, value]) => {
+  if (!findThemePreset(presetId)) {
+    // Um preset aplicado antes deixaria tokens "presos" no :root.
+    for (const token of PRESET_TOKENS) root.style.removeProperty(token);
+    root.style.removeProperty('--preset-font');
+  }
+  Object.entries(buildThemeVariables(palette, presetId)).forEach(([name, value]) => {
     root.style.setProperty(name, value);
   });
+
+  // Cor manual da plataforma em variáveis próprias: o checkout público usa
+  // essas (e não `--primary`) para continuar com as cores do produto mesmo
+  // quando um preset global está ativo.
+  root.style.setProperty('--platform-manual-primary', palette[500]);
+  root.style.setProperty('--platform-manual-primary-foreground', readableForeground(palette[500]));
+  root.style.setProperty('--platform-manual-accent', palette[500]);
+  root.style.setProperty('--platform-manual-ring', palette[500]);
 }
 
 const THEME_CACHE_KEY = 'activeTheme';
@@ -243,11 +329,20 @@ const THEME_CACHE_KEY = 'activeTheme';
 /**
  * Save theme to localStorage for instant loading on next page load
  */
-export function cacheTheme(primaryColor: string, palette: ColorPalette): void {
+export function cacheTheme(
+  primaryColor: string,
+  palette: ColorPalette,
+  presetId?: string | null,
+): void {
   try {
     localStorage.setItem(
       THEME_CACHE_KEY,
-      JSON.stringify({ primaryColor, palette, vars: buildThemeVariables(palette) }),
+      JSON.stringify({
+        primaryColor,
+        palette,
+        preset: presetId ?? null,
+        vars: buildThemeVariables(palette, presetId),
+      }),
     );
   } catch (e) {
     // localStorage may be unavailable in some contexts
@@ -258,7 +353,11 @@ export function cacheTheme(primaryColor: string, palette: ColorPalette): void {
 /**
  * Get cached theme from localStorage (returns null if not cached)
  */
-export function getCachedTheme(): { primaryColor: string; palette: ColorPalette } | null {
+export function getCachedTheme(): {
+  primaryColor: string;
+  palette: ColorPalette;
+  preset?: string | null;
+} | null {
   try {
     const cached = localStorage.getItem(THEME_CACHE_KEY);
     if (cached) {
@@ -293,6 +392,10 @@ export function resetThemeToDefault(): void {
   root.style.removeProperty('--ring');
   root.style.removeProperty('--gradient-primary');
   root.style.removeProperty('--shadow-glow');
+
+  // Preset global antes aplicado neste navegador
+  for (const token of PRESET_TOKENS) root.style.removeProperty(token);
+  root.style.removeProperty('--preset-font');
   
   // Remove sidebar variables
   root.style.removeProperty('--sidebar-primary');

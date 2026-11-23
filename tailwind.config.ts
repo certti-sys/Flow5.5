@@ -62,10 +62,11 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        // `rounded-xl/2xl/3xl` seguem o preset (antes eram fixas do Tailwind).
-        xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 8px)",
-        "3xl": "calc(var(--radius) + 12px)",
+        // `xl/2xl/3xl` são os raios de card do checkout. O padrão (index.css)
+        // é igual ao do Tailwind; um preset de tema sobrescreve via JS.
+        xl: "var(--radius-xl, 0.75rem)",
+        "2xl": "var(--radius-2xl, 1rem)",
+        "3xl": "var(--radius-3xl, 1.5rem)",
       },
       transitionDuration: {
         stagger: "var(--duration-stagger)",

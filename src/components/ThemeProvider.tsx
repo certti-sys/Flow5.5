@@ -13,7 +13,7 @@ interface ThemeProviderProps {
 const applyCachedThemeImmediately = () => {
   const cached = getCachedTheme();
   if (cached?.palette) {
-    applyThemeToCSSVariables(cached.palette);
+    applyThemeToCSSVariables(cached.palette, cached.preset);
   }
 };
 
@@ -28,7 +28,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   useLayoutEffect(() => {
     const cached = getCachedTheme();
     if (cached?.palette) {
-      applyThemeToCSSVariables(cached.palette);
+      applyThemeToCSSVariables(cached.palette, cached.preset);
     }
   }, []);
 

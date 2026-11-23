@@ -6,7 +6,7 @@
  * apagar configurações de fases futuras (gateways, timer, upsell, etc.).
  */
 
-import { findCheckoutPreset } from './checkout-presets';
+import { findThemePreset } from './theme-presets';
 
 export type CheckoutImageFormat = 'hero' | 'wide' | 'portrait' | 'square';
 export type CheckoutBlockPlacement = 'main' | 'sidebar';
@@ -326,7 +326,7 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
     config.appearance.content_blocks = normalizeBlocks(config.appearance.content_blocks);
     config.appearance.theme = config.appearance.theme === 'light' ? 'light' : 'dark';
     // Preset inexistente (removido do catálogo) cai em `null` = cores manuais.
-    config.appearance.preset = findCheckoutPreset(asString(config.appearance.preset)) ? config.appearance.preset : null;
+    config.appearance.preset = findThemePreset(asString(config.appearance.preset)) ? config.appearance.preset : null;
     config.reviews = normalizeReviews(config.reviews);
 
     for (const key of ['card', 'pix', 'boleto'] as const) {

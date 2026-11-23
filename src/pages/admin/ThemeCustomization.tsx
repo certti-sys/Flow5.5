@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,13 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Palette, Save, RotateCcw, Loader2, Check, Copy, Image as ImageIcon, Layout as LayoutIcon } from "lucide-react";
+import { AlertCircle, Palette, Save, RotateCcw, Loader2, Check, Copy, Image as ImageIcon, Layout as LayoutIcon, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { generatePalette, ColorPalette, hslToHex, getContrastColor, getCachedTheme, applyThemeToCSSVariables } from "@/lib/colorGenerator";
 import { useTheme } from "@/hooks/useTheme";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BrandingCustomization } from "@/components/admin/BrandingCustomization";
 import { LayoutCustomization } from "@/components/admin/LayoutCustomization";
+import { PresetGallery } from "@/components/admin/PresetGallery";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -29,15 +30,23 @@ export default function ThemeCustomization() {
     () => getCachedTheme()?.palette ?? null,
   );
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(
+    () => getCachedTheme()?.preset ?? null,
+  );
   const { activeTheme, isLoading, applyPreview, saveTheme, isSaving } = useTheme();
 
-  // Generate initial palette
+  // Sincroniza o formulário só quando muda o tema salvo (id). Sem isso, um
+  // refetch em segundo plano desfazia a escolha do usuário antes do Salvar.
+  const syncedThemeId = useRef<string | null>(null);
   useEffect(() => {
     if (isLoading) return;
+    if (activeTheme?.id === syncedThemeId.current) return;
+    syncedThemeId.current = activeTheme?.id ?? null;
 
     if (activeTheme?.primary_color) {
       setSelectedColor(activeTheme.primary_color);
       setGeneratedPalette(activeTheme.color_palette);
+      setSelectedPreset(activeTheme.preset ?? null);
     } else {
       handleGeneratePalette(DEFAULT_THEME_COLOR);
     }
@@ -57,12 +66,14 @@ export default function ThemeCustomization() {
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const color = e.target.value;
     setSelectedColor(color);
+    // Escolher cor manual desliga o preset: os dois brigariam pelo :root.
+    setSelectedPreset(null);
     handleGeneratePalette(color);
   };
 
   const handleApplyPreview = () => {
     if (generatedPalette) {
-      applyPreview(generatedPalette);
+      applyPreview(generatedPalette, null);
       toast.success("Preview aplicado temporariamente!");
     }
   };
@@ -72,14 +83,27 @@ export default function ThemeCustomization() {
       saveTheme({
         primaryColor: selectedColor,
         colorPalette: generatedPalette,
+        preset: selectedPreset,
       });
     }
+  };
+
+  // Aplicar um preset é global e imediato: admin, área de membros e aulas.
+  // Não altera a paleta manual guardada — o padrão volta com um clique.
+  const handleApplyPreset = (presetId: string | null) => {
+    setSelectedPreset(presetId);
+    if (!generatedPalette) return;
+    applyThemeToCSSVariables(generatedPalette, presetId);
+    toast.success(presetId ? "Preset aplicado!" : "Padrão do sistema restaurado", {
+      description: "Clique em Salvar para publicar para todos os usuários.",
+    });
   };
 
   const handleResetToDefault = () => {
     const palette = generatePalette(DEFAULT_THEME_COLOR);
     setSelectedColor(DEFAULT_THEME_COLOR);
     setGeneratedPalette(palette);
+    setSelectedPreset(null);
     // Só preview local: limpar o cache/variáveis aqui deixava a página com a
     // cor padrão e o banco com a cor configurada (sumia até recarregar).
     applyThemeToCSSVariables(palette);
@@ -110,6 +134,12 @@ export default function ThemeCustomization() {
         <div className="glass-card border border-white/10 rounded-[16px] p-[6px] mb-6">
           <TabsList className="!flex w-full overflow-x-auto scrollbar-none bg-transparent gap-1">
             <TabsTrigger 
+              value="presets" 
+              className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Presets
+            </TabsTrigger>
+            <TabsTrigger 
               value="colors" 
               className="flex-shrink-0 text-[12px] uppercase tracking-widest font-bold gap-1.5 px-4 py-2.5 rounded-[10px] transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-white/60"
             >
@@ -129,6 +159,39 @@ export default function ThemeCustomization() {
             </TabsTrigger>
           </TabsList>
         </div>
+
+        <TabsContent value="presets" className="space-y-6 mt-0 focus-visible:outline-none outline-none">
+          <div className="rounded-[12px] glass-card border border-white/10 p-5">
+            <h2 className="text-[18px] font-bold text-white">Presets do sistema</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-white/60">
+              Aplicam cores, arredondamento e fonte em <strong>todo o sistema</strong>: painel
+              administrativo, área de membros e aulas. O checkout público continua com a
+              configuração própria do produto (aba Presets em Checkout).
+            </p>
+          </div>
+
+          <PresetGallery value={selectedPreset} onChange={handleApplyPreset} />
+
+          <div className="relative z-20 flex flex-wrap justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => handleApplyPreset(null)}
+              disabled={isLoading || isSaving}
+              className="h-[44px] px-6 rounded-[12px] text-[14px] font-bold glass-card hover:bg-white/5 border-white/10"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Restaurar padrão
+            </Button>
+            <Button
+              onClick={handleSaveTheme}
+              disabled={!generatedPalette || isSaving || isLoading}
+              className="h-[44px] px-8 rounded-[12px] text-[14px] font-bold gradient-primary shadow-glow hover:scale-105 transition-all min-w-[140px]"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Salvar
+            </Button>
+          </div>
+        </TabsContent>
 
         <TabsContent value="colors" className="space-y-6 mt-0 focus-visible:outline-none outline-none">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

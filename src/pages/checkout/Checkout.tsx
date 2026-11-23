@@ -24,8 +24,8 @@ import { StripeCardElement } from "@/components/checkout/StripeCardElement";
 import { ErrorState } from "@/components/ErrorState";
 import { detectUserCurrency, selectGatewayByCurrency } from "@/utils/currency";
 import { normalizeCheckoutConfig, type CheckoutTheme } from "@/types/checkout-config";
-import { findCheckoutPreset } from "@/types/checkout-presets";
-import { readableTextOn, readableForeground } from "@/lib/colorGenerator";
+import { findThemePreset } from "@/types/theme-presets";
+import { readableTextOn, readableForeground, presetRadiusVariables } from "@/lib/colorGenerator";
 import { getTracking } from "@/lib/tracking";
 import { initPixels, trackPixel } from "@/lib/pixels";
 import {
@@ -113,18 +113,19 @@ export default function CheckoutPage() {
     const checkoutPreset = useMemo<string | null>(() => {
         const override = new URLSearchParams(window.location.search).get('checkoutPreset');
         if (override === 'none') return null;
-        if (findCheckoutPreset(override)) return override;
+        if (findThemePreset(override)) return override;
         return config.appearance.preset;
     }, [config.appearance.preset]);
 
     // Com preset ativo, o botão de compra usa o `--primary` do preset em vez
     // das cores manuais — senão o preset não muda nada visível.
-    const activePreset = findCheckoutPreset(checkoutPreset);
+    const activePreset = findThemePreset(checkoutPreset);
 
     // Tema claro/escuro do checkout. Fica no <body> (e não no layout) porque o
     // CSS do tema vence por herança as variáveis inline que o tema da
     // plataforma escreve em :root.
     useEffect(() => {
+        document.body.classList.add('checkout-scope');
         if (checkoutTheme === 'light') {
             document.body.setAttribute('data-checkout-theme', 'light');
         } else {
@@ -132,6 +133,7 @@ export default function CheckoutPage() {
         }
 
         return () => {
+            document.body.classList.remove('checkout-scope');
             document.body.removeAttribute('data-checkout-theme');
         };
     }, [checkoutTheme]);
@@ -139,11 +141,11 @@ export default function CheckoutPage() {
     // Preset de tema: escreve os tokens no <body> (nunca no :root, que é onde o
     // ThemeProvider pinta o painel) e remove tudo ao desmontar.
     useEffect(() => {
-        const preset = findCheckoutPreset(checkoutPreset);
+        const preset = findThemePreset(checkoutPreset);
         if (!preset) return;
 
         const tokens: Record<string, string> = { ...preset[checkoutTheme] };
-        if (preset.radius) tokens['--radius'] = preset.radius;
+        if (preset.radius) Object.assign(tokens, presetRadiusVariables(preset.radius));
         // Contraste do CTA: recalcula por WCAG sobre o `--primary` do preset
         // (mesma regra de `buildThemeVariables` para o tema da plataforma).
         if (tokens['--primary']) tokens['--primary-foreground'] = readableForeground(tokens['--primary']);

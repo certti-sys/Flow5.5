@@ -268,18 +268,81 @@ where checkout_config is not null;
 Sem `appearance.preset`, `normalizeCheckoutConfig` cai em `null` e o checkout
 volta às cores manuais — comportamento anterior intacto.
 
+### Preset global (Personalização → aba Presets)
+
+Desliga o preset sem deploy, mantendo histórico e paleta manual:
+
+```sql
+update theme_settings set preset = null where is_active;
+```
+
+Reverter o código:
+
+```powershell
+git revert --no-commit <commit-do-preset-global>
+git commit -m "revert: preset global de tema"
+git push
+```
+
+Desfazer a coluna (só depois do revert do código):
+
+```sql
+alter table theme_settings drop column preset;
+-- a RPC volta ao formato de 2 argumentos
+create or replace function public.save_active_theme(
+  p_primary_color text,
+  p_color_palette jsonb
+) returns public.theme_settings
+language plpgsql security definer set search_path = public as $$
+declare result public.theme_settings;
+begin
+  if not has_role(auth.uid(), 'admin'::app_role) then
+    raise exception 'Apenas administradores podem salvar o tema';
+  end if;
+
+  update public.theme_settings set is_active = false where is_active;
+
+  insert into public.theme_settings (primary_color, color_palette, is_active)
+  values (p_primary_color, p_color_palette, true)
+  returning * into result;
+
+  return result;
+end;
+$$;
+```
+
 ---
 
-## 7. Decisões que preciso de você
+## 7. Decisões tomadas
 
-1. **Todos os 18 presets ou um subconjunto?** Vários são de marca de
-   terceiros (Spotify, Twitter, Slack, Vercel, VS Code, Marvel, Claude).
-   Nome de marca em produto comercial pode gerar problema. Sugiro manter os
-   visuais e renomear (`Verde Musical`, `Azul Social`, `Editor Escuro`...).
-2. **Preset ganha ou perde da cor manual?** Hoje a cor manual vence
-   (`Checkout.tsx:892`). Se o preset perder, o admin pode aplicar um preset e
-   não ver mudança nenhuma — confuso.
-3. **Fonte junto com o preset, ou campo separado?** O Checkout_Pro amarra
-   fonte ao preset. Campo separado dá mais controle; amarrado é mais simples.
-4. **Aplicar em qual tema?** O preset define light e dark. Quem escolhe qual
-   dos dois aparece é o `appearance.theme` atual, que continua independente.
+1. **18 presets mantidos**, com os nomes de marca como estão. Renomear fica
+   para a segunda fase, se houver problema comercial.
+2. **Preset vence a cor manual.** Escolher cor manual em "Cores do Tema"
+   desliga o preset (`setSelectedPreset(null)`), então nunca há preset
+   "invisível".
+3. **Fonte e raio amarrados ao preset**, como no Checkout_Pro. O token é
+   `--preset-font` (não `font-family`), para o checkout poder fixar a fonte
+   dele sem perder o resto.
+4. **Preset global usa sempre a paleta escura** — a plataforma não tem modo
+   claro. O checkout público continua escolhendo light/dark pelo
+   `appearance.theme` do produto.
+5. **Reset existe nos dois lugares.** No checkout, "Padrão do checkout" só
+   solta o preset e devolve as cores manuais do produto. Em Personalização,
+   "Padrão do sistema" volta para `#f0a505` + paleta original + Geist +
+   0.75rem.
+
+## 8. Isolamento do checkout público
+
+O tema da plataforma escreve tokens inline em `:root`, que o checkout
+herdaria por cascata. Para o checkout não mudar quando um preset global está
+ativo:
+
+- `body.checkout-scope` (em `src/index.css`) redeclara os neutros e aponta
+  `--primary`/`--accent`/`--ring` para `--platform-manual-*`, variáveis
+  escritas por `applyThemeToCSSVariables` com a paleta manual (não o preset).
+- `--preset-font` é fixado no `<body>` do checkout; a fonte do preset global
+  não o alcança.
+- `--radius-xl/2xl/3xl` do preset são sobrescritos pelo escopo do checkout.
+
+Resultado: preset global ativo troca admin/área de membros/aulas, e o
+checkout continua exatamente com o que está configurado no produto.
