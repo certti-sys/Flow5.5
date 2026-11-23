@@ -214,6 +214,9 @@ const PRESET_TOKENS: string[] = [
   '--destructive', '--destructive-foreground',
   '--border', '--input', '--ring',
   '--radius', '--radius-xl', '--radius-2xl', '--radius-3xl',
+  '--sidebar-background', '--sidebar-foreground', '--sidebar-border',
+  '--sidebar-primary', '--sidebar-ring', '--sidebar-accent',
+  '--sidebar-accent-foreground',
 ];
 
 /**
@@ -255,6 +258,16 @@ export function buildPresetVariables(presetId: string | null | undefined): Recor
     vars['--gradient-primary'] = `linear-gradient(135deg, hsl(${primary}) 0%, hsl(${h} 95% 55%) 100%)`;
     vars['--shadow-glow'] = `0 0 40px hsl(${primary} / 0.3)`;
   }
+
+  // Sidebar: o preset não define tokens próprios, então ela é derivada do card
+  // (tom um degrau acima do fundo, como no tema padrão). Sem isso, a sidebar
+  // ficava sempre na cor fixa do `:root` e destoava do resto da tela.
+  const sidebarBg = preset.dark['--card'] ?? preset.dark['--background'];
+  if (sidebarBg) vars['--sidebar-background'] = sidebarBg;
+  if (preset.dark['--foreground']) vars['--sidebar-foreground'] = preset.dark['--foreground'];
+  vars['--sidebar-border'] = preset.dark['--border'] ?? preset.dark['--muted'] ?? sidebarBg ?? '240 5% 15%';
+  vars['--sidebar-accent-foreground'] =
+    preset.dark['--accent-foreground'] ?? preset.dark['--foreground'] ?? '0 0% 100%';
 
   if (preset.radius) Object.assign(vars, presetRadiusVariables(preset.radius));
   if (preset.font) vars['--preset-font'] = preset.font;

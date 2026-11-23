@@ -344,5 +344,22 @@ ativo:
   não o alcança.
 - `--radius-xl/2xl/3xl` do preset são sobrescritos pelo escopo do checkout.
 
+## 9. Sidebar
+
+O preset não traz tokens de sidebar, então `buildPresetVariables` deriva:
+
+| Token | Origem |
+|---|---|
+| `--sidebar-background` | `--card` (um degrau acima do fundo, como no tema padrão) |
+| `--sidebar-foreground` | `--foreground` |
+| `--sidebar-border` | `--border` → `--muted` → fundo da sidebar |
+| `--sidebar-accent-foreground` | `--accent-foreground` → `--foreground` |
+| `--sidebar-primary` / `--sidebar-ring` | `--primary` |
+| `--sidebar-accent` | `--accent` |
+
+Ao voltar para o padrão, esses tokens são removidos do `:root` e o `index.css`
+volta a valer.
+
+
 Resultado: preset global ativo troca admin/área de membros/aulas, e o
 checkout continua exatamente com o que está configurado no produto.

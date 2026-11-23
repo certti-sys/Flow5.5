@@ -37,6 +37,12 @@ try {
 
     const cta = ratio(vars['--primary-foreground'], vars['--primary']);
     assert.ok(cta >= 4.5, `${preset.id}: CTA reprovou AA (${cta.toFixed(2)})`);
+
+    // A sidebar precisa acompanhar o preset: fundo derivado do card e borda
+    // do preset. Sem isso ela fica fixa na cor do tema padrão.
+    assert.equal(vars['--sidebar-background'], preset.dark['--card'] ?? preset.dark['--background'], `${preset.id}: sidebar bg`);
+    assert.ok(vars['--sidebar-border'], `${preset.id}: sidebar border`);
+    assert.ok(vars['--sidebar-foreground'], `${preset.id}: sidebar fg`);
   }
 
   console.log(`ok — ${THEME_PRESETS.length} presets, CTA AA em todos`);
