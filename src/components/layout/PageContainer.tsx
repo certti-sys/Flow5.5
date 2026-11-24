@@ -4,6 +4,11 @@ import { cn } from "@/lib/utils";
 interface PageContainerProps {
   children: ReactNode;
   className?: string;
+  /**
+   * Conteúdo mais largo (área do aluno: curso, aula, perfil, ranking).
+   * O Dashboard do aluno fica de fora — ele já é full-bleed.
+   */
+  wide?: boolean;
 }
 
 /**
@@ -17,9 +22,15 @@ interface PageContainerProps {
  * `t-page` dá a entrada de página (fade + 8px): como o container monta por
  * rota, toda navegação tem o mesmo movimento, sem AnimatePresence global.
  */
-export function PageContainer({ children, className }: PageContainerProps) {
+export function PageContainer({ children, className, wide }: PageContainerProps) {
   return (
-    <div className={cn("container mx-auto p-4 sm:p-6 t-page", className)}>
+    <div
+      className={cn(
+        wide ? "mx-auto w-full max-w-[1500px]" : "container mx-auto",
+        "p-4 sm:p-6 t-page",
+        className,
+      )}
+    >
       {children}
     </div>
   );

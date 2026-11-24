@@ -97,7 +97,7 @@ async function sendPaidNotifications(supabase: any, orderId: string): Promise<vo
 
         const buyerPhone: string | null = order.customer_phone || (profile as any)?.whatsapp || null;
         const buyerName = order.customer_name || (profile as any)?.name || "Aluno";
-        const siteUrl = (Deno.env.get("SITE_URL") || Deno.env.get("SUPABASE_URL") || "").replace(/\/$/, "");
+        const siteUrl = (Deno.env.get("SITE_URL") || "https://v5.flowmembers.app").replace(/\/$/, "");
 
         const send = async (phone: string, templateKey: string, variables: Record<string, string>) => {
             const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`, {

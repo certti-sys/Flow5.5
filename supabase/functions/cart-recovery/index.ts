@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { enqueueEmail } from "../_shared/email-queue.ts";
+import { sendIntegraxSms } from "../_shared/integrations.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 
 /**
@@ -29,13 +30,13 @@ const BodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("manual"),
     leadId: z.string().uuid(),
-    channel: z.enum(["email", "whatsapp"]),
+    channel: z.enum(["email", "whatsapp", "sms"]),
     message: z.string().trim().min(1).max(2000).optional(),
     subject: z.string().trim().max(200).optional(),
   }),
 ]);
 
-type Channel = "email" | "whatsapp";
+type Channel = "email" | "whatsapp" | "sms";
 type StageVars = { nome: string; produto: string; preco: string; link: string };
 
 function money(cents: number | null | undefined): string {
@@ -53,10 +54,69 @@ function stageMessage(stage: number, v: StageVars): string {
   return `${oi} Última mensagem sobre *${v.produto}* — depois dessa não volto a insistir.\n\n${v.link}`;
 }
 
+/**
+ * Mesmo texto sem `*negrito*`: o asterisco é sintaxe do WhatsApp e no e-mail
+ * sairia literal. Um texto por estágio, dois formatos.
+ */
+function stageEmailMessage(stage: number, v: StageVars): string {
+  return stageMessage(stage, v).replace(/\*/g, "");
+}
+
+/** `{nome}` etc. no texto salvo pelo admin; o mesmo vocabulário do preview. */
+function renderTemplate(template: string, v: StageVars): string {
+  return template
+    .split("{nome}").join(v.nome)
+    .split("{produto}").join(v.produto)
+    .split("{preco}").join(v.preco)
+    .split("{link}").join(v.link);
+}
+
 function stageSubject(stage: number, produto: string): string {
   if (stage === 1) return `Você esqueceu algo em ${produto}`;
   if (stage === 2) return `Seu acesso a ${produto} está reservado`;
   return `Última chance: ${produto}`;
+}
+
+/**
+ * SMS padrão do funil. Limite de 160 caracteres da IntegraX — os textos ficam
+ * curtos de propósito; o link sozinho já consome boa parte.
+ */
+function smsStageDefault(stage: number, v: StageVars): string {
+  const oi = v.nome ? `Oi, ${v.nome.split(" ")[0]}! ` : "";
+  if (stage === 1) return `${oi}Retome ${v.produto}: ${v.link}`;
+  if (stage === 2) return `${oi}Ainda dá tempo: ${v.link}`;
+  return `${oi}Último lembrete ${v.produto}: ${v.link}`;
+}
+
+type StageTemplates = {
+  email?: Array<{ subject?: string; body?: string }>;
+  whatsapp?: Array<{ body?: string }>;
+  sms?: Array<{ body?: string }>;
+};
+
+/**
+ * Texto de um estágio. `stage` é 1-based; campo vazio no banco cai no padrão,
+ * então quem nunca abriu a tela mantém o texto de antes da configuração.
+ */
+function stageContent(
+  stage: number,
+  v: StageVars,
+  templates: StageTemplates | null | undefined,
+) {
+  const i = Math.max(0, stage - 1);
+  const email = templates?.email?.[i];
+  const whatsapp = templates?.whatsapp?.[i];
+  const sms = templates?.sms?.[i];
+  const fallback = stageEmailMessage(stage, v);
+
+  return {
+    subject: email?.subject?.trim()
+      ? renderTemplate(email.subject.trim(), v)
+      : stageSubject(stage, v.produto),
+    emailBody: email?.body?.trim() ? renderTemplate(email.body.trim(), v) : fallback,
+    whatsappBody: whatsapp?.body?.trim() ? renderTemplate(whatsapp.body.trim(), v) : stageMessage(stage, v),
+    smsBody: sms?.body?.trim() ? renderTemplate(sms.body.trim(), v) : smsStageDefault(stage, v),
+  };
 }
 
 /** `verify_jwt = false`; a credencial é conferida aqui. */
@@ -100,7 +160,7 @@ async function loadLead(supabase: any, leadId: string) {
     .eq("id", lead.product_id)
     .maybeSingle();
 
-  const siteUrl = (Deno.env.get("SITE_URL") || "https://flowmembers.app").replace(/\/$/, "");
+  const siteUrl = (Deno.env.get("SITE_URL") || "https://v5.flowmembers.app").replace(/\/$/, "");
   const link = product?.checkout_slug ? `${siteUrl}/c/${product.checkout_slug}` : siteUrl;
 
   return {
@@ -137,12 +197,13 @@ async function deliver(
   supabase: any,
   lead: any,
   vars: StageVars,
-  channels: { email: boolean; whatsapp: boolean },
-  content: { subject: string; emailBody: string; whatsappBody: string },
+  channels: { email: boolean; whatsapp: boolean; sms: boolean },
+  content: { subject: string; emailBody: string; whatsappBody: string; smsBody: string },
   source: string,
-): Promise<{ email: boolean; whatsapp: boolean }> {
+): Promise<{ email: boolean; whatsapp: boolean; sms: boolean }> {
   let email = false;
   let whatsapp = false;
+  let sms = false;
 
   if (channels.email) {
     email = await enqueueEmail(supabase, {
@@ -150,6 +211,8 @@ async function deliver(
       toName: lead.name ?? undefined,
       type: "custom",
       subject: content.subject,
+      // Texto do admin vai como digitado; só o padrão precisa perder o
+      // `*negrito*` do WhatsApp.
       html: `<p>${content.emailBody.replace(/\n/g, "<br>")}</p>`,
       variables: {
         user_name: vars.nome,
@@ -165,7 +228,37 @@ async function deliver(
     whatsapp = await sendWhatsApp(lead.phone, content.whatsappBody);
   }
 
-  return { email, whatsapp };
+  if (channels.sms && lead.phone) {
+    sms = await sendCartSms(supabase, lead.phone, content.smsBody);
+  }
+
+  return { email, whatsapp, sms };
+}
+
+/**
+ * SMS do funil. Usa a integração IntegraX já cadastrada no painel — o mesmo
+ * token dos SMS de PIX e de acesso; sem ela o canal simplesmente não envia.
+ */
+async function sendCartSms(supabase: any, phone: string, message: string): Promise<boolean> {
+  if (!message.trim()) return false;
+
+  const { data: integration } = await supabase
+    .from("integrations")
+    .select("id, kind, config, secret")
+    .eq("kind", "integrax")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!integration?.secret) {
+    logger.warn("[cart-recovery] SMS ligado no funil, mas IntegraX não está configurada");
+    return false;
+  }
+
+  const result = await sendIntegraxSms(integration, phone, message);
+  if (result.outcome !== "ok") {
+    logger.warn(`[cart-recovery] SMS não enviado: ${result.error ?? result.outcome}`);
+  }
+  return result.outcome === "ok";
 }
 
 async function sendStage(
@@ -173,14 +266,16 @@ async function sendStage(
   leadId: string,
   stage: number,
   settings: any,
-): Promise<{ email: boolean; whatsapp: boolean; skipped?: string }> {
+): Promise<{ email: boolean; whatsapp: boolean; sms: boolean; skipped?: string }> {
   const loaded = await loadLead(supabase, leadId);
-  if (!loaded) return { email: false, whatsapp: false, skipped: "lead não encontrado" };
+  if (!loaded) return { email: false, whatsapp: false, sms: false, skipped: "lead não encontrado" };
 
   const { lead, vars } = loaded;
   if (lead.status !== "open") {
-    return { email: false, whatsapp: false, skipped: `lead ${lead.status}` };
+    return { email: false, whatsapp: false, sms: false, skipped: `lead ${lead.status}` };
   }
+
+  const content = stageContent(stage, vars, settings?.templates);
 
   const out = await deliver(
     supabase,
@@ -189,12 +284,9 @@ async function sendStage(
     {
       email: settings?.channel_email !== false,
       whatsapp: settings?.channel_whatsapp === true,
+      sms: settings?.channel_sms === true,
     },
-    {
-      subject: stageSubject(stage, vars.produto),
-      emailBody: stageMessage(stage, vars),
-      whatsappBody: stageMessage(stage, vars),
-    },
+    content,
     `cart-recovery:stage-${stage}`,
   );
 
@@ -243,17 +335,25 @@ Deno.serve(async (req) => {
 
       const { lead, vars } = loaded;
       const channel: Channel = body.channel;
-      const text = body.message || stageMessage(1, vars);
+      const fallback = channel === "sms"
+        ? smsStageDefault(1, vars)
+        : stageMessage(1, vars);
+      const text = body.message || fallback;
 
       const out = await deliver(
         supabase,
         lead,
         vars,
-        { email: channel === "email", whatsapp: channel === "whatsapp" },
+        {
+          email: channel === "email",
+          whatsapp: channel === "whatsapp",
+          sms: channel === "sms",
+        },
         {
           subject: body.subject || `Sobre ${vars.produto}`,
           emailBody: text,
           whatsappBody: text,
+          smsBody: text,
         },
         "cart-recovery:manual",
       );
@@ -271,6 +371,13 @@ Deno.serve(async (req) => {
       }
       if (channel === "whatsapp" && !out.whatsapp) {
         return json({ error: lead.phone ? "falha no envio do WhatsApp" : "lead sem telefone" }, 422);
+      }
+      if (channel === "sms" && !out.sms) {
+        return json({
+          error: lead.phone
+            ? "SMS não enviado (IntegraX inativa ou mensagem acima de 160 caracteres)"
+            : "lead sem telefone",
+        }, 422);
       }
       return json({ ok: true, ...out });
     }

@@ -8,6 +8,13 @@ import { CheckCircle, Clock, Copy, Check, ArrowRight, Home, BookOpen } from "luc
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ErrorState";
 import { initPixels, trackPixel } from "@/lib/pixels";
+import { PostPurchaseMedia } from "@/components/checkout/PostPurchaseMedia";
+import { fillPostPurchaseVars } from "@/lib/post-purchase";
+import {
+    DEFAULT_CHECKOUT_CONFIG,
+    normalizeCheckoutConfig,
+    type CheckoutPostPurchasePage,
+} from "@/types/checkout-config";
 
 interface PublicOrderItem {
     product_id: string | null;
@@ -38,6 +45,11 @@ export default function ThankYouPage() {
     const ticketUrl = searchParams.get("ticket");
     const qrCode = searchParams.get("qrcode");
     const qrCodeBase64 = searchParams.get("qrcode_base64");
+
+    // Conteúdo personalizado da página de obrigado (Admin → Checkout → Obrigado).
+    // `get_order_public` não devolve o config; o produto do pedido é lido por
+    // RLS pública. Sem produto ativo, cai nos textos padrão.
+    const [page, setPage] = useState<CheckoutPostPurchasePage>(DEFAULT_CHECKOUT_CONFIG.thank_you);
 
     // O PIX chega por query string, que se perde ao recarregar a página ou ao
     // abrir o link curto enviado por SMS. `get_order_pix` relê do pagamento.
@@ -89,6 +101,31 @@ export default function ThankYouPage() {
         };
     }, [orderId]);
 
+    // Conteúdo da página de obrigado do produto comprado. Uma leitura só, sem
+    // migration: `products` já libera SELECT para anônimo quando `active`.
+    useEffect(() => {
+        const productId = order?.items?.find((item) => item.kind !== "order_bump")?.product_id
+            ?? order?.items?.[0]?.product_id
+            ?? null;
+        if (!productId) return;
+
+        let active = true;
+        supabase
+            .from("products")
+            .select("checkout_config")
+            .eq("id", productId)
+            .maybeSingle()
+            .then(({ data }) => {
+                if (!active || !data) return;
+                const config = normalizeCheckoutConfig(data.checkout_config);
+                setPage(config.thank_you);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [order]);
+
     // Polling de verificação de pagamento (reconfirma status no PSP a cada 3s enquanto pendente)
     useEffect(() => {
         if (!orderId) return;
@@ -123,6 +160,16 @@ export default function ThankYouPage() {
 
     const isPaid = order?.status === "paid" || order?.payment?.status === "paid";
     const redirectAfterPurchase = order?.redirect_after_purchase ?? null;
+
+    // Variáveis disponíveis no texto da página: primeiro nome e produto principal.
+    const pageVars = {
+        nome: order?.customer_first_name ?? null,
+        produto: order?.items?.find((item) => item.kind !== "order_bump")?.name
+            ?? order?.items?.[0]?.name
+            ?? null,
+    };
+    const customHeadline = fillPostPurchaseVars(page.headline, pageVars).trim();
+    const customSubtitle = fillPostPurchaseVars(page.subtitle, pageVars).trim();
 
     // Purchase uma vez por pedido: a página é recarregada no polling e o
     // visitante pode voltar, então a guarda é por `sessionStorage`.
@@ -255,23 +302,25 @@ export default function ThankYouPage() {
                     {/* Mensagem Principal */}
                     <div className="space-y-2">
                         <h1 className="text-2xl font-bold">
-                            {isPaid
+                            {customHeadline || (isPaid
                                 ? "Pagamento Confirmado!"
                                 : order.customer_first_name
                                     ? `Quase lá, ${order.customer_first_name}!`
-                                    : "Aguardando Pagamento"}
+                                    : "Aguardando Pagamento")}
                         </h1>
                         <p className="text-muted-foreground">
-                            {isPaid
+                            {customSubtitle || (isPaid
                                 ? "Seu acesso já foi liberado automaticamente."
                                 : paymentMethod === "pix"
                                     ? "Escaneie o QR Code abaixo ou copie o código PIX para pagar."
                                     : paymentMethod === "boleto"
                                         ? "Clique abaixo para visualizar e pagar seu boleto."
                                         : "Seu pagamento está sendo processado."
-                            }
+                            )}
                         </p>
                     </div>
+
+                    <PostPurchaseMedia page={page} vars={pageVars} />
 
                     <Separator />
 

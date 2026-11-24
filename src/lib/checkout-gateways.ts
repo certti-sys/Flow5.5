@@ -82,6 +82,9 @@ export function resolveCheckoutGateways(
      * real de dois gateways do mesmo tipo com prioridade configurável.
      */
     const pick = (key: CheckoutPaymentMethodKey, method: CheckoutMethod) => {
+        // Método desligado no produto não aparece nem é processado.
+        if (config.payment_methods?.[key] === false) return;
+
         const configured = (config.payment_gateways?.[key] ?? "").trim();
 
         const candidates = configured && configured !== "__default__"

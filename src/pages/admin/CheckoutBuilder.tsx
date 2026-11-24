@@ -5,6 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CheckoutPresetsTab } from "@/components/admin/CheckoutPresetsTab";
+import {
+    PostPurchasePageFields,
+    PostPurchasePagePreview,
+} from "@/components/admin/PostPurchasePageFields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +25,8 @@ import {
     type CheckoutConfig,
     type CheckoutContentBlock,
     type CheckoutReview,
+    type CheckoutUpsellOffer,
+    type CheckoutPostPurchasePage,
 } from "@/types/checkout-config";
 import { cn } from "@/lib/utils";
 import { fetchCheckoutGateways, type CheckoutGatewayOption } from "@/lib/checkout-gateways";
@@ -105,6 +111,49 @@ function SectionCard({
     );
 }
 
+/** Oferta como o cliente vê na prévia (imagem, nome, preço, botões). */
+function PreviewOffer({
+    offer,
+    product,
+}: {
+    offer: CheckoutUpsellOffer;
+    product: BuilderProduct | null;
+}) {
+    const title = offer.title_override.trim() || product?.name || "Produto não escolhido";
+    const price = product?.price ?? 0;
+    const formatted = price > 0
+        ? `R$ ${(price / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+        : "Preço do produto";
+
+    return (
+        <div className="flex gap-3 rounded-lg border p-3 text-left">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+                {offer.image_url.trim() ? (
+                    <img
+                        src={offer.image_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                        }}
+                    />
+                ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
+                        sem imagem
+                    </div>
+                )}
+            </div>
+            <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-zinc-900">{title}</p>
+                {offer.description.trim() && (
+                    <p className="mt-1 line-clamp-2 text-xs text-zinc-600">{offer.description}</p>
+                )}
+                <p className="mt-1 text-sm font-bold text-zinc-900">{formatted}</p>
+            </div>
+        </div>
+    );
+}
+
 export default function CheckoutBuilder() {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -132,9 +181,16 @@ export default function CheckoutBuilder() {
         [products, selectedFromUrl],
     );
 
+    /** Produtos oferecidos como upsell/downsell: ativos, exceto o do checkout atual. */
+    const upsellCandidates = useMemo(
+        () => (products ?? []).filter((item) => item.active && item.id !== product?.id),
+        [products, product?.id],
+    );
+
     const [config, setConfig] = useState<CheckoutConfig>(DEFAULT_CHECKOUT_CONFIG);
     const [slug, setSlug] = useState("");
     const [dirty, setDirty] = useState(false);
+    const [pageTab, setPageTab] = useState<"thank_you" | "upsell" | "downsell">("thank_you");
 
     useEffect(() => {
         if (!product) return;
@@ -260,6 +316,63 @@ export default function CheckoutBuilder() {
         }));
     };
 
+    const addUpsellOffer = () => {
+        patch((current) => ({
+            ...current,
+            upsell: {
+                ...current.upsell,
+                products: [
+                    ...current.upsell.products,
+                    { product_id: null, title_override: "", description: "", image_url: "" },
+                ],
+            },
+        }));
+    };
+
+    const updateUpsellOffer = (index: number, changes: Partial<CheckoutUpsellOffer>) => {
+        patch((current) => ({
+            ...current,
+            upsell: {
+                ...current.upsell,
+                products: current.upsell.products.map((offer, i) =>
+                    i === index ? { ...offer, ...changes } : offer
+                ),
+            },
+        }));
+    };
+
+    const removeUpsellOffer = (index: number) => {
+        patch((current) => ({
+            ...current,
+            upsell: {
+                ...current.upsell,
+                products: current.upsell.products.filter((_, i) => i !== index),
+            },
+        }));
+    };
+
+    /** Atualiza a página pós-compra escolhida (`thank_you`, `upsell` ou `downsell`). */
+    const updatePostPage = (
+        target: "thank_you" | "upsell" | "downsell",
+        changes: Partial<CheckoutPostPurchasePage>,
+    ) => {
+        patch((current) => {
+            if (target === "thank_you") {
+                return { ...current, thank_you: { ...current.thank_you, ...changes } };
+            }
+            if (target === "upsell") {
+                return { ...current, upsell: { ...current.upsell, page: { ...current.upsell.page, ...changes } } };
+            }
+            return {
+                ...current,
+                upsell: {
+                    ...current.upsell,
+                    downsell: { ...current.upsell.downsell, page: { ...current.upsell.downsell.page, ...changes } },
+                },
+            };
+        });
+    };
+
     if (loadingProducts) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
@@ -383,13 +496,15 @@ export default function CheckoutBuilder() {
                 </div>
 
                 <Tabs defaultValue="geral" className="space-y-4">
-                    <TabsList variant="sliding" className="grid w-full grid-cols-3 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-9">
+                    <TabsList variant="sliding" className="grid w-full grid-cols-3 gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1 sm:grid-cols-11">
                         <TabsTrigger value="geral">Geral</TabsTrigger>
                         <TabsTrigger value="presets">Presets</TabsTrigger>
                         <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
                         <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
                         <TabsTrigger value="campos">Campos</TabsTrigger>
                         <TabsTrigger value="social">Social</TabsTrigger>
+                        <TabsTrigger value="upsell">Oferta</TabsTrigger>
+                        <TabsTrigger value="paginas">Páginas</TabsTrigger>
                         <TabsTrigger value="contato">Contato</TabsTrigger>
                         <TabsTrigger value="sms">SMS</TabsTrigger>
                         <TabsTrigger value="avancado">Avançado</TabsTrigger>
@@ -953,10 +1068,32 @@ export default function CheckoutBuilder() {
                                                     <img src={METHOD_ICONS[method]} alt="" className="h-4 w-4 object-contain" />
                                                     {label}
                                                 </Label>
-                                                {supported.length === 0 && (
-                                                    <span className="text-[11px] text-muted-foreground">Nenhum gateway suporta</span>
-                                                )}
+                                                <div className="flex items-center gap-3">
+                                                    {!config.payment_methods[key] && (
+                                                        <span className="text-[11px] text-muted-foreground">Desativado</span>
+                                                    )}
+                                                    <Switch
+                                                        checked={config.payment_methods[key]}
+                                                        disabled={
+                                                            config.payment_methods[key] &&
+                                                            Object.values(config.payment_methods).filter(Boolean).length === 1
+                                                        }
+                                                        onCheckedChange={(checked) =>
+                                                            patch((current) => ({
+                                                                ...current,
+                                                                payment_methods: { ...current.payment_methods, [key]: checked },
+                                                            }))
+                                                        }
+                                                    />
+                                                </div>
                                             </div>
+                                            {!config.payment_methods[key] ? (
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    {label} não aparece no checkout deste produto.
+                                                </p>
+                                            ) : supported.length === 0 && (
+                                                <span className="text-[11px] text-muted-foreground">Nenhum gateway suporta</span>
+                                            )}
                                             <Select
                                                 value={selected || "__default__"}
                                                 onValueChange={(value) =>
@@ -1120,6 +1257,350 @@ export default function CheckoutBuilder() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </SectionCard>
+                    </TabsContent>
+
+                    {/* OFERTAS (upsell / downsell) */}
+                    <TabsContent value="upsell" className="space-y-4">
+                        <SectionCard
+                            title="Upsell"
+                            description="Ofertas exibidas depois do pagamento aprovado, antes da página de obrigado."
+                        >
+                            <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+                                <div>
+                                    <p className="text-[13px] font-medium text-white/80">Ativar upsell</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Cada oferta aceita vira um pedido novo.
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={config.upsell.enabled}
+                                    onCheckedChange={(checked) =>
+                                        patch((current) => ({
+                                            ...current,
+                                            upsell: { ...current.upsell, enabled: checked },
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            {config.upsell.enabled && (
+                                <>
+                                    {config.upsell.products.length === 0 && (
+                                        <p className="text-[12px] text-muted-foreground">
+                                            Nenhuma oferta ainda. Adicione ao menos uma.
+                                        </p>
+                                    )}
+
+                                    {config.upsell.products.map((offer, index) => (
+                                        <div key={index} className="space-y-2 rounded-xl border border-white/5 p-4">
+                                            <div className="flex items-end gap-2">
+                                                <div className="flex-1 space-y-1.5">
+                                                    <Label className="text-[12px] text-white/70">Produto</Label>
+                                                    <Select
+                                                        value={offer.product_id ?? ""}
+                                                        onValueChange={(value) =>
+                                                            updateUpsellOffer(index, { product_id: value || null })
+                                                        }
+                                                    >
+                                                        <SelectTrigger className={cn(inputClass, "text-left")}>
+                                                            <SelectValue placeholder="Selecione um produto" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {upsellCandidates.map((item) => (
+                                                                <SelectItem key={item.id} value={item.id}>
+                                                                    {item.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="rounded-lg border-white/10 bg-white/[0.03]"
+                                                    onClick={() => removeUpsellOffer(index)}
+                                                    aria-label="Remover oferta"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                            <Input
+                                                value={offer.title_override}
+                                                onChange={(event) =>
+                                                    updateUpsellOffer(index, { title_override: event.target.value })
+                                                }
+                                                placeholder="Título na página (vazio = nome do produto)"
+                                                className={inputClass}
+                                            />
+                                            <Textarea
+                                                value={offer.description}
+                                                onChange={(event) =>
+                                                    updateUpsellOffer(index, { description: event.target.value })
+                                                }
+                                                placeholder="Descrição da oferta"
+                                                className="min-h-16 bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
+                                            />
+                                            <Input
+                                                value={offer.image_url}
+                                                onChange={(event) =>
+                                                    updateUpsellOffer(index, { image_url: event.target.value })
+                                                }
+                                                placeholder="Imagem (URL, opcional)"
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                    ))}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full rounded-xl border-dashed border-white/15 bg-transparent"
+                                        onClick={addUpsellOffer}
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Adicionar oferta
+                                    </Button>
+                                </>
+                            )}
+                        </SectionCard>
+
+                        <SectionCard
+                            title="Downsell"
+                            description="Oferta alternativa exibida quando o cliente recusa o upsell. Exige o upsell ativo."
+                        >
+                            <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+                                <div>
+                                    <p className="text-[13px] font-medium text-white/80">Ativar downsell</p>
+                                    {!config.upsell.enabled && (
+                                        <p className="text-[11px] text-amber-400">
+                                            Ative o upsell para habilitar o downsell.
+                                        </p>
+                                    )}
+                                </div>
+                                <Switch
+                                    checked={config.upsell.downsell.enabled}
+                                    disabled={!config.upsell.enabled}
+                                    onCheckedChange={(checked) =>
+                                        patch((current) => ({
+                                            ...current,
+                                            upsell: {
+                                                ...current.upsell,
+                                                downsell: { ...current.upsell.downsell, enabled: checked },
+                                            },
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            {config.upsell.enabled && config.upsell.downsell.enabled && (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[12px] text-white/70">Produto</Label>
+                                        <Select
+                                            value={config.upsell.downsell.product_id ?? ""}
+                                            onValueChange={(value) =>
+                                                patch((current) => ({
+                                                    ...current,
+                                                    upsell: {
+                                                        ...current.upsell,
+                                                        downsell: {
+                                                            ...current.upsell.downsell,
+                                                            product_id: value || null,
+                                                        },
+                                                    },
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger className={cn(inputClass, "text-left")}>
+                                                <SelectValue placeholder="Selecione um produto" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {upsellCandidates.map((item) => (
+                                                    <SelectItem key={item.id} value={item.id}>
+                                                        {item.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Input
+                                        value={config.upsell.downsell.title_override}
+                                        onChange={(event) =>
+                                            patch((current) => ({
+                                                ...current,
+                                                upsell: {
+                                                    ...current.upsell,
+                                                    downsell: {
+                                                        ...current.upsell.downsell,
+                                                        title_override: event.target.value,
+                                                    },
+                                                },
+                                            }))
+                                        }
+                                        placeholder="Título na página (vazio = nome do produto)"
+                                        className={inputClass}
+                                    />
+                                    <Textarea
+                                        value={config.upsell.downsell.description}
+                                        onChange={(event) =>
+                                            patch((current) => ({
+                                                ...current,
+                                                upsell: {
+                                                    ...current.upsell,
+                                                    downsell: {
+                                                        ...current.upsell.downsell,
+                                                        description: event.target.value,
+                                                    },
+                                                },
+                                            }))
+                                        }
+                                        placeholder="Descrição da oferta"
+                                        className="min-h-16 bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
+                                    />
+                                    <Input
+                                        value={config.upsell.downsell.image_url}
+                                        onChange={(event) =>
+                                            patch((current) => ({
+                                                ...current,
+                                                upsell: {
+                                                    ...current.upsell,
+                                                    downsell: {
+                                                        ...current.upsell.downsell,
+                                                        image_url: event.target.value,
+                                                    },
+                                                },
+                                            }))
+                                        }
+                                        placeholder="Imagem (URL, opcional)"
+                                        className={inputClass}
+                                    />
+                                </>
+                            )}
+                        </SectionCard>
+
+                        <Card className="bg-white/[0.02] border-white/5">
+                            <CardContent className="p-4 text-[12px] text-muted-foreground">
+                                As páginas de upsell e downsell ainda não existem. Esta aba salva a
+                                configuração que elas vão usar.
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* PÁGINAS PÓS-COMPRA */}
+                    <TabsContent value="paginas" className="space-y-4">
+                        <div className="flex flex-wrap gap-1 rounded-xl border border-white/5 bg-white/[0.03] p-1">
+                            {([
+                                { id: "thank_you", label: "Obrigado" },
+                                { id: "upsell", label: "Upsell" },
+                                { id: "downsell", label: "Downsell" },
+                            ] as const).map((item) => (
+                                <Button
+                                    key={item.id}
+                                    type="button"
+                                    variant={pageTab === item.id ? "default" : "ghost"}
+                                    size="sm"
+                                    className="rounded-lg"
+                                    onClick={() => setPageTab(item.id)}
+                                >
+                                    {item.label}
+                                </Button>
+                            ))}
+                        </div>
+
+                        <SectionCard
+                            title={
+                                pageTab === "thank_you"
+                                    ? "Página de obrigado"
+                                    : pageTab === "upsell"
+                                        ? "Página de upsell"
+                                        : "Página de downsell"
+                            }
+                            description={
+                                pageTab === "thank_you"
+                                    ? "Conteúdo extra exibido depois da confirmação do pagamento. QR Code, boleto e itens do pedido continuam automáticos."
+                                    : pageTab === "upsell"
+                                        ? "Exibida após o pagamento aprovado, quando o upsell está ativo."
+                                        : "Exibida quando o cliente recusa o upsell e o downsell está ativo."
+                            }
+                        >
+                            {pageTab !== "thank_you" && (
+                                <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11.5px] text-amber-300">
+                                    As telas públicas de upsell e downsell ainda não existem — o
+                                    conteúdo fica salvo para quando forem publicadas.
+                                </p>
+                            )}
+
+                            <div className="grid gap-4 lg:grid-cols-2">
+                                <PostPurchasePageFields
+                                    page={
+                                        pageTab === "thank_you"
+                                            ? config.thank_you
+                                            : pageTab === "upsell"
+                                                ? config.upsell.page
+                                                : config.upsell.downsell.page
+                                    }
+                                    onChange={(changes) => updatePostPage(pageTab, changes)}
+                                    headlinePlaceholder={
+                                        pageTab === "thank_you"
+                                            ? "Pagamento Confirmado!"
+                                            : pageTab === "upsell"
+                                                ? "Quer levar isso também?"
+                                                : "Última chance com desconto"
+                                    }
+                                    subtitlePlaceholder={
+                                        pageTab === "thank_you"
+                                            ? "Seu acesso já foi liberado automaticamente."
+                                            : pageTab === "upsell"
+                                                ? "Uma oferta exclusiva preparada para você"
+                                                : "Uma oferta que não pode ficar de fora"
+                                    }
+                                />
+
+                                <PostPurchasePagePreview
+                                    page={
+                                        pageTab === "thank_you"
+                                            ? config.thank_you
+                                            : pageTab === "upsell"
+                                                ? config.upsell.page
+                                                : config.upsell.downsell.page
+                                    }
+                                >
+                                    {pageTab === "thank_you" && (
+                                        <div className="mt-4 space-y-1 rounded-lg bg-zinc-50 p-3 text-left text-xs text-zinc-500">
+                                            <p>Ícone de status, itens do pedido, total e botões de acesso continuam automáticos.</p>
+                                        </div>
+                                    )}
+
+                                    {pageTab !== "thank_you" && (
+                                        <div className="mt-4 space-y-2">
+                                            {(pageTab === "upsell"
+                                                ? config.upsell.products
+                                                : config.upsell.downsell.product_id
+                                                    ? [config.upsell.downsell]
+                                                    : []
+                                            ).map((offer, index) => (
+                                                <PreviewOffer
+                                                    key={index}
+                                                    offer={offer}
+                                                    product={products.find((item) => item.id === offer.product_id) ?? null}
+                                                />
+                                            ))}
+                                            {pageTab === "upsell" && config.upsell.products.length === 0 && (
+                                                <p className="rounded-lg bg-zinc-50 p-3 text-left text-xs text-zinc-500">
+                                                    Nenhuma oferta configurada. Adicione na aba Oferta.
+                                                </p>
+                                            )}
+                                            {pageTab === "downsell" && !config.upsell.downsell.product_id && (
+                                                <p className="rounded-lg bg-zinc-50 p-3 text-left text-xs text-zinc-500">
+                                                    Nenhum produto escolhido. Configure na aba Oferta.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </PostPurchasePagePreview>
                             </div>
                         </SectionCard>
                     </TabsContent>
@@ -1381,8 +1862,9 @@ export default function CheckoutBuilder() {
 
                         <SectionCard title="Ações do checkout" description="Recursos que entram nas próximas fases">
                             <p className="text-sm text-muted-foreground">
-                                Timer, notificações de venda, popup de saída, upsell/downsell e pixels serão
+                                Timer, notificações de venda, popup de saída e pixels serão
                                 configurados aqui nas próximas fases — a estrutura de dados já está preparada.
+                                Upsell e downsell ficam na aba Oferta.
                             </p>
                         </SectionCard>
                     </TabsContent>

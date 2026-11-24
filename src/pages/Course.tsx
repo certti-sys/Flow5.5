@@ -133,7 +133,7 @@ const Course = () => {
   return (
     <div className="min-h-screen">
       <main>
-        <PageContainer className="py-6 md:py-8">
+        <PageContainer className="py-6 md:py-8" wide>
           <div className="space-y-6">
             {/* Mesmo hero da página de aula: cabeçalho em glass-card dentro do
                 container, não em faixa full-bleed. Assim um curso sem aulas

@@ -36,11 +36,54 @@ export type CheckoutContentBlock = CheckoutImageBlock | CheckoutTextBlock;
 /** Método no vocabulário do gateway (como no Getfy). */
 export type CheckoutPaymentMethodKey = 'card' | 'pix' | 'boleto';
 
+/** Oferta exibida na página de upsell, após o pagamento aprovado. */
+export interface CheckoutUpsellOffer {
+    product_id: string | null;
+    /** Sobrescreve o nome do produto na página. Vazio = nome do produto. */
+    title_override: string;
+    description: string;
+    image_url: string;
+}
+
+/**
+ * Conteúdo editável das páginas pós-compra (obrigado, upsell, downsell).
+ * Tudo é texto puro — nunca HTML — para não abrir XSS no checkout público.
+ */
+export interface CheckoutPostPurchasePage {
+    /** '' = usa o texto padrão da página. */
+    headline: string;
+    subtitle: string;
+    body: string;
+    image_url: string;
+    /** YouTube: entra como iframe, nunca como arquivo direto. */
+    video_url: string;
+}
+
+/** Oferta alternativa, exibida quando o cliente recusa o upsell. */
+export interface CheckoutDownsell extends CheckoutUpsellOffer {
+    enabled: boolean;
+    page: CheckoutPostPurchasePage;
+}
+
+export interface CheckoutUpsellConfig {
+    enabled: boolean;
+    products: CheckoutUpsellOffer[];
+    downsell: CheckoutDownsell;
+    page: CheckoutPostPurchasePage;
+}
+
 export interface CheckoutPaymentGateways {
     /** Slug do gateway, '' (segue o padrão do sistema) ou '__default__'. */
     card: string;
     pix: string;
     boleto: string;
+}
+
+/** Liga/desliga cada método no checkout do produto, mesmo que o gateway o ofereça. */
+export interface CheckoutPaymentMethods {
+    card: boolean;
+    pix: boolean;
+    boleto: boolean;
 }
 
 export interface CheckoutReview {
@@ -97,6 +140,9 @@ export interface CheckoutConfig {
      */
     payment_gateways: CheckoutPaymentGateways;
 
+    /** Métodos exibidos no checkout do produto. Desligado = não aparece nem processa. */
+    payment_methods: CheckoutPaymentMethods;
+
     timer: {
         enabled: boolean;
         text: string;
@@ -109,6 +155,12 @@ export interface CheckoutConfig {
     youtube_url: string;
     youtube_position: 'top' | 'bottom';
     redirect_after_purchase: string;
+
+    /** Ofertas exibidas depois do pagamento aprovado. */
+    upsell: CheckoutUpsellConfig;
+
+    /** Conteúdo da página de obrigado (pós-pagamento). */
+    thank_you: CheckoutPostPurchasePage;
 
     seo: {
         title: string;
@@ -183,6 +235,12 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         pix: '',
         boleto: '',
     },
+    payment_methods: {
+        // Sem configuração salva, todos continuam aparecendo (comportamento antigo).
+        card: true,
+        pix: true,
+        boleto: true,
+    },
     timer: {
         enabled: false,
         text: 'Oferta expira em',
@@ -194,6 +252,20 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
     youtube_url: '',
     youtube_position: 'top',
     redirect_after_purchase: '',
+    upsell: {
+        enabled: false,
+        products: [],
+        downsell: {
+            enabled: false,
+            product_id: null,
+            title_override: '',
+            description: '',
+            image_url: '',
+            page: emptyPostPurchasePage(),
+        },
+        page: emptyPostPurchasePage(),
+    },
+    thank_you: emptyPostPurchasePage(),
     seo: {
         title: '',
         description: '',
@@ -247,6 +319,22 @@ function asString(value: unknown, fallback = ''): string {
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
     return typeof value === 'boolean' ? value : fallback;
+}
+
+function emptyPostPurchasePage(): CheckoutPostPurchasePage {
+    return { headline: '', subtitle: '', body: '', image_url: '', video_url: '' };
+}
+
+/** Página pós-compra: todos os campos são texto puro. */
+function normalizePostPurchasePage(value: unknown): CheckoutPostPurchasePage {
+    const source = isPlainObject(value) ? value : {};
+    return {
+        headline: asString(source.headline).trim(),
+        subtitle: asString(source.subtitle).trim(),
+        body: asString(source.body),
+        image_url: asString(source.image_url).trim(),
+        video_url: asString(source.video_url).trim(),
+    };
 }
 
 function normalizeBlocks(value: unknown): CheckoutContentBlock[] {
@@ -303,6 +391,46 @@ function normalizeReviews(value: unknown): CheckoutReview[] {
 }
 
 /**
+ * Normaliza as ofertas pós-compra. Aceita o formato do Getfy
+ * (`upsell.products`, `downsell.product_id`); campos que não existem no
+ * Flow5.5 (oferta por produto) são descartados.
+ */
+function normalizeUpsell(value: unknown): CheckoutUpsellConfig {
+    const source = isPlainObject(value) ? value : {};
+    const downsellSource = isPlainObject(source.downsell) ? source.downsell : {};
+
+    const products = Array.isArray(source.products)
+        ? source.products.flatMap((raw): CheckoutUpsellOffer[] => {
+            if (!isPlainObject(raw)) return [];
+            const productId = asString(raw.product_id).trim();
+            if (!productId) return [];
+            return [{
+                product_id: productId,
+                title_override: asString(raw.title_override),
+                description: asString(raw.description),
+                image_url: asString(raw.image_url),
+            }];
+        })
+        : [];
+
+    const downsellProductId = asString(downsellSource.product_id).trim();
+
+    return {
+        enabled: asBoolean(source.enabled, false) && products.length > 0,
+        products,
+        page: normalizePostPurchasePage(source.page),
+        downsell: {
+            enabled: asBoolean(downsellSource.enabled, false) && !!downsellProductId,
+            product_id: downsellProductId || null,
+            title_override: asString(downsellSource.title_override),
+            description: asString(downsellSource.description),
+            image_url: asString(downsellSource.image_url),
+            page: normalizePostPurchasePage(downsellSource.page),
+        },
+    };
+}
+
+/**
  * Normaliza o JSON vindo do banco (inclusive o formato antigo, que só tinha
  * `primary_color`, `banner_url`, `logo_url` e `features`).
  */
@@ -331,11 +459,20 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
 
     for (const key of ['card', 'pix', 'boleto'] as const) {
         config.payment_gateways[key] = asString(config.payment_gateways?.[key]).trim();
+        // Só `false` desliga; ausente/legado continua ligado.
+        config.payment_methods[key] = config.payment_methods?.[key] !== false;
+    }
+
+    // Nunca deixa o checkout sem nenhum método de pagamento.
+    if (!config.payment_methods.card && !config.payment_methods.pix && !config.payment_methods.boleto) {
+        config.payment_methods.card = true;
     }
 
     config.youtube_url = asString(config.youtube_url);
     config.youtube_position = config.youtube_position === 'bottom' ? 'bottom' : 'top';
     config.redirect_after_purchase = asString(config.redirect_after_purchase);
+    config.upsell = normalizeUpsell(config.upsell);
+    config.thank_you = normalizePostPurchasePage(config.thank_you);
 
     config.timer.text = asString(config.timer.text, 'Oferta expira em');
     config.timer.minutes = Math.min(720, Math.max(1, Number(config.timer.minutes) || 15));

@@ -85,7 +85,7 @@ const CourseInfo = () => {
   return (
     <div className="min-h-screen pb-20">
       <main>
-        <PageContainer className="py-8">
+        <PageContainer className="py-8" wide>
         {/* Back Button */}
         <Button
           variant="ghost"

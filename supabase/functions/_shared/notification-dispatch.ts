@@ -89,7 +89,7 @@ export async function dispatchPendingNotifications(
         );
 
         const now = Date.now();
-        const siteUrl = (Deno.env.get("SITE_URL") || "https://flowmembers.app").replace(/\/$/, "");
+        const siteUrl = (Deno.env.get("SITE_URL") || "https://v5.flowmembers.app").replace(/\/$/, "");
 
         for (let i = 0; i < rows.length; i += CONCURRENCY) {
             const batch: Delivery[] = rows.slice(i, i + CONCURRENCY);

@@ -563,7 +563,7 @@ const Lesson = () => {
 
   return (
     <div className="min-h-screen">
-      <PageContainer>
+      <PageContainer wide>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -741,8 +741,8 @@ const Lesson = () => {
                       <MessageSquare className="w-5 h-5 text-primary" />
                     </div>
                     <div className="text-left">
-                      <h2 className="text-[18px] md:text-[20px] font-bold tracking-tight">Comunidade</h2>
-                      <p className="text-[12px] text-muted-foreground">{countAllComments(comments)} interações</p>
+                      <h2 className="text-[18px] md:text-[20px] font-bold tracking-tight">Comentários</h2>
+                      <p className="text-[12px] text-muted-foreground">{countAllComments(comments)} {countAllComments(comments) === 1 ? 'comentário' : 'comentários'}</p>
                     </div>
                   </div>
                   <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />

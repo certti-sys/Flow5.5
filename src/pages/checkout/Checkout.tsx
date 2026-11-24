@@ -302,7 +302,8 @@ export default function CheckoutPage() {
 
         load();
         // config muda quando o produto carrega; os gateways só são lidos uma vez.
-    }, [config.payment_gateways.card, config.payment_gateways.pix, config.payment_gateways.boleto]);
+    }, [config.payment_gateways.card, config.payment_gateways.pix, config.payment_gateways.boleto,
+        config.payment_methods.card, config.payment_methods.pix, config.payment_methods.boleto]);
 
     useEffect(() => {
         const fetchKeyAndLoadSdk = async () => {

@@ -2634,6 +2634,13 @@ Deno.serve(async (req) => {
                     : 'card';
             const allowedSlug = String(configuredGateways[methodKey] ?? '').trim();
 
+            // Método desligado no produto: não aceita cobrança mesmo que o
+            // gateway ofereça (a UI já esconde, isto fecha a porta da API).
+            const enabledMethods = (product.checkout_config as any)?.payment_methods ?? {};
+            if (enabledMethods[methodKey] === false) {
+                throw new Error(`Este produto não aceita ${methodKey}.`);
+            }
+
             if (allowedSlug && allowedSlug !== '__default__' && allowedSlug !== cred.gateway.slug) {
                 throw new Error(
                     `Este produto não aceita ${methodKey} pelo gateway ${cred.gateway.slug}.`

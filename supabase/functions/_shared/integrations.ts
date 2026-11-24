@@ -428,7 +428,7 @@ export async function sendIntegrax(
     const cfg = typeof sms[key] === "object" && sms[key] ? sms[key] as Record<string, any> : {};
     if (!smsEnabled(cfg.enabled)) return { outcome: "skip", error: `SMS ${key} desligado no produto` };
 
-    const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/$/, "");
+    const siteUrl = (Deno.env.get("SITE_URL") || "https://v5.flowmembers.app").replace(/\/$/, "");
     const productName = payload.items[0]?.product_name ?? "Produto";
     const customerName = payload.customer.name?.trim() || "Cliente";
 

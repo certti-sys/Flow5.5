@@ -193,7 +193,7 @@ cart_leads(id, product_id, user_id, email, name, phone, cpf, status, stage, stag
   -- status: open | recovered | dismissed | expired
   -- único por (lower(email), product_id) where status='open'
 cart_recovery_settings(id boolean pk, enabled, stage_minutes int[] default '{10,300,1440}',
-  channel_email, channel_whatsapp, discount_percent)
+  channel_email, channel_whatsapp, channel_sms, templates jsonb)
 ```
 - Tabela própria, **não** `orders.status='draft'`: `payment-ops` cria um pedido novo a cada tentativa, e um rascunho no preenchimento ficaria órfão duplicando o pedido. Além disso toda leitura de `orders` passaria a ver linha que nunca foi cobrança.
 - `ip_hash` não existe: o IP já fica em `orders.metadata.device.ip` e em `cart_leads.metadata.tracking` via UTM; hash ao lado seria duplicação, não privacidade.
@@ -205,16 +205,21 @@ cart_recovery_settings(id boolean pk, enabled, stage_minutes int[] default '{10,
 - **Abandono:** `cart-recovery` (`sweep`, cron `*/5`) marca `abandoned_at` quando `last_activity_at` passou de `stage_minutes[1]` (10 min). Antes disso o lead é `open` sem abandono — quem preencheu e pagou em 3 min não é perda.
 
 ### 5.3 Recuperação automática
-- **3 estágios** (`stage_minutes`: 10 min, 5 h, 24 h). `stage` = índice do último contato enviado; o cron compara `stage_started_at` + `stage_minutes[stage]`.
-- **Canais:** e-mail sempre pela fila durável (`email_logs`, tipo `custom`), WhatsApp opcional via `send-whatsapp`. Templates padrão codificados; admin pode trocar a mensagem no contato manual.
+- **Estágios configuráveis** (`stage_minutes`, padrão 10 min / 5 h / 24 h). `stage` = índice do último contato enviado; o cron compara `stage_started_at` + `stage_minutes[stage]`. O admin edita os intervalos em **Editar funil**, e a quantidade de contatos segue o tamanho do array.
+- **Canais:** e-mail pela fila durável (`email_logs`, tipo `custom`), WhatsApp via `send-whatsapp` e SMS via integração IntegraX (`channel_sms`, desligado por padrão). Os três são independentes e cada um tem texto por estágio.
+- **Textos configuráveis** (`templates jsonb`): `{ email: [{subject, body}], whatsapp: [{body}], sms: [{body}] }`, indexado pelo estágio. Campo vazio/ausente cai no texto padrão da edge — apagar um texto nunca deixa o lead sem mensagem. Variáveis: `{nome}`, `{produto}`, `{preco}`, `{link}`.
+- E-mail sai sem a marcação `*negrito*` do WhatsApp (mesmo conteúdo, dois formatos). SMS respeita o limite de 160 caracteres da IntegraX.
 - Lead parado 7 dias após o último estágio vira `expired`.
 
 ### 5.4 Painel — `/admin/carrinho-abandonado`
 - Cards: em aberto, recuperados (com valor salvo), valor em risco, taxa de recuperação.
-- Barra de configuração: funil ativo, canal e-mail, canal WhatsApp (grava em `cart_recovery_settings`).
+- Barra de configuração: funil ativo, canais e-mail, WhatsApp e SMS (grava em `cart_recovery_settings`), mais **Editar funil** (intervalos + textos por canal).
 - Tabela: cliente (nome/e-mail/telefone), produto e preço, estágio do funil, status, data do abandono.
-- **Contato por lead:** link direto `wa.me` com mensagem pronta, botão de e-mail, e diálogo para envio avulso (WhatsApp ou e-mail) via `cart-recovery` ação `manual`. Contato manual reinicia `stage_started_at` — quem acabou de receber mensagem não leva outra do robô no minuto seguinte.
+- **Contato por lead:** link direto `wa.me` com mensagem pronta, botão de e-mail, e diálogo para envio avulso (WhatsApp, e-mail ou SMS) via `cart-recovery` ação `manual`. Contato manual reinicia `stage_started_at` — quem acabou de receber mensagem não leva outra do robô no minuto seguinte.
 - Botão "Processar agora" roda o `sweep` na hora, sem esperar o cron.
+- Cupom automático na recuperação **não existe**: `discount_percent` foi removido na
+  migration `20261123140000_cart_recovery_drop_discount.sql`. O cupom da casa é o
+  de `/admin/cupons`, digitado pelo aluno no checkout.
 
 ### 5.5 Webhook `cart.abandoned`
 - Entra no catálogo (`WebhookOutbound.tsx`), grupo "Funil".
@@ -436,6 +441,165 @@ Testes em transação com `rollback` (nada ficou no banco):
 Aplicado com `db push`; `tsc` e `vite build` OK.
 
 **Esforço Fase 10:** ~0,5 dia. **Risco:** médio-baixo — o trigger só é exercitado em estorno, e erro nele não desfaz pagamento.
+
+---
+
+## FASE 11 — Upsell / Downsell (em andamento)
+
+> **Fase 11.1 e 11.3 implementadas:** configuração, editor das três páginas
+> pós-compra e preview no admin. Falta a **11.2** (rotas públicas de upsell e
+> downsell) — o conteúdo já salvo é usado assim que elas existirem.
+
+### 11.1 Configuração (feito)
+
+Espelha `products.checkout_config.upsell` do Getfy, sem tabela nova:
+
+```jsonc
+"upsell": {
+  "enabled": false,
+  "products": [                     // cada oferta aceita vira um PEDIDO NOVO
+    { "product_id": "uuid", "title_override": "", "description": "", "image_url": "" }
+  ],
+  "downsell": {                     // exibido ao recusar o upsell
+    "enabled": false, "product_id": null,
+    "title_override": "", "description": "", "image_url": "",
+    "page": { }                     // ver `page` abaixo
+  },
+  "page": {                         // conteúdo da tela de upsell
+    "headline": "", "subtitle": "", "body": "",
+    "image_url": "", "video_url": ""
+  }
+},
+"thank_you": {                      // mesma forma de `page`
+  "headline": "", "subtitle": "", "body": "",
+  "image_url": "", "video_url": ""
+}
+```
+
+`page` e `thank_you` são texto puro (nunca HTML) e aceitam `{nome}` e
+`{produto}`, substituídos no render (`src/lib/post-purchase.ts`).
+
+- Tipos e defaults: `src/types/checkout-config.ts` (`CheckoutUpsellConfig`,
+  `CheckoutUpsellOffer`, `CheckoutDownsell`).
+- `normalizeUpsell` aceita o JSON do Getfy (descarta `product_offer_id`, que
+  aqui não existe) e **desliga** `upsell.enabled` sem oferta válida e
+  `downsell.enabled` sem produto — evita tela vazia em produção.
+- UI: aba **Oferta** em `Admin → Checkout` (`CheckoutBuilder.tsx`).
+- Teste: `npm run check:upsell`.
+
+### 11.3 Editor das páginas pós-compra (feito)
+
+Aba **Páginas** em `Admin → Checkout`, com três telas (Obrigado, Upsell,
+Downsell), formulário à esquerda e prévia ao lado. Sem HTML/CSS/JS cru.
+
+- Campos: título, subtítulo, texto, imagem (URL) e vídeo (YouTube embed).
+- Título/subtítulo vazios = texto padrão de cada página (nada quebra).
+- Prévia lê o estado em memória, sem salvar; oferta aparece com imagem, nome,
+  descrição e preço do produto escolhido.
+- `ThankYou.tsx` lê `thank_you` do produto (uma query, RLS pública) e mantém
+  QR Code, boleto, polling, itens, total, redirect e `initPixels`/`trackPixel`.
+- Mídia compartilhada entre prévia e página real:
+  `src/components/checkout/PostPurchaseMedia.tsx`.
+
+### 11.2 Páginas públicas de upsell/downsell (pendente)
+
+- `/checkout/upsell/:orderId` e `/checkout/downsell/:orderId`, fora do
+  `CheckoutLayout`. `orderId` (UUID) é o token; valida `orders.status = 'paid'`.
+- `ThankYou.tsx` redireciona para o upsell quando `upsell.enabled` e o pedido
+  ainda não respondeu (`orders.metadata.upsell_shown`).
+- Aceitar = `orders` novo `pending` com `metadata.parent_order_id` e
+  `metadata.kind = 'upsell'`, depois reusa `payment-ops`.
+- Recusar = downsell (se ativo) ou obrigado.
+
+**Rollback:** remover `upsell` e `thank_you` de `checkout_config` do produto —
+nenhum outro campo é afetado; `ThankYou.tsx` volta aos textos padrão e as rotas
+de upsell/downsell ainda não existem. Nada foi aplicado em produção por esta
+fase além do teste de gravação, já revertido.
+
+### 11.4 Ligar/desligar método de pagamento por produto (feito)
+
+Aba **Pagamento** em `Admin → Checkout`: cada método (cartão, PIX, boleto) tem um
+switch ao lado do gateway.
+
+- Campo novo: `checkout_config.payment_methods: { card, pix, boleto }`, todos
+  `true` por padrão. Só `false` desliga — config antiga não muda de comportamento.
+- `normalizeCheckoutConfig` garante no mínimo um método ativo (religa o cartão).
+- Checkout público: `resolveCheckoutGateways` (`src/lib/checkout-gateways.ts`)
+  pula o método desligado, então ele nem aparece como opção.
+- `payment-ops` recusa cobrança de método desligado, mesmo via API.
+- `scripts/check-checkout-upsell.mjs` (`npm run check:upsell`) cobre normalização
+  e resolução de gateway.
+
+**Rollback:** remover `payment_methods` do produto ou limpá-lo — volta a mostrar
+todos os métodos que o gateway oferece.
+
+---
+
+## FASE 12 — Funil de carrinho abandonado: intervalos, textos e SMS (feito)
+
+Antes: `stage_minutes` existia no banco mas só era exibido; os três textos viviam
+hardcoded na edge e não havia SMS.
+
+### 12.1 Schema (`20261123120000_cart_recovery_templates.sql`)
+- `cart_recovery_settings.channel_sms boolean not null default false` — SMS custa
+  por mensagem, então entra desligado.
+- `cart_recovery_settings.templates jsonb not null default '{}'` — indexado pelo
+  estágio (0 = primeiro contato):
+  `{ "email": [{ "subject", "body" }], "whatsapp": [{ "body" }], "sms": [{ "body" }] }`.
+
+Aditiva e retrocompatível: campo vazio/ausente = texto padrão da edge. Nenhum seed
+necessário, e quem nunca abrir a tela continua com o comportamento anterior.
+
+### 12.2 Edge `cart-recovery`
+- `stageContent()` resolve assunto e corpo por estágio e canal, com `{nome}`,
+  `{produto}`, `{preco}` e `{link}` substituídos.
+- `stageEmailMessage()` remove `*negrito*` (sintaxe do WhatsApp) do texto padrão do
+  e-mail; texto escrito pelo admin vai literal.
+- `sendCartSms()` usa a integração `integrax` já cadastrada em `/admin/integracoes`
+  — mesmo token dos SMS de PIX e de acesso. Sem IntegraX ativa o canal não envia e
+  a resposta diz por quê.
+- Ação `manual` aceita `channel: "sms"`; falha de envio volta como 422 com motivo.
+- `sweep` e `stage` respeitam `channel_sms`.
+
+### 12.3 UI (`src/pages/admin/AbandonedCarts.tsx`)
+- Switch **SMS** ao lado de e-mail e WhatsApp.
+- Botão **Editar funil**: intervalos em minutos (com o rótulo legível embaixo) e um
+  campo de texto por estágio, com abas por canal. Placeholder mostra o texto padrão
+  e o contador de 160 caracteres aparece no SMS.
+- Só o que foi escrito é gravado: apagar um texto volta ao padrão em vez de zerar a
+  mensagem do lead.
+
+### 12.4 Validação executada em produção
+- Migration aplicada; `channel_sms = false` e `templates = '{}'` na linha existente.
+- `cart-recovery` e `payment-ops` deployadas.
+- Puppeteer em `/admin/carrinho-abandonado`: card lê o intervalo do banco, editor
+  abre com os três canais, PATCH grava `stage_minutes` e `templates`, toast "Funil
+  atualizado", 0 erros de console.
+- E2E na edge com lead temporário: estágio 1 sem template enfileira o assunto
+  "Você esqueceu algo em …" e o corpo padrão **sem asteriscos**; com template
+  gravado enfileira "Probe …" e o corpo interpolado. `manual` com `sms` e IntegraX
+  ausente devolve 422 explicando. Lead, logs e templates de teste removidos.
+- `scripts/check-cart-recovery.mjs` (`npm run check:cart`) cobre fallback por
+  estágio, substituição de variáveis, texto em branco e o limite de 160 do SMS.
+- Intervalos editáveis de 1 a 6 contatos; adicionar/remover contato reordena os
+  textos junto (o texto do contato removido não desloca os seguintes).
+- `discount_percent` removido (`20261123140000_cart_recovery_drop_discount.sql`):
+  nada lia o campo e o cupom já vive em `/admin/cupons`.
+- **Link das mensagens:** vinha de `Deno.env.get("SITE_URL") || "https://flowmembers.app"`,
+  e `SITE_URL` não existia nos secrets de produção — todo link saía com o domínio
+  antigo. Secret criado (`SITE_URL=https://v5.flowmembers.app`) e o fallback dos
+  quatro pontos que montam link trocado para o domínio atual:
+  `cart-recovery`, `_shared/notify-order`, `_shared/notification-dispatch` e
+  `_shared/integrations`. E-mail do estágio 1 conferido depois do deploy trazendo
+  `https://v5.flowmembers.app/c/design-ui-ux-avancado`.
+  `SITE_URL` é secret de Edge Function (`supabase secrets set`), não `.env`: o
+  `.env` do repo alimenta só o bundle do front (prefixo `VITE_`), e a edge não lê.
+
+**Rollback:** recriar `discount_percent integer not null default 0 check
+(discount_percent between 0 and 90)` se algum dia o cupom automático for
+implementado; `alter table public.cart_recovery_settings drop column templates,
+drop column channel_sms;` e redeploy da edge anterior — os textos padrão voltam a
+ser os únicos.
 
 ---
 

@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   ShoppingCart, RefreshCw, Mail, MessageCircle, Package, Clock,
-  CheckCircle2, XCircle, Send, Loader2, User, TrendingUp, Eye,
+  CheckCircle2, XCircle, Send, Loader2, User, TrendingUp, Eye, Settings2, Plus, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,55 @@ interface Lead {
 
 const STAGE_LABELS = ["aguardando", "1º contato", "2º contato", "3º contato"];
 
+/** Textos por estágio. Vazio = texto padrão da edge `cart-recovery`. */
+type StageTemplate = { subject?: string; body?: string };
+type CartTemplates = {
+  email?: StageTemplate[];
+  whatsapp?: StageTemplate[];
+  sms?: StageTemplate[];
+};
+
+interface CartRecoverySettings {
+  enabled: boolean;
+  stage_minutes: number[];
+  channel_email: boolean;
+  channel_whatsapp: boolean;
+  channel_sms: boolean;
+  templates: CartTemplates | null;
+}
+
+/**
+ * Textos padrão por canal — espelham `stageMessage`/`stageSubject`/
+ * `smsStageDefault` da edge `cart-recovery`. O WhatsApp usa `*negrito*`; o
+ * e-mail sai sem os asteriscos, por isso são textos separados.
+ */
+const STAGE_DEFAULTS = [
+  {
+    subject: "Você esqueceu algo em {produto}",
+    whatsapp: "Oi, {nome}! Vi que você começou a comprar *{produto}* ({preco}) e não terminou.\n\nSeu checkout continua aberto:\n{link}\n\nSe ficou alguma dúvida, é só responder aqui.",
+    email: "Oi, {nome}! Vi que você começou a comprar {produto} ({preco}) e não terminou.\n\nSeu checkout continua aberto:\n{link}\n\nSe ficou alguma dúvida, é só responder aqui.",
+    sms: "Retome {produto}: {link}",
+  },
+  {
+    subject: "Seu acesso a {produto} está reservado",
+    whatsapp: "Seu acesso a *{produto}* ainda está esperando por você.\n\nFinalize em 1 minuto:\n{link}",
+    email: "Seu acesso a {produto} ainda está esperando por você.\n\nFinalize em 1 minuto:\n{link}",
+    sms: "Ainda dá tempo: {link}",
+  },
+  {
+    subject: "Última chance: {produto}",
+    whatsapp: "Última mensagem sobre *{produto}* — depois dessa não volto a insistir.\n\n{link}",
+    email: "Última mensagem sobre {produto} — depois dessa não volto a insistir.\n\n{link}",
+    sms: "Último lembrete {produto}: {link}",
+  },
+];
+
+const SMS_MAX = 160;
+
+function humanMinutes(m: number) {
+  return m >= 1440 ? `${Math.round(m / 1440)}d` : m >= 60 ? `${Math.round(m / 60)}h` : `${m}min`;
+}
+
 function money(cents: number | null | undefined) {
   return `R$${((cents ?? 0) / 100).toFixed(2).replace(".", ",")}`;
 }
@@ -71,11 +120,16 @@ export default function AbandonedCarts() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"open" | "recovered" | "all">("open");
   const [selected, setSelected] = useState<Lead | null>(null);
-  const [manualChannel, setManualChannel] = useState<"whatsapp" | "email">("whatsapp");
+  const [manualChannel, setManualChannel] = useState<"whatsapp" | "email" | "sms">("whatsapp");
   const [manualText, setManualText] = useState("");
   const [manualSubject, setManualSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sweeping, setSweeping] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [draftMinutes, setDraftMinutes] = useState<number[]>([10, 300, 1440]);
+  const [draftTemplates, setDraftTemplates] = useState<CartTemplates>({});
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [templateChannel, setTemplateChannel] = useState<keyof CartTemplates>("email");
 
   const { data: settings } = useQuery({
     queryKey: ["cart-recovery-settings"],
@@ -128,7 +182,7 @@ export default function AbandonedCarts() {
     enabled: boolean;
     channel_email: boolean;
     channel_whatsapp: boolean;
-    discount_percent: number;
+    channel_sms: boolean;
   }>) => {
     const { error } = await supabase.from("cart_recovery_settings").update(patch).eq("id", true);
     if (error) {
@@ -136,6 +190,84 @@ export default function AbandonedCarts() {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["cart-recovery-settings"] });
+  };
+
+  const cfg = settings as CartRecoverySettings | null | undefined;
+
+  const openConfig = () => {
+    const base = cfg?.stage_minutes?.length ? cfg.stage_minutes : [10, 300, 1440];
+    setDraftMinutes(base.slice(0, 6));
+    setDraftTemplates(cfg?.templates ?? {});
+    setConfigOpen(true);
+  };
+
+  const addStage = () => {
+    if (draftMinutes.length >= 6) {
+      toast.error("Máximo de 6 contatos.");
+      return;
+    }
+    const last = draftMinutes[draftMinutes.length - 1] ?? 60;
+    setDraftMinutes([...draftMinutes, last * 2]);
+  };
+
+  const removeStage = (index: number) => {
+    if (draftMinutes.length <= 1) {
+      toast.error("O funil precisa de pelo menos 1 contato.");
+      return;
+    }
+    setDraftMinutes(draftMinutes.filter((_, i) => i !== index));
+    // Remove o texto do estágio excluído para não deslocar os seguintes.
+    setDraftTemplates((prev) => Object.fromEntries(
+      Object.entries(prev).map(([channel, stages]) => [
+        channel,
+        (stages ?? []).filter((_, i) => i !== index),
+      ]),
+    ));
+  };
+
+  const saveConfig = async () => {
+    const minutes = draftMinutes.map((m) => Math.max(1, Math.round(Number(m) || 1)));
+    // Só grava o que foi escrito: estágio em branco continua usando o padrão
+    // da edge, então apagar um texto nunca deixa o lead sem mensagem.
+    const clean = Object.fromEntries(
+      Object.entries(draftTemplates)
+        .map(([channel, stages]) => [
+          channel,
+          (stages ?? []).map((s) => ({
+            ...(s.subject?.trim() ? { subject: s.subject.trim() } : {}),
+            ...(s.body?.trim() ? { body: s.body.trim() } : {}),
+          })),
+        ])
+        .filter(([, stages]) => (stages as unknown[]).some((s) => Object.keys(s as object).length > 0)),
+    );
+
+    setSavingConfig(true);
+    const { error } = await supabase
+      .from("cart_recovery_settings")
+      .update({ stage_minutes: minutes, templates: clean })
+      .eq("id", true);
+    setSavingConfig(false);
+
+    if (error) {
+      toast.error("Não foi possível salvar o funil.");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["cart-recovery-settings"] });
+    toast.success("Funil atualizado.");
+    setConfigOpen(false);
+  };
+
+  const setStageField = (
+    channel: keyof CartTemplates,
+    index: number,
+    field: "subject" | "body",
+    value: string,
+  ) => {
+    setDraftTemplates((prev) => {
+      const stages = [...(prev[channel] ?? [])];
+      stages[index] = { ...(stages[index] ?? {}), [field]: value };
+      return { ...prev, [channel]: stages };
+    });
   };
 
   const runSweep = async () => {
@@ -171,7 +303,13 @@ export default function AbandonedCarts() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(manualChannel === "email" ? "E-mail enfileirado." : "Mensagem enviada no WhatsApp.");
+      toast.success(
+        manualChannel === "email"
+          ? "E-mail enfileirado."
+          : manualChannel === "sms"
+            ? "SMS enviado."
+            : "Mensagem enviada no WhatsApp.",
+      );
       setSelected(null);
       setManualText("");
       setManualSubject("");
@@ -247,17 +385,15 @@ export default function AbandonedCarts() {
             <div>
               <p className="font-bold text-white text-sm">Recuperação automática</p>
               <p className="text-xs text-muted-foreground">
-                3 contatos por lead:{" "}
-                {(settings?.stage_minutes ?? [10, 300, 1440])
-                  .map((m: number) => (m >= 1440 ? `${Math.round(m / 1440)}d` : m >= 60 ? `${Math.round(m / 60)}h` : `${m}min`))
-                  .join(" · ")}
+                {(cfg?.stage_minutes ?? [10, 300, 1440]).length} contatos por lead:{" "}
+                {(cfg?.stage_minutes ?? [10, 300, 1440]).map(humanMinutes).join(" · ")}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-5">
             <div className="flex items-center gap-2">
               <Switch
-                checked={!!settings?.enabled}
+                checked={!!cfg?.enabled}
                 onCheckedChange={(v) => saveSettings({ enabled: v })}
                 id="recovery-enabled"
               />
@@ -267,7 +403,7 @@ export default function AbandonedCarts() {
             </div>
             <div className="flex items-center gap-2">
               <Switch
-                checked={settings?.channel_email !== false}
+                checked={cfg?.channel_email !== false}
                 onCheckedChange={(v) => saveSettings({ channel_email: v })}
                 id="recovery-email"
               />
@@ -275,12 +411,28 @@ export default function AbandonedCarts() {
             </div>
             <div className="flex items-center gap-2">
               <Switch
-                checked={settings?.channel_whatsapp === true}
+                checked={cfg?.channel_whatsapp === true}
                 onCheckedChange={(v) => saveSettings({ channel_whatsapp: v })}
                 id="recovery-whatsapp"
               />
               <Label htmlFor="recovery-whatsapp" className="text-[13px] text-white/70">WhatsApp</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={cfg?.channel_sms === true}
+                onCheckedChange={(v) => saveSettings({ channel_sms: v })}
+                id="recovery-sms"
+              />
+              <Label htmlFor="recovery-sms" className="text-[13px] text-white/70">SMS</Label>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={openConfig}
+              className="bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 h-9 rounded-[10px] px-4 text-[12px] font-bold"
+            >
+              <Settings2 className="w-3.5 h-3.5 mr-2" />
+              Editar funil
+            </Button>
           </div>
         </div>
       </div>
@@ -413,6 +565,143 @@ export default function AbandonedCarts() {
         </div>
       </div>
 
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-2xl bg-black/90 backdrop-blur-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
+              <Settings2 className="w-5 h-5 text-primary" />
+              Funil de recuperação
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-[13px]">
+              Intervalo e texto de cada contato. Deixe o texto vazio para usar o padrão.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[13px] font-bold text-white/80">Intervalo entre contatos (minutos)</Label>
+                <Button
+                  variant="ghost"
+                  onClick={addStage}
+                  disabled={draftMinutes.length >= 6}
+                  className="h-8 px-3 rounded-[8px] text-[12px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white/80"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Contato
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                {draftMinutes.map((value, i) => (
+                  <div key={i} className="flex-1 space-y-1">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={value}
+                      onChange={(e) => {
+                        const next = [...draftMinutes];
+                        next[i] = Number(e.target.value);
+                        setDraftMinutes(next);
+                      }}
+                      className="bg-black/40 border-white/10 text-white h-[42px] rounded-[10px]"
+                    />
+                    <p className="text-[11px] text-muted-foreground text-center">{humanMinutes(value || 0)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 w-fit">
+              {(["email", "whatsapp", "sms"] as const).map((ch) => (
+                <button
+                  key={ch}
+                  onClick={() => setTemplateChannel(ch)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md text-[12px] font-bold transition-all",
+                    templateChannel === ch ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80",
+                  )}
+                >
+                  {ch === "email" ? "E-mail" : ch === "whatsapp" ? "WhatsApp" : "SMS"}
+                </button>
+              ))}
+            </div>
+
+            {templateChannel !== "email" && (
+              <p className="text-[12px] text-muted-foreground">
+                Variáveis: <code className="text-white/70">{"{nome}"}</code>{" "}
+                <code className="text-white/70">{"{produto}"}</code>{" "}
+                <code className="text-white/70">{"{preco}"}</code>{" "}
+                <code className="text-white/70">{"{link}"}</code>
+                {templateChannel === "sms" && " · limite de 160 caracteres por SMS · depende da integração IntegraX ativa"}
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {draftMinutes.map((_, i) => {
+                const stage = draftTemplates[templateChannel]?.[i];
+                const body = stage?.body ?? "";
+                // Acima do 3º contato a edge repete o último texto padrão.
+                const defaults = STAGE_DEFAULTS[Math.min(i, STAGE_DEFAULTS.length - 1)];
+                const fallback = templateChannel === "sms"
+                  ? defaults?.sms
+                  : templateChannel === "whatsapp"
+                    ? defaults?.whatsapp
+                    : defaults?.email;
+                return (
+                  <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        {i + 1}º contato · após {humanMinutes(draftMinutes[i] || 0)}
+                      </p>
+                      <button
+                        onClick={() => removeStage(i)}
+                        title="Remover contato"
+                        className="text-white/30 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {templateChannel === "email" && (
+                      <Input
+                        value={stage?.subject ?? ""}
+                        onChange={(e) => setStageField("email", i, "subject", e.target.value)}
+                        placeholder={STAGE_DEFAULTS[i]?.subject}
+                        className="bg-black/40 border-white/10 text-white h-[42px] rounded-[10px]"
+                      />
+                    )}
+                    <Textarea
+                      value={body}
+                      onChange={(e) => setStageField(templateChannel, i, "body", e.target.value)}
+                      placeholder={fallback}
+                      className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[90px] text-[13px]"
+                    />
+                    {templateChannel === "sms" && (
+                      <p className={cn("text-[11px]", body.length > SMS_MAX ? "text-red-400" : "text-muted-foreground")}>
+                        {body.length}/{SMS_MAX}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setConfigOpen(false)} className="text-white/60 hover:text-white">
+              Cancelar
+            </Button>
+            <Button
+              onClick={saveConfig}
+              disabled={savingConfig}
+              className="bg-primary text-black font-bold rounded-[10px]"
+            >
+              {savingConfig && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar funil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="glass-card border-white/10 rounded-[20px] max-w-2xl bg-black/90 backdrop-blur-xl">
           <DialogHeader>
@@ -459,7 +748,7 @@ export default function AbandonedCarts() {
               <div className="flex items-center justify-between">
                 <Label className="text-[13px] font-bold text-white/80">Enviar mensagem</Label>
                 <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
-                  {(["whatsapp", "email"] as const).map((ch) => (
+                  {(["whatsapp", "email", "sms"] as const).map((ch) => (
                     <button
                       key={ch}
                       onClick={() => setManualChannel(ch)}
@@ -468,7 +757,7 @@ export default function AbandonedCarts() {
                         manualChannel === ch ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80",
                       )}
                     >
-                      {ch === "whatsapp" ? "WhatsApp" : "E-mail"}
+                      {ch === "whatsapp" ? "WhatsApp" : ch === "email" ? "E-mail" : "SMS"}
                     </button>
                   ))}
                 </div>
@@ -487,12 +776,21 @@ export default function AbandonedCarts() {
                 placeholder={
                   manualChannel === "whatsapp"
                     ? "Mensagem do WhatsApp (vazio usa o texto padrão de recuperação)"
-                    : "Corpo do e-mail (vazio usa o texto padrão de recuperação)"
+                    : manualChannel === "sms"
+                      ? "SMS (vazio usa o texto padrão do 1º contato) · máx. 160 caracteres"
+                      : "Corpo do e-mail (vazio usa o texto padrão de recuperação)"
                 }
                 className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[110px] text-[13px]"
               />
-              {manualChannel === "whatsapp" && !selected?.phone && (
-                <p className="text-[12px] text-amber-400">Este lead não tem telefone — use e-mail.</p>
+              {manualChannel === "sms" && manualText.length > SMS_MAX && (
+                <p className="text-[12px] text-red-400">
+                  {manualText.length}/{SMS_MAX} — a IntegraX recusa acima do limite.
+                </p>
+              )}
+              {manualChannel !== "email" && !selected?.phone && (
+                <p className="text-[12px] text-amber-400">
+                  Este lead não tem telefone — use e-mail.
+                </p>
               )}
               {manualChannel === "whatsapp" && selected?.phone && (
                 <a
@@ -517,7 +815,7 @@ export default function AbandonedCarts() {
             </Button>
             <Button
               onClick={sendManual}
-              disabled={sending || (manualChannel === "whatsapp" && !selected?.phone)}
+              disabled={sending || (manualChannel !== "email" && !selected?.phone)}
               className="bg-primary text-black font-bold rounded-[10px]"
             >
               {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}

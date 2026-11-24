@@ -136,7 +136,7 @@ const Leaderboard = () => {
 
   if (error) {
     return (
-      <PageContainer className="py-8">
+      <PageContainer className="py-8" wide>
         <div className="p-8 flex flex-col justify-center items-center h-64 border border-destructive/20 rounded-xl bg-destructive/10 mt-8">
           <h2 className="text-xl font-bold text-destructive mb-2">Erro ao carregar o ranking</h2>
           <p className="font-mono text-xs text-muted-foreground bg-black/40 p-2 rounded w-full overflow-auto">
@@ -149,7 +149,7 @@ const Leaderboard = () => {
 
   if (isLoading) {
     return (
-      <PageContainer className="py-8">
+      <PageContainer className="py-8" wide>
         <div className="space-y-8">
           <div className="t-skeleton h-20 bg-card rounded-lg w-full max-w-sm mb-12"></div>
           <div className="flex flex-col md:flex-row justify-center items-end gap-6 mb-16">
@@ -168,7 +168,7 @@ const Leaderboard = () => {
   }
 
   return (
-    <PageContainer className="pb-24 space-y-8">
+    <PageContainer className="pb-24 space-y-8" wide>
       <AdminHeader
         title={`Ranking ${period === 'global' ? 'Global' : period === 'weekly' ? 'Semanal' : 'Mensal'}`}
         description="Compare seu progresso e mantenha sua ofensiva alta para subir na classificação."

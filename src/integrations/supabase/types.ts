@@ -260,29 +260,32 @@ export type Database = {
       cart_recovery_settings: {
         Row: {
           channel_email: boolean
+          channel_sms: boolean
           channel_whatsapp: boolean
-          discount_percent: number
           enabled: boolean
           id: boolean
           stage_minutes: number[]
+          templates: Json
           updated_at: string
         }
         Insert: {
           channel_email?: boolean
+          channel_sms?: boolean
           channel_whatsapp?: boolean
-          discount_percent?: number
           enabled?: boolean
           id?: boolean
           stage_minutes?: number[]
+          templates?: Json
           updated_at?: string
         }
         Update: {
           channel_email?: boolean
+          channel_sms?: boolean
           channel_whatsapp?: boolean
-          discount_percent?: number
           enabled?: boolean
           id?: boolean
           stage_minutes?: number[]
+          templates?: Json
           updated_at?: string
         }
         Relationships: []

@@ -189,7 +189,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
-      <PageContainer>
+      <PageContainer wide>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
