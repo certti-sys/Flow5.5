@@ -84,22 +84,26 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Acesso negado.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 });
     }
 
-    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    
+    // Rate limit é por admin (acima); o IP fica só para auditoria.
     // --- SHARED RATE LIMITING ---
+    // Limite por ADMIN, não por IP: é endpoint autenticado e admin-only, e um
+    // escritório inteiro sai pelo mesmo IP. Além disso o identificador antigo era
+    // a cadeia `x-forwarded-for` crua ("ip,ip, ip"), que muda a cada requisição
+    // atrás do balanceador — os baldes se fragmentavam e o limite disparava de
+    // forma imprevisível. 3 resets/15min bloqueava o admin no uso normal.
     const rateLimit = await checkRateLimit(
       supabaseAdmin,
-      ipAddress,
+      callerUser.id,
       'reset-password',
-      3,          // 3 requests
-      15 * 60     // per 15 minutes
+      20,
+      15 * 60
     );
 
     if (!rateLimit.allowed) {
-      logger.info('Rate limit hit for reset-password', { ipAddress });
+      logger.info('Rate limit hit for reset-password', { adminUserId: callerUser.id });
       return new Response(
         JSON.stringify({ 
-          error: 'Muitas solicitações.', 
+          error: 'Muitas solicitações.',
           retryAfter: rateLimit.retryAfter 
         }), 
         { 
@@ -133,7 +137,19 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, tempPassword }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
   } catch (error) {
     logger.error('Internal function error in reset-user-password', error);
-    return new Response(JSON.stringify({ error: 'Erro interno ao resetar senha' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 })
+    // `updateUserById` devolve 404 com "User not found" quando o perfil existe
+    // mas o login não (importação antiga). Sem traduzir, o admin recebia "Erro
+    // interno" e não tinha como saber que o aluno precisa ser recriado.
+    const status = (error as { status?: number })?.status;
+    const isNotFound = status === 404;
+    return new Response(
+      JSON.stringify({
+        error: isNotFound
+          ? 'Este aluno não possui conta de login. Recrie o acesso dele.'
+          : 'Erro interno ao resetar senha',
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: isNotFound ? 404 : 400 }
+    )
   }
 })
 

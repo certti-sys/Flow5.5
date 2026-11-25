@@ -41,12 +41,28 @@ export function ResetPasswordModal({ open, onOpenChange, student }: ResetPasswor
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
         body: { userId },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (error) {
+        // `functions.invoke` só monta "Edge Function returned a non-2xx status
+        // code". O motivo real (429, token expirado, aluno inexistente) fica no
+        // corpo da resposta, que sem isso o admin nunca vê.
+        let message = error.message;
+        const res = (error as { context?: Response }).context;
+        if (res && typeof res.json === "function") {
+          const body = await res.json().catch(() => null);
+          if (body?.error) {
+            message =
+              typeof body.retryAfter === "number"
+                ? `${body.error} Tente de novo em ${Math.ceil(body.retryAfter / 60)} min.`
+                : body.error;
+          }
+        }
+        throw new Error(message);
+      }
+      if (data?.error) throw new Error(data.error);
 
       return data.tempPassword;
     },
@@ -56,8 +72,9 @@ export function ResetPasswordModal({ open, onOpenChange, student }: ResetPasswor
       toast.success("Senha resetada com sucesso!");
     },
     onError: (error: Error) => {
+      // Sem fechar o modal: fechando, o admin perde o contexto e tenta de novo
+      // às cegas — que é justamente o que estourava o limite de requisições.
       toast.error(`Erro ao resetar senha: ${error.message}`);
-      onOpenChange(false);
     },
   });
 
