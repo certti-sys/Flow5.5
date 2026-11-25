@@ -444,11 +444,11 @@ Aplicado com `db push`; `tsc` e `vite build` OK.
 
 ---
 
-## FASE 11 — Upsell / Downsell (em andamento)
+## FASE 11 — Upsell / Downsell (feito)
 
-> **Fase 11.1 e 11.3 implementadas:** configuração, editor das três páginas
-> pós-compra e preview no admin. Falta a **11.2** (rotas públicas de upsell e
-> downsell) — o conteúdo já salvo é usado assim que elas existirem.
+> **Fase 11.1, 11.2, 11.3 e 11.4 implementadas e verificadas em produção:**
+> configuração, editor das três páginas pós-compra, rotas públicas de upsell e
+> downsell, e liga/desliga de método de pagamento por produto.
 
 ### 11.1 Configuração (feito)
 
@@ -501,20 +501,29 @@ Downsell), formulário à esquerda e prévia ao lado. Sem HTML/CSS/JS cru.
 - Mídia compartilhada entre prévia e página real:
   `src/components/checkout/PostPurchaseMedia.tsx`.
 
-### 11.2 Páginas públicas de upsell/downsell (pendente)
+### 11.2 Páginas públicas de upsell/downsell (feito)
 
-- `/checkout/upsell/:orderId` e `/checkout/downsell/:orderId`, fora do
-  `CheckoutLayout`. `orderId` (UUID) é o token; valida `orders.status = 'paid'`.
-- `ThankYou.tsx` redireciona para o upsell quando `upsell.enabled` e o pedido
-  ainda não respondeu (`orders.metadata.upsell_shown`).
-- Aceitar = `orders` novo `pending` com `metadata.parent_order_id` e
-  `metadata.kind = 'upsell'`, depois reusa `payment-ops`.
-- Recusar = downsell (se ativo) ou obrigado.
+- Rotas `/checkout/upsell/:orderId` e `/checkout/downsell/:orderId`, fora do
+  `CheckoutLayout` (`src/pages/checkout/Upsell.tsx`). `orderId` (UUID) é o token;
+  a página lê o pedido pela RPC pública `get_order_public` e exige `paid`.
+- `ThankYou.tsx` chama `claim_order_upsell(orderId)` 1,2 s depois de confirmar o
+  pagamento. A RPC marca `orders.metadata.upsell_shown` e devolve `true` **uma
+  vez**; recarregar o obrigado não reabre a oferta. `redirect_after_purchase`
+  tem prioridade sobre o upsell.
+- Aceitar leva ao checkout normal do produto da oferta com `?parent=<pedido>`;
+  `payment-ops` confere que o pedido pai está pago antes de gravar
+  `metadata.parent_order_id` e `metadata.kind = 'upsell'`. Uma única
+  implementação de cobrança — gateway, PIX, cupom e bumps já testados.
+- Recusar = downsell (se ativo e com produto) ou obrigado. Downsell sem produto
+  configurado redireciona para o obrigado em vez de mostrar tela vazia.
+- Pedido com `metadata.kind` preenchido não oferece outro upsell (sem corrente).
+- Pixel: `initPixels` + `PageView` nas páginas de oferta, com o produto principal.
+- Migration `20261126120000_lesson_pdf_annotations.sql` (a RPC vive no mesmo
+  arquivo das marcações de PDF).
 
-**Rollback:** remover `upsell` e `thank_you` de `checkout_config` do produto —
-nenhum outro campo é afetado; `ThankYou.tsx` volta aos textos padrão e as rotas
-de upsell/downsell ainda não existem. Nada foi aplicado em produção por esta
-fase além do teste de gravação, já revertido.
+**Rollback:** remover `upsell` e `thank_you` de `checkout_config` do produto e
+`drop function public.claim_order_upsell(uuid)`. As rotas caem no obrigado
+sozinhas; nenhum pedido ou acesso é afetado.
 
 ### 11.4 Ligar/desligar método de pagamento por produto (feito)
 
@@ -623,6 +632,11 @@ Fase 10 (estorno)      ◄── depende de 4 (trigger de reembolso) e 8 (RLS fe
 Justificativa da troca: a **Fase 5 (funil) passou a ser pré-requisito** da recuperação de abandono — sem saber quem preencheu o formulário e desistiu, não há régua de recuperação. Por isso ela vem antes da 3, e não depois.
 
 **Esforço total estimado:** ~19 dias (1 + 2 + 1,5 + 1,5 + 4 + 4 + 3 + 0,5 + 1 + 0,5).
+
+Estado em 25/11/2026: Fases 1 a 12 entregues. Fase 11.2 (rotas públicas de
+upsell/downsell), leitor de PDF com marcações e o fim do MP4 direto entraram no
+commit `ea6036b`. Pendências que sobraram estão em
+`docs/relatorio-pendencias-paridade.html`.
 
 ---
 

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow5.5 — Auditoria do Design System</title>
+<style>
+  :root{
+    --bg:#0c0a0a; --bg-soft:#121010; --panel:#161313; --panel-2:#1c1818;
+    --line:#2a2424; --line-soft:#201b1b;
+    --ink:#ece7e7; --ink-2:#b3a9a9; --ink-3:#7d7373;
+    --accent:hsl(0 85% 60%); --accent-soft:rgba(240,66,66,.10);
+    --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --info:#60a5fa; --violet:#a78bfa;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
+    --maxw:1340px;
+  }
+  html[data-theme="light"]{
+    --bg:#f8f6f6; --bg-soft:#f0ecec; --panel:#fff; --panel-2:#f5f1f1;
+    --line:#e2dada; --line-soft:#ece5e5;
+    --ink:#1c1414; --ink-2:#544848; --ink-3:#877a7a;
+    --accent:hsl(0 72% 46%);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:80px}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .hero{border-bottom:1px solid var(--line);padding:60px 32px 48px;
+    background:radial-gradient(900px 360px at 10% -10%,rgba(240,66,66,.10),transparent 60%),
+               radial-gradient(700px 300px at 90% 0%,rgba(167,139,250,.06),transparent 62%),var(--bg)}
+  .hero-inner{max-width:var(--maxw);margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .eyebrow::before{content:"";width:34px;height:1px;background:var(--accent);opacity:.7}
+  h1{margin:0 0 16px;font-size:clamp(32px,5vw,58px);line-height:1.04;font-weight:600;letter-spacing:-.03em;max-width:20ch}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{max-width:78ch;color:var(--ink-2);font-size:16.5px;margin:0 0 26px}
+  .metaline{display:flex;flex-wrap:wrap;gap:10px 26px;font-family:var(--mono);font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:18px}
+  .metaline b{color:var(--ink-2);font-weight:500}
+  .stats{max-width:var(--maxw);margin:0 auto;padding:0 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line-soft);border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;overflow:hidden}
+  .stat{background:var(--bg-soft);padding:18px}
+  .stat .n{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-.02em}
+  .stat .n.bad{color:var(--bad)} .stat .n.warn{color:var(--warn)} .stat .n.ok{color:var(--ok)}
+  .stat .l{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;margin-top:4px}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;display:grid;grid-template-columns:240px 1fr;gap:52px}
+  nav{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:42px 0}
+  nav .navtitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px}
+  nav ol{list-style:none;margin:0;padding:0;counter-reset:n}
+  nav li{counter-increment:n}
+  nav a{display:flex;gap:9px;align-items:baseline;padding:6px 10px;margin-left:-10px;border-radius:6px;font-size:13px;color:var(--ink-3);transition:.15s}
+  nav a::before{content:counter(n,decimal-leading-zero);font-family:var(--mono);font-size:10.5px;opacity:.55;flex:none}
+  nav a:hover{color:var(--ink);background:var(--panel)}
+  nav a.active{color:var(--accent);background:var(--accent-soft)}
+  nav a.active::before{opacity:1}
+  main{padding:42px 0 90px;min-width:0}
+  section{padding-bottom:50px;margin-bottom:40px;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:none}
+  h2{margin:0 0 8px;font-size:26px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:13px}
+  h2 .idx{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid var(--accent-soft);background:var(--accent-soft);padding:3px 8px;border-radius:5px;flex:none}
+  .sec-sub{color:var(--ink-2);margin:0 0 24px;max-width:84ch}
+  h3{margin:28px 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:500;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+  p{margin:0 0 14px;max-width:90ch}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;max-width:92ch}
+  li{position:relative;padding-left:20px;margin-bottom:8px;color:var(--ink-2)}
+  li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.55}
+  li strong{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);border:1px solid var(--line-soft);padding:1.5px 6px;border-radius:5px;color:var(--ink);word-break:break-all}
+  .sev{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:4px;margin-right:7px;vertical-align:1px;font-weight:600}
+  .sev.p0{background:rgba(248,113,113,.12);color:var(--bad);border:1px solid rgba(248,113,113,.25)}
+  .sev.p1{background:rgba(251,191,36,.10);color:var(--warn);border:1px solid rgba(251,191,36,.22)}
+  .sev.p2{background:rgba(96,165,250,.10);color:var(--info);border:1px solid rgba(96,165,250,.22)}
+  .sev.ok{background:rgba(74,222,128,.10);color:var(--ok);border:1px solid rgba(74,222,128,.22)}
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 20px}
+  table{border-collapse:collapse;width:100%;min-width:600px;font-size:13.5px}
+  th{text-align:left;padding:10px 15px;background:var(--panel-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:11px 15px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2)}
+  tr:last-child td{border-bottom:none}
+  td strong{color:var(--ink);font-weight:600}
+  td.num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  tbody tr:hover td{background:rgba(240,66,66,.03)}
+  .note{border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--panel);border-radius:0 10px 10px 0;padding:15px 19px;margin:0 0 18px}
+  .note.warn{border-left-color:var(--warn)} .note.ok{border-left-color:var(--ok)} .note.info{border-left-color:var(--info)}
+  .note .h{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+  .note p{margin:0;font-size:14px} .note p+p{margin-top:8px}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px;margin:0 0 20px}
+  .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:16px 19px}
+  .card .ch{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .card .ch::before{content:"";width:4px;height:14px;background:var(--accent);border-radius:2px;flex:none}
+  .card p{font-size:13.5px;color:var(--ink-2);margin:0}
+  .loc{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:block;margin-top:3px}
+  .fix{color:var(--ok);font-size:13px}
+  footer{border-top:1px solid var(--line);padding:26px 32px 56px;color:var(--ink-3);font-size:12.5px}
+  footer .fi{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 30px;justify-content:space-between}
+  .totop{position:fixed;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;display:none;place-items:center;font-size:15px}
+  .totop.on{display:grid}
+  .themebtn{position:fixed;top:18px;right:22px;z-index:50;background:var(--panel);border:1px solid var(--line);color:var(--ink-2);border-radius:8px;padding:7px 11px;font-family:var(--mono);font-size:11px;cursor:pointer}
+  @media(max-width:960px){
+    .wrap{grid-template-columns:1fr;gap:0;padding:0 20px}
+    nav{position:static;max-height:none;padding:26px 0 0;border-bottom:1px solid var(--line);margin-bottom:24px}
+    nav ol{display:flex;flex-wrap:wrap;gap:4px}
+    .hero{padding:44px 20px 38px} .stats{padding:0 20px}
+    main{padding-top:28px}
+  }
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themeBtn">◐ TEMA</button>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Auditoria de Design System · Web Interface Guidelines</div>
+    <h1>Flow5.5 — <em>auditoria completa</em> do design system</h1>
+    <p class="lede">
+      Análise de 246 arquivos (<code>src/</code> inteiro: fundação CSS/Tailwind, 18 presets de tema,
+      50 primitivos UI, features, páginas client/admin e checkout público), cruzada com as
+      Web Interface Guidelines. Contagens de violação medidas por varredura automatizada do repositório;
+      findings qualitativos verificados por leitura direta com <code>file:line</code>.
+    </p>
+    <div class="metaline">
+      <span><b>Stack</b> React 18 · Vite 7 · Tailwind 3.4 · shadcn/Radix · CVA</span>
+      <span><b>Escopo</b> src/ + index.html + tailwind.config.ts</span>
+      <span><b>Data</b> 25/11/2026</span>
+    </div>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="n bad">3.248</div><div class="l">white/black fora de token</div></div>
+  <div class="stat"><div class="n bad">1.135</div><div class="l">cores Tailwind cruas</div></div>
+  <div class="stat"><div class="n bad">1.093</div><div class="l">text-[Npx] arbitrários</div></div>
+  <div class="stat"><div class="n warn">722</div><div class="l">rounded-[Npx]</div></div>
+  <div class="stat"><div class="n warn">203</div><div class="l">transition-all</div></div>
+  <div class="stat"><div class="n warn">89</div><div class="l">durations fora da escala</div></div>
+  <div class="stat"><div class="n ok">50</div><div class="l">primitivos UI</div></div>
+  <div class="stat"><div class="n ok">18</div><div class="l">presets de tema</div></div>
+</div>
+
+<div class="wrap">
+  <nav>
+    <div class="navtitle">Sumário</div>
+    <ol>
+      <li><a href="#s1">Diagnóstico executivo</a></li>
+      <li><a href="#s2">Métricas do repositório</a></li>
+      <li><a href="#s3">Fundação de tokens</a></li>
+      <li><a href="#s4">Temas &amp; presets</a></li>
+      <li><a href="#s5">Primitivos UI</a></li>
+      <li><a href="#s6">Checkout &amp; forms</a></li>
+      <li><a href="#s7">Acessibilidade</a></li>
+      <li><a href="#s8">Motion</a></li>
+      <li><a href="#s9">Performance &amp; fontes</a></li>
+      <li><a href="#s10">i18n &amp; conteúdo</a></li>
+      <li><a href="#s11">Bugs confirmados</a></li>
+      <li><a href="#s12">Roadmap de correção</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="s1">
+    <h2><span class="idx">01</span>Diagnóstico executivo</h2>
+    <p class="sec-sub">O design system <strong>existe e é bom na fundação</strong> — o problema é adoção e coerência entre camadas.</p>
+
+    <div class="cols">
+      <div class="card"><div class="ch">O que está sólido</div><p>Tokens HSL completos (shadcn), escala de motion própria (<code>--duration-*</code>, <code>--ease-*</code>, classes <code>t-*</code>), guard global de <code>prefers-reduced-motion</code> em CSS, <code>form.tsx</code> exemplar em a11y, checkout público com dual-theme light/dark bem arquitetado, destructive actions com confirmação, zoom preservado no viewport.</p></div>
+      <div class="card"><div class="ch">O problema central</div><p>O app client/admin roda num <strong>sistema paralelo de facto</strong>: glassmorphism com <code>white/α</code> e <code>black/α</code> (3.248 ocorrências), tipografia em px arbitrários (12 tamanhos distintos), receitas de card/botão copy-paste em ~40 sites. Isso <strong>ignora os tokens e quebra sob qualquer preset claro</strong>.</p></div>
+      <div class="card"><div class="ch">Riscos imediatos</div><p>4 bugs de compilação/runtime nos presets, branco-sobre-branco em botões destrutivos, CVV logado no console em produção, QR PIX enviado a serviço terceiro, Enter no cupom dispara o pagamento, câmbio hardcoded "de exemplo".</p></div>
+    </div>
+
+    <h3>As 5 decisões estruturais que resolvem 80% dos findings</h3>
+    <ul>
+      <li><span class="sev p0">P0</span><strong>Tokenizar a camada glass</strong> — criar <code>--glass-bg</code>, <code>--glass-border</code>, <code>--glass-hover</code> (com variantes por preset/tema) e substituir mechanicalmente <code>bg-black/40</code>, <code>border-white/10</code>, <code>text-white/60</code>. Um codemod resolve a maior parte das 3.248 ocorrências.</li>
+      <li><span class="sev p0">P0</span><strong>Unificar a escala tipográfica</strong> — portar a escala já escrita em <code>design-tokens.ts:132–157</code> (12–36px + line-heights) para <code>theme.fontSize</code> do Tailwind e mapear os ~1.093 <code>text-[Npx]</code> para os degraus.</li>
+      <li><span class="sev p0">P0</span><strong>Variantes de Card e Button para as receitas repetidas</strong> — <code>Card variant="glass"</code> e sizes/variantes success/warning no Button eliminam ~25 cards manuais, ~15 botões ad-hoc e os TONES do modal.</li>
+      <li><span class="sev p1">P1</span><strong>Escala de z-index + fim da guerra de <code>!important</code></strong> — tokens <code>--z-dropdown/sticky/modal/popover/toast</code>, remover o bloco global de dialogs (<code>index.css:345–400</code>) e o <code>z-[10001]</code>/<code>z-[99999]</code>.</li>
+      <li><span class="sev p1">P1</span><strong>Lint de design system</strong> — ESLint (tailwind plugin) proibindo arbitrary px, cores cruas e <code>transition-all</code> em código novo; os scripts <code>check:*</code> já existentes mostram que a cultura de guard-rail existe.</li>
+    </ul>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <h2><span class="idx">02</span>Métricas do repositório</h2>
+    <p class="sec-sub">Varredura automatizada de 246 arquivos <code>.tsx/.ts/.css</code> em <code>src/</code> (50 ui + 196 app). Números exatos, não amostra.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Padrão</th><th>Total</th><th>ui/</th><th>app/</th><th>Maiores ofensores</th></tr></thead>
+      <tbody>
+        <tr><td><strong>white/black hardcoded</strong> (incl. alpha)</td><td class="num">3.276</td><td class="num">28</td><td class="num">3.248</td><td>EmailSettings (181), WhatsAppSettings (173), CheckoutBuilder (126), AbandonedCarts (125)</td></tr>
+        <tr><td><strong>Cores Tailwind cruas</strong> (red/green/amber/gray…)</td><td class="num">1.153</td><td class="num">18</td><td class="num">1.135</td><td>OrderBumpCard (205, paleta dual-theme documentada), Notifications (52), WebhookTransactionsList (44), Orders (44)</td></tr>
+        <tr><td><code>text-[Npx]</code></td><td class="num">1.095</td><td class="num">2</td><td class="num">1.093</td><td>WhatsAppSettings (79), EmailSettings (73), CheckoutBuilder (61) — 12 tamanhos distintos, incl. <code>text-[8px]</code></td></tr>
+        <tr><td><code>rounded-[Npx]</code></td><td class="num">732</td><td class="num">10</td><td class="num">722</td><td>EmailSettings (45), WhatsAppSettings (43), BrandingCustomization (37) — 6 valores: 10/12/16/20/24/32px</td></tr>
+        <tr><td><code>h-[Npx]</code></td><td class="num">357</td><td class="num">6</td><td class="num">351</td><td>BrandingCustomization (18), ProductFormModal (16) — receita de botão <code>h-[44px]</code> repetida em ≥8 arquivos</td></tr>
+        <tr><td><code>transition-all</code></td><td class="num">206</td><td class="num">3</td><td class="num">203</td><td>EmailSettings (11), WhatsAppSettings (10), Comments (9)</td></tr>
+        <tr><td>Durations hardcoded (200/300/500/700/1000)</td><td class="num">96</td><td class="num">7</td><td class="num">89</td><td>vs. <strong>10 usos de token no app</strong> → adoção da escala de motion ≈ 10%</td></tr>
+        <tr><td><code>z-[arbitrário]</code></td><td class="num">9</td><td class="num">3</td><td class="num">6</td><td>Valores: 10001 (select), 99999 (Students.tsx:167), IssueCertificateModal, PdfViewer</td></tr>
+        <tr><td><code>shadow-[arbitrário]</code></td><td class="num">26</td><td class="num">2</td><td class="num">24</td><td>LevelUpModal usa <code>rgba(var(--primary))</code> — <strong>inválido</strong>: o token é triplet HSL, não cor RGB</td></tr>
+        <tr><td><code>toFixed(</code> (moeda manual)</td><td class="num">19</td><td class="num">0</td><td class="num">19</td><td>vs. 3 usos de <code>Intl</code> — apesar de <code>utils/currency.ts</code> já existir</td></tr>
+        <tr><td><code>prefers-reduced-motion</code></td><td class="num">3</td><td class="num">0</td><td class="num">3</td><td>Só CSS global — <strong>zero</strong> integração com framer-motion (JS)</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note info">
+      <div class="h">Leitura correta dos números</div>
+      <p>~105 classes literais do <code>OrderBumpCard</code> são intencionais (paleta dual-theme documentada para JIT do Tailwind) — o problema lá é não serem tokens, não serem literais. O padrão dominante é <strong>glassmorphism fora do sistema</strong>, concentrado no painel admin: as 4 páginas admin do topo somam ~600 ocorrências de white/black sozinhas.</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <h2><span class="idx">03</span>Fundação de tokens</h2>
+    <p class="sec-sub"><code>src/index.css</code> (656 linhas) + <code>tailwind.config.ts</code> + <code>src/lib/design-tokens.ts</code>.</p>
+
+    <h3>O que existe × o que falta</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Categoria</th><th>Estado</th><th>Gap</th></tr></thead>
+      <tbody>
+        <tr><td>Cores shadcn (HSL)</td><td><span class="sev ok">OK</span>Completas + foregrounds</td><td>Sem <code>--success/--warning/--info</code> semânticos → features usam <code>emerald-500</code>/<code>amber-500</code> direto</td></tr>
+        <tr><td>Motion (durações/easings/distâncias/escalas)</td><td><span class="sev ok">OK</span>Escala documentada, utilitários Tailwind expostos</td><td>Adoção ~10% no app; primitivas <code>--toast-*</code> duplicam a escala (<code>index.css:93–99</code>)</td></tr>
+        <tr><td>Radius</td><td><span class="sev p1">PARCIAL</span><code>--radius</code> + xl/2xl/3xl via preset</td><td><code>--radius-xl</code> = <code>--radius</code> hoje (hierarquia só existe via preset); 722 rounded arbitrários ignoram a escala</td></tr>
+        <tr><td><strong>Tipografia</strong></td><td><span class="sev p0">AUSENTE</span></td><td>Nenhum token de font-size/line-height/família no CSS ou Tailwind. A escala boa existe só em <code>design-tokens.ts:132–157</code>, desconectada</td></tr>
+        <tr><td><strong>Z-index</strong></td><td><span class="sev p0">AUSENTE</span></td><td>Valores soltos 9999/10000 com <code>!important</code> (<code>index.css:356,370</code>), 10001 no select, 99999 em Students</td></tr>
+        <tr><td><strong>Spacing semântico</strong></td><td><span class="sev p1">AUSENTE</span></td><td><code>--distance-*</code> é só para motion; sem tokens de layout; gaps 3/4/6 misturados sem regra</td></tr>
+        <tr><td>Sombras</td><td><span class="sev p1">PARCIAL</span></td><td>Só <code>--shadow-glow/card</code>; escala sm→2xl existe só no TS paralelo; submenus com shadow-lg/md/nenhuma inconsistentes</td></tr>
+        <tr><td>Vidro (glass)</td><td><span class="sev p0">AUSENTE</span></td><td><code>.glass-card</code> existe mas hardcodeia <code>border-white/10</code> (<code>index.css:219</code>) — a camada mais usada do app não tem tokens</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Problemas estruturais no CSS</h3>
+    <ul>
+      <li><span class="sev p0">P0</span><strong>Scrollbar global unlayered derrota utilitários</strong> — <code>index.css:319–323</code> (<code>* { scrollbar-width: thin }</code> fora de <code>@layer</code>) tem precedência sobre <code>.scrollbar-hide/.scrollbar-none</code> layerados: no Firefox, esconder scrollbar <strong>nunca funciona</strong>. Além disso força track escuro no checkout light e duplica <code>.scrollbar-styled</code> com 6 cores HSL hardcoded.<span class="loc">index.css:272–296, 319–343</span></li>
+      <li><span class="sev p0">P0</span><strong>Bloco de dialogs com ~30 <code>!important</code></strong> — <code>[role="dialog"]:not(...)</code> força position/translate/z-index/max-width em <strong>qualquer</strong> dialog do app, anulando <code>max-w-lg</code> e props dos componentes. Comentário de rollback inline indica remendo, não sistema.<span class="loc">index.css:345–400 · dialog.tsx:43 é sobrescrito por min(90vw,672px)</span></li>
+      <li><span class="sev p1">P1</span><strong><code>darkMode: ["class"]</code> decorativo</strong> — não existe bloco <code>.dark</code> nem toggle em lugar nenhum; nenhuma variante <code>dark:</code> pode funcionar. O app é dark-fixo no <code>:root</code>; presets <code>light</code> são peso morto no fluxo global (só o checkout tem light real).<span class="loc">tailwind.config.ts:4</span></li>
+      <li><span class="sev p1">P1</span><strong><code>hsl(var(--token))</code> sem canal alpha</strong> — impede <code>bg-primary/50</code> em presets que embutem alpha no token (vscode/spotify): gera CSS inválido. Adotar <code>hsl(var(--token) / &lt;alpha-value&gt;)</code>.<span class="loc">tailwind.config.ts:17–58 · theme-presets.ts:215–216, 261–262</span></li>
+      <li><span class="sev p1">P1</span><strong><code>design-tokens.ts</code>: segunda fonte de verdade em RGB</strong> — primário azul vs. vermelho do CSS vs. roxo do theme-color; escala tipográfica/spacing boas mas inertes; sombras em rgba (3ª notação de cor do projeto). Consolidar no CSS/Tailwind e deletar.<span class="loc">src/lib/design-tokens.ts:24–37, 117–168</span></li>
+      <li><span class="sev p1">P1</span><strong><code>color-scheme</code> ausente em todo o projeto</strong> — controles nativos (select, date, spinner) renderizam light-UA no app dark; checkout light também não declara.<span class="loc">index.css (todo) · index.html</span></li>
+      <li><span class="sev p2">P2</span><strong><code>App.css</code> órfão</strong> — boilerplate Vite com <code>#646cffaa</code>, logo-spin, ninguém importa. Deletar.<span class="loc">src/App.css:1–41</span></li>
+      <li><span class="sev p2">P2</span>Durações fora da escala que o próprio comentário proíbe (<code>index.css:59–61</code>): <code>duration-300</code> em hover-scale/glow, shimmer <code>1.6s</code>, scrollbar <code>0.2s</code>; keyframe <code>fade-in</code> com <code>translateY(10px)</code> hardcoded duplicando <code>t-page-in</code>.<span class="loc">index.css:227,231,617,291 · tailwind.config.ts:105</span></li>
+      <li><span class="sev p2">P2</span>Sidebar com sobras do shadcn: <code>--sidebar-primary</code> roxo e <code>--sidebar-ring</code> azul enquanto <code>--primary/--ring</code> são vermelhos — foco azul no sidebar, vermelho no resto.<span class="loc">index.css:104,109 vs 22,41</span></li>
+    </ul>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <h2><span class="idx">04</span>Temas &amp; presets (18)</h2>
+    <p class="sec-sub"><code>theme-presets.ts</code> (811 linhas) + <code>colorGenerator.ts</code> (425) + <code>check-theme-presets.mjs</code>. Sistema ambicioso e funcional, com bugs reais e cobertura de contraste ilusória.</p>
+
+    <h3>Bugs de código (P0)</h3>
+    <ul>
+      <li><span class="sev p0">P0</span><strong>Tipo inexistente</strong> — <code>THEME_PRESETS: CheckoutPreset[]</code> referencia tipo que não existe (o arquivo exporta <code>ThemePreset</code>). Erro TS que o build Vite/esbuild não pega.<span class="loc">theme-presets.ts:33</span></li>
+      <li><span class="sev p0">P0</span><strong>Chave duplicada</strong> — <code>--primary</code> definido 2× em material-design.dark (o fix de contraste foi feito por shadowing). TS1117 em strict.<span class="loc">theme-presets.ts:436 e 450</span></li>
+      <li><span class="sev p0">P0</span><strong>Troca preset→preset deixa tokens presos</strong> — a limpeza de <code>PRESET_TOKENS</code> só roda quando não há preset; token que o preset antigo definia e o novo não (ex.: <code>--destructive-foreground</code>) permanece inline.<span class="loc">colorGenerator.ts:320–329, 247</span></li>
+      <li><span class="sev p0">P0</span><strong>Branco sobre branco</strong> — <code>--destructive-foreground</code> ausente em 17/18 presets + fallback branco do root: neo-brutalism dark tem <code>--destructive: 0 0% 100%</code> → botão destrutivo <strong>invisível</strong> (1:1). Reprovam AA também: notebook (~1.9:1), mono, vercel, graphite.<span class="loc">theme-presets.ts:352, 677, 769, 306, 815</span></li>
+    </ul>
+
+    <h3>Lacunas de cobertura</h3>
+    <ul>
+      <li><span class="sev p1">P1</span><strong><code>--sidebar-primary-foreground</code> nunca definido por preset</strong> (fora do tipo <code>ThemeToken</code>) e fixo branco no root → texto ilegível sobre sidebar-primary clara em ≥5 presets (vercel, claymorphism, graphite, notebook, default dark).<span class="loc">theme-presets.ts:11–20 · index.css:105</span></li>
+      <li><span class="sev p1">P1</span><strong>Presets não cobrem tokens de marca</strong> — <code>--gradient-text-*</code>, <code>--gradient-dark</code>, <code>--shadow-card</code>: com preset Vercel (preto/branco), texto em gradiente continua vermelho→laranja.<span class="loc">index.css:49–57</span></li>
+      <li><span class="sev p1">P1</span><strong>Paleta manual não recalcula <code>--accent-foreground</code></strong> — marca amarelo/verde-limão → branco sobre claro. Só <code>--primary-foreground</code> é recalculado.<span class="loc">colorGenerator.ts:296–307 · index.css:34</span></li>
+      <li><span class="sev p1">P1</span><strong>Check de contraste valida só o CTA</strong> — <code>check-theme-presets.mjs</code> dá "ok, AA em todos" enquanto valida apenas primary-foreground/primary; não valida muted-foreground (onde estão os piores pares), destructive, accent, sidebar; nunca valida os mapas <code>light</code>; ignora alpha silenciosamente.<span class="loc">scripts/check-theme-presets.mjs:38–39, 12–21</span></li>
+      <li><span class="sev p1">P1</span><strong>Tema light do checkout incompleto</strong> — não redefine <code>--ring</code>, <code>--accent</code>, <code>--sidebar-*</code>, gradientes de marca nem <code>--shadow-glow</code>.<span class="loc">index.css:167–190</span></li>
+      <li><span class="sev p2">P2</span>Matemática de luminância WCAG duplicada em 3 lugares (script, <code>readableForeground</code>, <code>readableTextOn</code>) + <code>getContrastColor</code> legacy retorna hex por heurística errada. Unificar.<span class="loc">colorGenerator.ts:107–114, 170–200</span></li>
+      <li><span class="sev p2">P2</span>Flash de tema errado na 1ª visita com preset global (bootstrap não aplica preset); lógica de derivação duplicada JS-inline no HTML vs. colorGenerator; <code>theme-color: #8b5cf6</code> roxo fixo.<span class="loc">index.html:10, 44–58, 109–114</span></li>
+    </ul>
+
+    <h3>Pares de contraste reprovados (verificados)</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Preset / tema</th><th>Par</th><th>Razão aprox.</th><th>Local</th></tr></thead>
+      <tbody>
+        <tr><td>retro-arcade</td><td>muted-foreground / muted</td><td class="num">~1.7:1</td><td>theme-presets.ts:857–858</td></tr>
+        <tr><td>neo-brutalism</td><td>destructive-foreground / destructive</td><td class="num">1:1</td><td>theme-presets.ts:352</td></tr>
+        <tr><td>notebook</td><td>destructive-foreground / destructive</td><td class="num">~1.9:1</td><td>theme-presets.ts:677</td></tr>
+        <tr><td>default</td><td>accent-foreground / accent (branco s/ vermelho L60)</td><td class="num">~3.9:1</td><td>index.css:33–34</td></tr>
+        <tr><td>default</td><td>destructive-foreground / destructive</td><td class="num">~3.9:1</td><td>index.css:36–37</td></tr>
+        <tr><td>twitter</td><td>muted-foreground / muted</td><td class="num">reprova AA</td><td>theme-presets.ts:581–582</td></tr>
+        <tr><td>supabase</td><td>popover-foreground / popover (66% s/ 14%)</td><td class="num">limítrofe</td><td>theme-presets.ts:112–113</td></tr>
+      </tbody>
+    </table></div>
+    <p class="fix">Correção sistemática: estender o <code>check-theme-presets.mjs</code> para validar todos os pares fg/bg dos mapas dark E light, e derivar foregrounds faltantes com o <code>readableForeground</code> que já existe no colorGenerator — em vez de declarar valor por preset.</p>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <h2><span class="idx">05</span>Primitivos UI (50 componentes)</h2>
+    <p class="sec-sub">27 shadcn intocados · 12 modificados · 2 custom. Os modificados criaram inconsistências entre irmãos do mesmo kit.</p>
+
+    <h3>Chrome hardcoded no stack de modal (P0)</h3>
+    <ul>
+      <li><span class="sev p0">P0</span><strong>Modal/Dialog/AlertDialog fora dos tokens</strong> — <code>bg-black/90</code>, <code>border-white/10</code>, <code>text-white</code>, TONES com <code>emerald/amber/red-500</code>. Ficam escuros sobre tema claro do checkout e ignoram presets. <code>modalContentClass</code> ainda duplica o chrome do DialogContent (aplicado 2×).<span class="loc">modal.tsx:23–25,31–43,70,86,136 · dialog.tsx:44 · alert-dialog.tsx:40</span></li>
+      <li><span class="sev p0">P0</span><strong>Dois sistemas de toast</strong> — App monta só Sonner; todo o stack Radix (<code>toast.tsx</code> 111 linhas + toaster + shim + hook + dependência <code>@radix-ui/react-toast</code>) está morto. ~140 linhas + 1 dep removíveis.<span class="loc">App.tsx:93 · ui/toast.tsx, toaster.tsx, use-toast.ts</span></li>
+    </ul>
+
+    <h3>Desalinhamento entre primitivos (P1)</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Eixo</th><th>Divergência</th><th>Local</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Altura mobile</strong></td><td>Button/Input <code>h-11 sm:h-10</code> (44px no mobile) vs Select <code>h-10</code> fixo vs Toggle <code>h-10/h-9</code> fixos vs OTP <code>h-10</code> — campos do mesmo formulário com alturas diferentes em &lt;640px</td><td>button.tsx:20–23 · select.tsx:20 · toggle.tsx:16–18 · input-otp.tsx:35</td></tr>
+        <tr><td><strong>Zoom iOS</strong></td><td>Input <code>text-base md:text-sm</code> (evita zoom) vs Textarea <code>text-sm</code> fixo → iOS dá zoom ao focar Textarea mas não Input</td><td>input.tsx:11 vs textarea.tsx:11</td></tr>
+        <tr><td><strong>Raio</strong></td><td>Button <code>rounded-xl</code> vs Input/Select/Toggle <code>rounded-md</code>; Card <code>rounded-lg</code> (token diferente que hoje coincide); drawer <code>rounded-t-[10px]</code>, modal <code>rounded-[20px]</code></td><td>button.tsx:8 · card.tsx:6 · drawer.tsx:34</td></tr>
+        <tr><td><strong>Foco</strong></td><td><code>focus:</code> em vez de <code>focus-visible:</code> (select, dialog close, sheet, badge); radio-group remove outline em todo foco mas ring só em focus-visible → <strong>foco por mouse sem indicador</strong>; CommandInput sem nenhum indicador; resizable ring-1 vs ring-2 do sistema</td><td>select.tsx:20 · radio-group.tsx:23 · command.tsx:47 · resizable.tsx:24</td></tr>
+        <tr><td><strong>Overlay</strong></td><td>3 tratamentos: Dialog glass+t-modal / Sheet bg-background+duration-300/500 / Drawer vaul JS. Sheet é o único overlay fora do sistema de motion; drawer duplica sheet-bottom</td><td>dialog.tsx:22 · sheet.tsx:22,32 · drawer.tsx:21,34</td></tr>
+        <tr><td><strong>Elevação</strong></td><td>Submenus: dropdown shadow-lg vs content shadow-md vs menubar sem shadow; separadores bg-muted vs bg-border entre kits</td><td>dropdown-menu.tsx:47,64 · menubar.tsx:69–81</td></tr>
+        <tr><td><strong>Severity</strong></td><td>Alert tem 2 variantes, Modal tem 4 TONES, Button não tem success/warning — cada sistema resolveu diferente</td><td>alert.tsx:10–13 · modal.tsx:21–26</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>A11y e segurança visual nos primitivos</h3>
+    <ul>
+      <li><span class="sev p1">P1</span><strong>AlertDialogAction usa variant primary</strong> — confirmação de ação destrutiva renderiza na cor primária, não destructive.<span class="loc">alert-dialog.tsx:111</span></li>
+      <li><span class="sev p1">P1</span><strong>ToastClose sem nome acessível e invisível em touch</strong> (<code>opacity-0</code> até hover) — se o stack Radix for mantido.<span class="loc">toast.tsx:67–77</span></li>
+      <li><span class="sev p1">P1</span><strong>Alvos de toque &lt;44px</strong> onde o próprio projeto adota 44px: carousel 32px, calendar nav 28px/dias 36px, sidebar trigger 28px, slider thumb 20px.<span class="loc">carousel.tsx:178,206 · calendar.tsx:23,32 · sidebar.tsx:229 · slider.tsx:18</span></li>
+      <li><span class="sev p2">P2</span><code>container={document.body}</code> no render dos portals — SSR/test-unsafe.<span class="loc">dialog.tsx:34 · alert-dialog.tsx:32</span></li>
+      <li><span class="sev p2">P2</span>Strings sr-only/visíveis em inglês num app pt-BR: "Close", "Previous"/"Next", "Toggle Sidebar", "Previous slide".<span class="loc">dialog.tsx:52 · pagination.tsx:50–59 · sidebar.tsx:237,252 · carousel.tsx:189,217</span></li>
+      <li><span class="sev p2">P2</span>Badge: classes de foco/hover mortas em <code>&lt;div&gt;</code> não-interativo (sugere clicabilidade inexistente).<span class="loc">badge.tsx:7,11–13,26</span></li>
+      <li><span class="sev p2">P2</span>Sonner <code>richColors</code> usa paleta própria da lib para success/error, fora dos tokens; <code>border-white/[0.08]</code> hardcoded.<span class="loc">sonner.tsx:13,18</span></li>
+    </ul>
+
+    <h3>Bugs em primitivos</h3>
+    <ul>
+      <li><span class="sev p1">P1</span><code>animate-caret-blink</code> referencia keyframe que não existe no config → cursor do OTP não pisca.<span class="loc">input-otp.tsx:44 · tailwind.config.ts:85–120</span></li>
+      <li><span class="sev p1">P1</span><code>transition-[margin,opa]</code> — "opa" não é propriedade CSS; o fade do group-label ao colapsar não transiciona.<span class="loc">sidebar.tsx:364</span></li>
+      <li><span class="sev p2">P2</span>ToggleGroupItem ignora variant/size próprios (context sempre preenchido — bug do shadcn antigo, corrigido upstream com <code>??</code>).<span class="loc">toggle-group.tsx:10–13,35–36</span></li>
+      <li><span class="sev p2">P2</span>Carousel não remove listener <code>reInit</code> no cleanup → acumula em re-init.<span class="loc">carousel.tsx:97–101</span></li>
+      <li><span class="sev p2">P2</span>Typos: <code>displayname</code> (menubar.tsx:188), "BreadcrumbElipssis" (breadcrumb.tsx:80); breadcrumb ellipsis com sr-only dentro de aria-hidden (nunca anunciado).<span class="loc">breadcrumb.tsx:71–77</span></li>
+      <li><span class="sev p2">P2</span>Calendar na API v8 do react-day-picker (shadcn atual é v9) + Button customizado injeta rounded-xl/active:scale em botões de 28px do calendar (efeito colateral).<span class="loc">calendar.tsx:23,45–46</span></li>
+    </ul>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <h2><span class="idx">06</span>Checkout público &amp; forms</h2>
+    <p class="sec-sub">A área de maior impacto em conversão. Estrutura de forms é boa (FormLabel/htmlFor/aria-invalid/erros inline), mas os atributos de teclado/autocomplete faltam justamente nos campos críticos.</p>
+
+    <h3>P0 — impacto direto em conversão, segurança e PCI</h3>
+    <ul>
+      <li><span class="sev p0">P0</span><strong>CVV e número do cartão logados no console em produção</strong> — <code>console.log(">>> Criando token com dados:", cardFormData)</code>.<span class="loc">Checkout.tsx:618 (também 583, 702, 732)</span></li>
+      <li><span class="sev p0">P0</span><strong>Cartão sem inputMode/autocomplete</strong> — número, validade e CVV sem <code>inputMode="numeric"</code> nem <code>autoComplete="cc-number/cc-exp/cc-csc"</code>: teclado alfabético no mobile para o campo mais crítico do funil.<span class="loc">CustomCardForm.tsx:37–49, 91–99, 114–122</span></li>
+      <li><span class="sev p0">P0</span><strong>CPF sem inputMode numérico; celular sem type=tel</strong> (o Login tem — inconsistente).<span class="loc">CustomerForm.tsx:77–83, 101–107</span></li>
+      <li><span class="sev p0">P0</span><strong>Enter no campo de cupom dispara o submit do pagamento</strong> — input dentro do form de pagamento sem <code>onKeyDown</code> próprio.<span class="loc">CouponInput.tsx:63–70</span></li>
+      <li><span class="sev p0">P0</span><strong>QR Code PIX enviado a api.qrserver.com</strong> (terceiro) quando não há base64 — vaza o código de pagamento e depende de serviço externo sem fallback.<span class="loc">ThankYou.tsx:332 — usar qrcode local (lib já no ecossistema) ou gerar server-side</span></li>
+      <li><span class="sev p0">P0</span><strong>Senha sem autocomplete</strong> — <code>current-password</code>/<code>new-password</code> ausentes: gerenciadores de senha não preenchem nem sugerem.<span class="loc">Login.tsx:255–263</span></li>
+      <li><span class="sev p0">P0</span><strong>Câmbio fixo hardcoded "para exemplo"</strong> — se <code>convertCurrency</code> for usado em fluxo real, preços errados. Verificar uso e remover ou ligar a fonte real.<span class="loc">utils/currency.ts:108–127</span></li>
+    </ul>
+
+    <h3>P1</h3>
+    <ul>
+      <li><span class="sev p1">P1</span>E-mail sem <code>autoComplete="email"</code>/<code>spellCheck={false}</code>/<code>autoCapitalize="none"</code> (checkout e login); nome sem <code>autoComplete="name"</code>; CEP/endereço sem autocomplete.<span class="loc">CustomerForm.tsx:46,60 · Login.tsx:225–233 · BoletoAddressForm.tsx:73–86</span></li>
+      <li><span class="sev p1">P1</span><strong>Stripe Elements branco fixo no checkout dark</strong> — <code>colorBackground:'#ffffff'</code> + header <code>bg-blue-50</code>, ignora checkoutTheme e presets.<span class="loc">StripeCardElement.tsx:41–52, 124–139</span></li>
+      <li><span class="sev p1">P1</span>"Termos de Uso"/"Política de Privacidade" sem link num checkout que exige concordância legal; marca "EduStream" hardcoded ignora platform_settings.<span class="loc">Checkout.tsx:1199–1201 · CheckoutLayout.tsx:16,31,33–36</span></li>
+      <li><span class="sev p1">P1</span>ThankYou: polling de 3s sem backoff/limite; redirect automático em 2,5s sem cancelar (usuário copiando o PIX é levado embora).<span class="loc">ThankYou.tsx:135–153, 222–231</span></li>
+      <li><span class="sev p1">P1</span>Toggle mostrar senha com <code>tabIndex={-1}</code> — inacessível por teclado; catch do signIn só console.error (falha não vira feedback).<span class="loc">Login.tsx:264–276, 102–104</span></li>
+      <li><span class="sev p1">P1</span><code>viewport-fit=cover</code> ausente → o único <code>env(safe-area-inset-bottom)</code> do projeto retorna sempre 0 (safe-area inócua).<span class="loc">index.html:5 · CheckoutSupportButton.tsx:30</span></li>
+      <li><span class="sev p1">P1</span>Sheet/Dialog sem <code>overscroll-behavior: contain</code> → scroll chaining arrasta a página atrás no mobile.<span class="loc">sheet.tsx:32 · index.css:362–376</span></li>
+      <li><span class="sev p1">P1</span>"Por que pedimos esse dado?" — div com cursor-help sem tooltip/conteúdo (affordance morta).<span class="loc">CustomerForm.tsx:118–120</span></li>
+    </ul>
+
+    <div class="note ok">
+      <div class="h">O que o checkout já faz certo (manter)</div>
+      <p>Dual-theme light/dark via <code>body[data-checkout-theme]</code> bem arquitetado · labels/erros inline via form.tsx · submit com loading+disabled · placeholders com formato de exemplo · honeypot invisível correto · paste nunca bloqueado · <code>tabular-nums</code> no OrderSummary/Timer · destructives com confirmação · viewport sem bloqueio de zoom.</p>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <h2><span class="idx">07</span>Acessibilidade (consolidado)</h2>
+    <p class="sec-sub">Comparativamente boa: alt sempre presente, aria-labels na maioria dos icon-buttons, form.tsx exemplar. Violações pontuais e um gap sistemático de foco.</p>
+    <ul>
+      <li><span class="sev p1">P1</span><strong>Div clicável sem teclado</strong> — item de notificação (sem role/tabIndex/onKeyDown); linha de tabela <code>motion.tr onClick</code> mouse-only (botão Eye mitiga).<span class="loc">NotificationBell.tsx:127–132 · Orders.tsx:398–406</span></li>
+      <li><span class="sev p1">P1</span><strong>Icon-buttons sem nome</strong> — botão menu mobile do Navbar sem aria-label; NotificationBell só com title.<span class="loc">Navbar.tsx (menu) · NotificationBell.tsx:158–169</span></li>
+      <li><span class="sev p1">P1</span><strong>outline-none sem substituto</strong> — DropdownMenuTrigger do ContentHeader; CommandInput; navigation-menu trigger.<span class="loc">ContentHeader.tsx · command.tsx:47 · navigation-menu.tsx:38</span></li>
+      <li><span class="sev p1">P1</span><strong>Alvos de toque 24–32px</strong> — sidebar expandir 24px / recolher 28px, filtros de status ~30px, ações de comentário 32px.<span class="loc">ClientSidebar.tsx:143–149,166–172 · Orders.tsx:289–300 · Lesson.tsx:428</span></li>
+      <li><span class="sev p2">P2</span>Label órfã no cupom (sem htmlFor); erro ViaCEP sem role=alert; erros do Login sem aria-describedby ligando ao input.<span class="loc">CouponInput.tsx:59 · BoletoAddressForm.tsx:177–179 · Login.tsx:194–278</span></li>
+      <li><span class="sev p2">P2</span>Sem skip-link para o conteúdo principal; <code>-webkit-tap-highlight-color</code> não tratado (flash cinza no iOS).<span class="loc">layouts · index.css</span></li>
+      <li><span class="sev p2">P2</span><code>role="alert"</code> unconditional em Alert estático (anúncio assertivo na montagem; usar role=status para informativos).<span class="loc">alert.tsx:25</span></li>
+    </ul>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <h2><span class="idx">08</span>Motion</h2>
+    <ul>
+      <li><span class="sev p0">P0</span><strong>Framer-motion ignora o guard de reduced-motion</strong> — o guard CSS (<code>index.css:379–388</code>) não cobre animações JS. <code>LevelUpModal</code> tem 3 loops infinitos (rotação, pulse, estrelas) sem opt-out. Correção de 1 linha: <code>&lt;MotionConfig reducedMotion="user"&gt;</code> no App.<span class="loc">LevelUpModal.tsx:28–32,44–50,70–83 · Lesson.tsx:573 · Dashboard.tsx:189 · Orders.tsx:97–110</span></li>
+      <li><span class="sev p1">P1</span><strong>Adoção da escala ≈10%</strong> — 89 durations hardcoded vs 10 usos de token no app. O sistema <code>t-*</code> é bom; falta aplicar. Lint resolve.<span class="loc"> Courses.tsx(7), Comments.tsx(4), Gateways.tsx(4)…</span></li>
+      <li><span class="sev p1">P1</span><strong>203 <code>transition-all</code></strong> — animar todas as propriedades (layout inclusive). Trocar por <code>transition-colors</code>/<code>transition-[transform,opacity]</code> conforme o caso.<span class="loc">Navbar.tsx:39 · Checkout.tsx:1162 · PaymentMethods.tsx:71 · Login.tsx:284 …</span></li>
+      <li><span class="sev p2">P2</span>Vaul (drawer) anima via JS — drag/snap também fora do guard; Sonner idem. Timer do checkout não limpa o interval ao chegar a 0.<span class="loc">drawer.tsx · CheckoutTimer.tsx:35–41</span></li>
+      <li><span class="sev p2">P2</span>Loading: 5 padrões distintos (Loader2, animate-pulse ad-hoc, texto pulsante, spinner de borda CSS, Skeleton) — o <code>Skeleton</code> com shimmer tokenizado quase não é usado. Unificar em Skeleton + <code>t-fetching</code> + keepPreviousData (padrão já usado em Orders/Lesson).<span class="loc">Checkout.tsx:920 · Dashboard.tsx:162 · AdminLayout.tsx:69 · Orders.tsx:389</span></li>
+    </ul>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <h2><span class="idx">09</span>Performance, fontes &amp; imagens</h2>
+    <ul>
+      <li><span class="sev p1">P1</span><strong>9 famílias de fonte carregadas sempre</strong> — Inter (não usada no body, só no fallback de erro), 7 famílias de preset mesmo sem preset ativo, Geist via <code>@import</code> no topo do CSS (cadeia bloqueante CSS→import→fonte, sem preload). Carregar presets sob demanda; Geist via <code>&lt;link&gt;</code> com preconnect; remover Inter.<span class="loc">index.html:33–35 · index.css:1</span></li>
+      <li><span class="sev p1">P1</span><strong>og:image/twitter:image apontando para placeholder lovable.dev</strong>; twitter:site fictício — compartilhamento do checkout público quebrado.<span class="loc">index.html:25,29</span></li>
+      <li><span class="sev p1">P1</span><strong>CLS above-the-fold</strong> — banner do topo do checkout eager sem width/height/aspect-ratio; imagens bleed idem.<span class="loc">Checkout.tsx:967–974 · CheckoutContentBlocks.tsx:79–81</span></li>
+      <li><span class="sev p2">P2</span>~14 imgs sem width/height intrínsecos (logos Login/Checkout/Navbar, thumbs); thumbs do Dashboard e imagem do bump sem lazy.<span class="loc">CourseCard.tsx:30 · HeroBanner.tsx:22 · Dashboard.tsx:270 · OrderBumpCard.tsx:224</span></li>
+      <li><span class="sev p2">P2</span>Sem fallback de fonte com <code>size-adjust</code> → layout shift ao trocar preset de fonte; comentário stale aponta para arquivo de tipos inexistente.<span class="loc">index.html:34</span></li>
+      <li><span class="sev p2">P2</span>Filtros/busca do admin em useState sem sync com URL — refresh/back perde estado (deep-link).<span class="loc">Orders.tsx:114–115 (padrão nas demais páginas admin)</span></li>
+    </ul>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <h2><span class="idx">10</span>i18n &amp; conteúdo</h2>
+    <ul>
+      <li><span class="sev p1">P1</span><strong>Moeda manual em 5 arquivos do checkout apesar de <code>utils/currency.ts</code> com Intl existir</strong> — <code>toFixed(2).replace(".",",")</code> não agrupa milhar ("R$ 1234,56"); <code>CouponInput.tsx:38</code> esqueceu o replace → <strong>"R$ 10.50" com ponto em pt-BR</strong> (bug visível). Centralizar tudo no helper Intl.<span class="loc">OrderSummary.tsx:35 · OrderBumpCard.tsx:194 · Checkout.tsx:1177,1190 · ThankYou.tsx:240 · CouponInput.tsx:38</span></li>
+      <li><span class="sev p1">P1</span><strong>tabular-nums ausente no admin</strong> — valores monetários nos stats e coluna "Valor Total" desalinham no refetch (checkout já usa — copiar o padrão).<span class="loc">Orders.tsx:315,330,346,361,448–450,526,544</span></li>
+      <li><span class="sev p1">P1</span><strong>UI morta</strong> — botões "Termos"/"Privacidade"/"Suporte" do footer do Dashboard sem onClick/href; empty state ausente quando não há carrosséis nem cursos (página vira hero+footer).<span class="loc">Dashboard.tsx:321–329, 184–334</span></li>
+      <li><span class="sev p2">P2</span>E-mail longo estoura o dropdown do perfil (sem truncate/min-w-0); nome/e-mail na tabela de pedidos sem truncate.<span class="loc">Navbar.tsx:199–203 · Orders.tsx:431–441</span></li>
+      <li><span class="sev p2">P2</span>Condição invertida: "Respostas também serão excluídas" aparece só quando NÃO há usuário.<span class="loc">Lesson.tsx:874</span></li>
+      <li><span class="sev p2">P2</span><code>text-[8px]</code> ilegível; "Loading..." com reticências ASCII em vez de "…"; clipboard.writeText sem catch → toast "Copiado!" mentiroso em falha.<span class="loc">Profile.tsx:323 · ThankYou.tsx:233–238</span></li>
+      <li><span class="sev p2">P2</span>Bug de conteúdo: carrossel do Dashboard usa <code>gap-4</code> (16px) mas a matemática de scroll assume gap=12 e itemWidth=440 (cards têm 300–360px) → paginação desalinhada; lógica duplica DynamicCarousel com constantes divergentes.<span class="loc">Dashboard.tsx (carrossel) vs DynamicCarousel.tsx:220–222</span></li>
+    </ul>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <h2><span class="idx">11</span>Bugs confirmados (checklist de correção rápida)</h2>
+    <p class="sec-sub">Independentes de estilo — código objetivamente errado, verificado por leitura.</p>
+    <div class="tw"><table>
+      <thead><tr><th>#</th><th>Bug</th><th>Local</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Tipo <code>CheckoutPreset</code> inexistente</td><td>theme-presets.ts:33</td><td><code>ThemePreset[]</code></td></tr>
+        <tr><td class="num">2</td><td>Chave <code>--primary</code> duplicada</td><td>theme-presets.ts:436/450</td><td>Remover a primeira, manter o valor AA</td></tr>
+        <tr><td class="num">3</td><td>Tokens presos na troca preset→preset</td><td>colorGenerator.ts:320–329</td><td>Limpar PRESET_TOKENS antes de aplicar qualquer preset</td></tr>
+        <tr><td class="num">4</td><td>CVV no console em produção</td><td>Checkout.tsx:583,618,702,732</td><td>Remover logs (ou redigir campos sensíveis)</td></tr>
+        <tr><td class="num">5</td><td>Enter no cupom submete pagamento</td><td>CouponInput.tsx:63–70</td><td><code>onKeyDown</code>: Enter → aplicar cupom + preventDefault</td></tr>
+        <tr><td class="num">6</td><td>Scrollbar-hide nunca funciona (Firefox)</td><td>index.css:319–323</td><td>Mover regra global para <code>@layer base</code></td></tr>
+        <tr><td class="num">7</td><td><code>transition-[margin,opa]</code></td><td>sidebar.tsx:364</td><td><code>opacity</code></td></tr>
+        <tr><td class="num">8</td><td><code>animate-caret-blink</code> sem keyframe</td><td>input-otp.tsx:44</td><td>Adicionar keyframe <code>caret-blink</code> ao config</td></tr>
+        <tr><td class="num">9</td><td>"R$ 10.50" (ponto decimal pt-BR)</td><td>CouponInput.tsx:38</td><td>Usar helper Intl de utils/currency.ts</td></tr>
+        <tr><td class="num">10</td><td>Condição invertida no texto de exclusão</td><td>Lesson.tsx:874</td><td><code>{user?.id && …}</code></td></tr>
+        <tr><td class="num">11</td><td>ToggleGroupItem ignora variant/size</td><td>toggle-group.tsx:35–36</td><td>Defaults undefined no context + <code>??</code></td></tr>
+        <tr><td class="num">12</td><td>Carousel acumula listener reInit</td><td>carousel.tsx:97–101</td><td><code>api.off("reInit", onSelect)</code></td></tr>
+        <tr><td class="num">13</td><td>Gap/math do carrossel divergente</td><td>Dashboard.tsx</td><td>Reusar DynamicCarousel ou ler gap real do DOM</td></tr>
+        <tr><td class="num">14</td><td>Safe-area sempre 0</td><td>index.html:5</td><td>Adicionar <code>viewport-fit=cover</code></td></tr>
+        <tr><td class="num">15</td><td><code>rgba(var(--primary))</code> inválido</td><td>LevelUpModal.tsx:35,43,94</td><td><code>hsl(var(--primary) / .5)</code></td></tr>
+        <tr><td class="num">16</td><td>Timer não para no zero</td><td>CheckoutTimer.tsx:35–41</td><td>clearInterval ao atingir 0</td></tr>
+        <tr><td class="num">17</td><td>QR PIX via terceiro</td><td>ThankYou.tsx:332</td><td>Gerar QR localmente</td></tr>
+        <tr><td class="num">18</td><td>Câmbio fixo "para exemplo"</td><td>utils/currency.ts:108–127</td><td>Verificar uso; remover ou ligar a fonte real</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <h2><span class="idx">12</span>Roadmap de correção</h2>
+    <p class="sec-sub">Ordenado por impacto × esforço. Cada fase é independentemente entregável.</p>
+
+    <h3>Fase 1 — Bugs e riscos (correções pontuais, sem refactor)</h3>
+    <ul>
+      <li>Os 18 bugs da seção 11 — todos são edits de 1–10 linhas.</li>
+      <li><code>MotionConfig reducedMotion="user"</code> no App (1 linha cobre todo framer-motion).</li>
+      <li>inputMode/autocomplete nos campos de cartão, CPF, telefone, e-mail e senha (checkout + login).</li>
+      <li><code>color-scheme: dark</code> no root e <code>light</code> no checkout light; <code>viewport-fit=cover</code>.</li>
+      <li>Estender <code>check-theme-presets.mjs</code> para todos os pares fg/bg (dark+light) e derivar foregrounds faltantes — mata o branco-sobre-branco e os ~7 pares reprovados de uma vez.</li>
+    </ul>
+
+    <h3>Fase 2 — Fundação (habilita todo o resto)</h3>
+    <ul>
+      <li>Tokens de vidro (<code>--glass-bg/border/hover</code>), status (<code>--success/warning/info</code> + foregrounds), z-index e escala tipográfica (portar de design-tokens.ts para theme.fontSize; deletar o arquivo depois).</li>
+      <li><code>hsl(var(--token) / &lt;alpha-value&gt;)</code> no config; scrollbar global para <code>@layer base</code>; remover o bloco de <code>!important</code> dos dialogs junto com z-[10001]/z-[99999].</li>
+      <li>Completar <code>ThemeToken</code> (sidebar-primary-foreground, gradientes de marca, shadow-card) e a limpeza na troca de preset.</li>
+      <li>Remover stack Radix de toast morto + <code>App.css</code> + Inter não usada.</li>
+    </ul>
+
+    <h3>Fase 3 — Primitivos coerentes</h3>
+    <ul>
+      <li>Button: variantes success/warning + sizes alinhados; Select/Toggle/OTP com <code>h-11 sm:h-10</code>; Textarea <code>text-base md:text-sm</code>; raio unificado.</li>
+      <li>Modal/Dialog/AlertDialog sobre tokens semânticos (chrome único compartilhado); AlertDialogAction destructive; foco <code>focus-visible</code> em todo o kit; alvos de toque ≥44px.</li>
+      <li>Unificar overlay (Sheet migra para t-modal; decidir Drawer vs Sheet-bottom); strings sr-only em pt-BR.</li>
+    </ul>
+
+    <h3>Fase 4 — Migração do app (codemod + lint)</h3>
+    <ul>
+      <li>Codemod: white/black → tokens glass; text-[Npx] → escala; rounded-[Npx] → radius; duration-300 → tokens; transition-all → propriedades específicas. Começar pelas 4 páginas admin do topo (~600 ocorrências).</li>
+      <li>Substituir as ~25 receitas de card por <code>Card variant="glass"</code> e ~15 botões ad-hoc por Button.</li>
+      <li>ESLint proibindo novos arbitrary px/cores cruas/transition-all; moeda sempre via helper Intl; loading sempre Skeleton+t-fetching.</li>
+      <li>Filtros admin na URL; empty states; tabular-nums no admin; og:image reais; fontes de preset sob demanda.</li>
+    </ul>
+
+    <div class="note">
+      <div class="h">Critério de pronto</div>
+      <p>Fase 1: zero bugs da seção 11 + check de contraste estendido passando. Fase 2: nenhum <code>!important</code> de layout no index.css. Fase 3: mesmo formulário com Button/Input/Select/Toggle da mesma altura em 375px. Fase 4: contagens da seção 2 próximas de zero fora de OrderBumpCard (que deve virar tokens dual-theme).</p>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="fi">
+    <div>Auditoria gerada por varredura automatizada (246 arquivos) + leitura direta com file:line · Web Interface Guidelines (vercel-labs)</div>
+    <div>Flow5.5 · docs/relatorio-design-system.html · 25/11/2026</div>
+  </div>
+</footer>
+
+<button class="totop" id="toTop">↑</button>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    root.setAttribute('data-theme', root.getAttribute('data-theme')==='light'?'dark':'light');
+  });
+  var links=[].slice.call(document.querySelectorAll('nav a')), map={};
+  links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+  var secs=[].slice.call(document.querySelectorAll('main section'));
+  var top=document.getElementById('toTop');
+  function onScroll(){
+    var y=window.scrollY+120, cur=secs[0];
+    for(var i=0;i<secs.length;i++){if(secs[i].offsetTop<=y)cur=secs[i]}
+    links.forEach(function(a){a.classList.remove('active')});
+    if(map[cur.id])map[cur.id].classList.add('active');
+    top.classList.toggle('on',window.scrollY>600);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});
+  onScroll();
+})();
+</script>
+</body>
+</html>

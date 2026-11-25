@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getfy — Mapa Funcional do Sistema · v2.0.4</title>
+<style>
+  :root{
+    --bg:#0b0d0c;
+    --bg-soft:#111412;
+    --panel:#141816;
+    --panel-2:#181d1a;
+    --line:#232a26;
+    --line-soft:#1b211e;
+    --ink:#e8ece6;
+    --ink-2:#a8b3a6;
+    --ink-3:#6f7a70;
+    --accent:#74d909;
+    --accent-dim:#5aa807;
+    --accent-soft:rgba(116,217,9,.10);
+    --blue:#4aa8ff;
+    --amber:#f5b942;
+    --violet:#a78bfa;
+    --rose:#fb7185;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --maxw:1320px;
+  }
+  html[data-theme="light"]{
+    --bg:#f7f8f6;
+    --bg-soft:#eef0ec;
+    --panel:#ffffff;
+    --panel-2:#f4f6f2;
+    --line:#dfe4dc;
+    --line-soft:#eaeee6;
+    --ink:#161a17;
+    --ink-2:#4a544b;
+    --ink-3:#7b867c;
+    --accent-soft:rgba(116,217,9,.14);
+    --accent-dim:#4f8f06;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(900px 380px at 12% -10%, rgba(116,217,9,.10), transparent 60%),
+      radial-gradient(700px 300px at 88% 0%, rgba(74,168,255,.07), transparent 62%),
+      var(--bg);
+    padding:64px 32px 52px;
+  }
+  .hero-inner{max-width:var(--maxw);margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:34px;height:1px;background:var(--accent);opacity:.7}
+  h1{
+    margin:0 0 18px;font-size:clamp(34px,5.4vw,64px);line-height:1.02;
+    font-weight:600;letter-spacing:-.035em;max-width:16ch;
+  }
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{max-width:74ch;color:var(--ink-2);font-size:17px;margin:0 0 30px}
+  .metaline{
+    display:flex;flex-wrap:wrap;gap:10px 26px;font-family:var(--mono);font-size:12px;
+    color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px;
+  }
+  .metaline b{color:var(--ink-2);font-weight:500}
+
+  /* ---------- STATS ---------- */
+  .stats{
+    max-width:var(--maxw);margin:0 auto;padding:0 32px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+    gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-top:none;border-radius:0 0 14px 14px;overflow:hidden;
+  }
+  .stat{background:var(--bg-soft);padding:20px 18px}
+  .stat .n{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+  .stat .n small{font-size:14px;color:var(--accent)}
+  .stat .l{font-size:11.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;margin-top:5px}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;display:grid;grid-template-columns:236px 1fr;gap:56px}
+  nav{
+    position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;
+    padding:44px 0 40px;
+  }
+  nav .navtitle{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:14px;
+  }
+  nav ol{list-style:none;margin:0;padding:0;counter-reset:n}
+  nav li{counter-increment:n}
+  nav a{
+    display:flex;gap:9px;align-items:baseline;
+    padding:6px 10px;margin-left:-10px;border-radius:6px;
+    font-size:13px;color:var(--ink-3);transition:.15s;
+  }
+  nav a::before{
+    content:counter(n,decimal-leading-zero);font-family:var(--mono);font-size:10.5px;
+    color:var(--ink-3);opacity:.55;flex:none;
+  }
+  nav a:hover{color:var(--ink);background:var(--panel)}
+  nav a.active{color:var(--accent);background:var(--accent-soft)}
+  nav a.active::before{color:var(--accent);opacity:1}
+  main{padding:44px 0 100px;min-width:0}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding-bottom:54px;margin-bottom:44px;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:none}
+  h2{
+    margin:0 0 8px;font-size:27px;font-weight:600;letter-spacing:-.025em;
+    display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .idx{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--accent-soft);background:var(--accent-soft);
+    padding:3px 8px;border-radius:5px;flex:none;letter-spacing:.05em;
+  }
+  .sec-sub{color:var(--ink-2);margin:0 0 26px;max-width:82ch;font-size:15px}
+  h3{
+    margin:30px 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:500;
+    padding-bottom:8px;border-bottom:1px solid var(--line-soft);
+  }
+  p{margin:0 0 14px;max-width:88ch}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;max-width:90ch}
+  li{position:relative;padding-left:20px;margin-bottom:7px;color:var(--ink-2)}
+  li::before{
+    content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);opacity:.55;
+  }
+  li strong{color:var(--ink);font-weight:600}
+  code{
+    font-family:var(--mono);font-size:.87em;background:var(--panel-2);
+    border:1px solid var(--line-soft);padding:1.5px 6px;border-radius:5px;color:var(--ink);
+  }
+  .tag{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    padding:2px 7px;border-radius:4px;background:var(--accent-soft);
+    color:var(--accent);border:1px solid var(--accent-soft);margin-right:6px;
+  }
+  .tag.b{background:rgba(74,168,255,.10);color:var(--blue);border-color:rgba(74,168,255,.18)}
+  .tag.a{background:rgba(245,185,66,.10);color:var(--amber);border-color:rgba(245,185,66,.18)}
+  .tag.v{background:rgba(167,139,250,.10);color:var(--violet);border-color:rgba(167,139,250,.18)}
+  .tag.r{background:rgba(251,113,133,.10);color:var(--rose);border-color:rgba(251,113,133,.18)}
+
+  /* ---------- TABLES ---------- */
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 20px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+  th{
+    text-align:left;padding:11px 16px;background:var(--panel-2);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2)}
+  tr:last-child td{border-bottom:none}
+  td strong{color:var(--ink);font-weight:600}
+  tbody tr:hover td{background:rgba(116,217,9,.03)}
+
+  /* ---------- FLOW ---------- */
+  .flow{
+    display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;margin:0 0 20px;
+  }
+  .step{background:var(--panel);padding:14px 18px;display:flex;gap:14px;align-items:flex-start}
+  .step .k{
+    font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;padding-top:2px;
+    min-width:22px;
+  }
+  .step .t{font-size:13.5px;color:var(--ink-2)}
+  .step .t b{color:var(--ink);display:block;font-weight:600;margin-bottom:2px;font-size:14px}
+
+  /* ---------- CALLOUT ---------- */
+  .note{
+    border:1px solid var(--line);border-left:3px solid var(--accent);
+    background:var(--panel);border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 20px;
+  }
+  .note.warn{border-left-color:var(--amber)}
+  .note.info{border-left-color:var(--blue)}
+  .note .h{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:7px;
+  }
+  .note p{margin:0;font-size:14px}
+  .note p + p{margin-top:9px}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:0 0 20px}
+  .card{
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:18px 20px;
+  }
+  .card .ch{
+    font-size:14px;font-weight:600;color:var(--ink);margin-bottom:9px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .card .ch::before{content:"";width:4px;height:14px;background:var(--accent);border-radius:2px;flex:none}
+  .card p{font-size:13.5px;color:var(--ink-2);margin:0}
+  .card ul{margin:0;font-size:13.5px}
+
+  footer{
+    border-top:1px solid var(--line);padding:28px 32px 60px;color:var(--ink-3);font-size:12.5px;
+  }
+  footer .fi{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 30px;justify-content:space-between}
+  footer code{background:transparent;border:none;padding:0;color:var(--ink-3)}
+
+  .totop{
+    position:fixed;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;
+    display:none;place-items:center;font-size:15px;backdrop-filter:blur(6px);
+  }
+  .totop:hover{color:var(--accent);border-color:var(--accent-soft)}
+  .totop.on{display:grid}
+  .themebtn{
+    position:fixed;top:18px;right:22px;z-index:50;background:var(--panel);
+    border:1px solid var(--line);color:var(--ink-2);border-radius:8px;
+    padding:7px 11px;font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.05em;
+  }
+  .themebtn:hover{color:var(--accent);border-color:var(--accent-soft)}
+
+  @media(max-width:960px){
+    .wrap{grid-template-columns:1fr;gap:0}
+    nav{position:static;max-height:none;padding:28px 0 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+    nav ol{display:flex;flex-wrap:wrap;gap:4px}
+    nav a{font-size:12px}
+    main{padding-top:30px}
+    .hero{padding:48px 20px 40px}
+    .stats{padding:0 20px;grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+    .wrap{padding:0 20px}
+  }
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themeBtn" title="Alternar tema">◐ TEMA</button>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Análise estática de código-fonte · Documentação interna</div>
+    <h1>Getfy — <em>mapa funcional</em> do sistema</h1>
+    <p class="lede">
+      Plataforma multi-tenant de venda de produtos digitais. Este documento mapeia de forma exaustiva
+      as funcionalidades implementadas no código — checkout, gateways de pagamento, área de membros,
+      painel do produtor, plugins, integrações e infraestrutura — com base na leitura direta das rotas,
+      controllers, services, models e migrations do repositório.
+    </p>
+    <div class="metaline">
+      <span><b>Versão</b> 2.0.4</span>
+      <span><b>Stack</b> Laravel 12 · Vue 3 · Inertia · Tailwind v4</span>
+      <span><b>Diretório</b> Getfy/</span>
+      <span><b>Gerado em</b> 25/11/2026</span>
+    </div>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="n">~70</div><div class="l">Models</div></div>
+  <div class="stat"><div class="n">80</div><div class="l">Controllers</div></div>
+  <div class="stat"><div class="n">62</div><div class="l">Services</div></div>
+  <div class="stat"><div class="n">32</div><div class="l">Middlewares</div></div>
+  <div class="stat"><div class="n">21</div><div class="l">Jobs</div></div>
+  <div class="stat"><div class="n">25</div><div class="l">Commands</div></div>
+  <div class="stat"><div class="n">150</div><div class="l">Migrations</div></div>
+  <div class="stat"><div class="n">8</div><div class="l">Gateways</div></div>
+  <div class="stat"><div class="n">~60</div><div class="l">Vue Pages</div></div>
+</div>
+
+<div class="wrap">
+  <nav>
+    <div class="navtitle">Sumário</div>
+    <ol>
+      <li><a href="#s1">Visão geral</a></li>
+      <li><a href="#s2">Checkout &amp; vendas</a></li>
+      <li><a href="#s3">Gateways</a></li>
+      <li><a href="#s4">Área de membros</a></li>
+      <li><a href="#s5">Painel do produtor</a></li>
+      <li><a href="#s6">Parceiros</a></li>
+      <li><a href="#s7">Plugins</a></li>
+      <li><a href="#s8">Integrações</a></li>
+      <li><a href="#s9">Assinaturas</a></li>
+      <li><a href="#s10">E-mail &amp; marketing</a></li>
+      <li><a href="#s11">API de pagamentos</a></li>
+      <li><a href="#s12">Commerce</a></li>
+      <li><a href="#s13">Operação &amp; infra</a></li>
+      <li><a href="#s14">Segurança</a></li>
+      <li><a href="#s15">Divergências</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="s1">
+    <h2><span class="idx">01</span>Visão geral</h2>
+    <p class="sec-sub">
+      Getfy é uma plataforma SaaS multi-tenant para venda de infoprodutos. Cada tenant hospeda seus próprios
+      produtos, checkout, gateway credentials, integrações e funil. O mesmo código serve tanto para
+      auto-hospedagem (VPS / Docker / hospedagem compartilhada) quanto para um modo cloud orquestrado.
+    </p>
+
+    <h3>Stack tecnológico</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Camada</th><th>Tecnologia</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td>Backend</td><td><strong>Laravel 12</strong></td><td>PHP 8.2+, Composer, Eloquent, Queue, Scheduler</td></tr>
+        <tr><td>Frontend</td><td><strong>Vue 3</strong> (Composition API)</td><td>Inertia.js 2, Pinia 3, Tailwind v4, Vite 7</td></tr>
+        <tr><td>UIKit</td><td>radix-vue, lucide-vue-next</td><td>Componentes próprios em <code>components/ui</code></td></tr>
+        <tr><td>Gráficos</td><td>ApexCharts + vue3-apexcharts</td><td>Dashboard de tracking e faturamento</td></tr>
+        <tr><td>Player</td><td>Vidstack, pdfjs-dist, qrcode.vue</td><td>Vídeo, leitor PDF e QR PIX</td></tr>
+        <tr><td>Editor</td><td>CodeMirror 6</td><td>Checkout Builder — CSS/HTML/JS customizados</td></tr>
+        <tr><td>Banco</td><td><strong>MySQL 8</strong></td><td>~70 tabelas, 150 migrations</td></tr>
+        <tr><td>Cache / Fila</td><td><strong>Redis 7</strong></td><td>predis, jobs assíncronos, cache de dashboard</td></tr>
+        <tr><td>Servidor</td><td>Nginx + PHP-FPM (Alpine)</td><td>Supervisord, 4 containers Docker</td></tr>
+        <tr><td>PDF</td><td>setasign/fpdi-fpdf</td><td>Dossiê de comprovação e certificados</td></tr>
+        <tr><td>Push</td><td>minishlink/web-push</td><td>VAPID, painel + área de membros</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Containers</h3>
+    <div class="flow">
+      <div class="step"><div class="k">▸</div><div class="t"><b>app</b>nginx:80 + php-fpm:9000 — todas as requisições HTTP, API e webhooks</div></div>
+      <div class="step"><div class="k">▸</div><div class="t"><b>mysql</b>MySQL 8 — volume <code>mysql_data</code></div></div>
+      <div class="step"><div class="k">▸</div><div class="t"><b>redis</b>Redis 7 — cache de sessão e fila de jobs</div></div>
+      <div class="step"><div class="k">▸</div><div class="t"><b>queue</b><code>queue:work</code> + <code>schedule:work</code> — assincronia e agendamentos</div></div>
+    </div>
+
+    <h3>Papéis de usuário</h3>
+    <p>
+      Sete roles convivem no mesmo schema: <code>admin</code>, <code>infoprodutor</code>, <code>aluno</code>,
+      <code>team</code>, <code>coprodutor</code>, <code>afiliado</code>. A autorização combina o role com
+      permissões granulares por cargo de equipe (<code>team.permission:*</code>) — <code>dashboard.view</code>,
+      <code>vendas.view</code>, <code>produtos.view</code>, <code>financeiro.manage</code>,
+      <code>reembolsos.manage</code>, <code>afiliados.manage</code>, <code>relatorios.view</code>,
+      <code>integracoes.view</code>, <code>api_pagamentos.view</code>, <code>configuracoes.view</code>,
+      <code>email_marketing.view</code>, <code>equipe.manage</code>. Ações sensíveis registram
+      <strong>log de auditoria</strong> em <code>team_audit_logs</code>.
+    </p>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <h2><span class="idx">02</span>Checkout &amp; vendas</h2>
+    <p class="sec-sub">
+      O checkout é o núcleo do produto. É montado por produto, com URL pública curta <code>/c/{slug}</code>
+      (slug aleatório de 7 caracteres, único por tenant), e termina em upsell, downsell e página de obrigado.
+    </p>
+
+    <h3>Checkout Builder</h3>
+    <ul>
+      <li><strong>Editor visual</strong> — cores primárias, cor do botão, banner lateral, blocos de conteúdo, fundo, rodapé com logo/e-mail</li>
+      <li><strong>Timer de escassez</strong> — configurável em horas/minutos, sticky opcional</li>
+      <li><strong>Notificação de venda social</strong> — pop-up com pedidos recentes</li>
+      <li><strong>Reviews e contadores</strong> — blocos de prova social</li>
+      <li><strong>Código customizado</strong> — CSS, HTML (head e corpo) e JavaScript arbitrários, editados com CodeMirror</li>
+      <li><strong>Checkout embed (iframe)</strong> — o checkout pode ser embutido em página externa do produtor</li>
+      <li><strong>Prévia ao vivo</strong> e confirmação de slug de checkout</li>
+    </ul>
+
+    <h3>Upsell, downsell e order bump</h3>
+    <ul>
+      <li><strong>Order bump</strong> — oferta adicional adicionada na própria página de checkout, com cor e rótulo próprios</li>
+      <li><strong>Upsell</strong> pós-compra — página dedicada com aceitação/rejeição e cobrança adicional</li>
+      <li><strong>Downsell</strong> pós-compra — oferta de menor valor/alternativa</li>
+      <li>Editor de página dedicado para upsell e downsell, com preview</li>
+    </ul>
+
+    <h3>Ofertas, planos, cupons e combos</h3>
+    <ul>
+      <li><strong>Ofertas</strong> (<code>product_offers</code>) — variações de preço com <em>ID público aleatório</em> (não sequencial), herdando config do checkout</li>
+      <li><strong>Planos de assinatura</strong> (<code>subscription_plans</code>) com ciclo, dias de carência e dias de aviso</li>
+      <li><strong>Cupons</strong> (<code>coupons</code>) — vinculo por produto, validação server-side na rota <code>/checkout/validate-coupon</code></li>
+      <li><strong>Combos/pacotes</strong> (<code>combo_product_ids</code>) — compra de múltiplos produtos com acesso agregado e aulas abertas na mesma área</li>
+    </ul>
+
+    <h3>Moedas e idiomas</h3>
+    <ul>
+      <li>Catálogo de <strong>190+ países</strong> alinhado à CajuPay Global e Stripe (<code>config/checkout_currencies.php</code>)</li>
+      <li><strong>Detecção por Geo-IP</strong> — o país detectado pré-seleciona moeda, idioma e bandeira de telefone (DDI)</li>
+      <li><strong>Seletor de moeda</strong> com BRL, USD e EUR em destaque e busca nas demais habilitadas</li>
+      <li><strong>Preços customizados por moeda</strong> por produto; conversão server-side via <code>rate_to_brl</code></li>
+      <li>Taxas sincronizadas por <code>checkout:sync-currency-rates</code> (Frankfurter / open.er-api, cache 24h)</li>
+      <li>Idiomas <code>pt_BR</code>, <code>pt</code>, <code>en</code>; <strong>forçar idioma/moeda</strong> por produto sobrepõe a sugestão por geo</li>
+      <li>Pedido grava a <strong>moeda efetivamente cobrada</strong>; relatórios agrupam totais por moeda (sem converter tudo para BRL)</li>
+    </ul>
+
+    <h3>Antifraude e rate limiting</h3>
+    <ul>
+      <li>Honeypot + detecção de flood no formulário</li>
+      <li>Rate limits configuráveis: <code>checkout-process</code>, <code>checkout-pix</code>, <code>checkout-card</code>, <code>checkout-email</code>, <code>checkout-product-ip</code></li>
+      <li>Limite de pedidos pendentes por IP e por e-mail</li>
+      <li><strong>Cloudflare Turnstile</strong> (captcha adaptativo) opcional</li>
+      <li>Reuso de checkout PIX pendente (evita gerar múltiplos QR para a mesma tentativa)</li>
+    </ul>
+
+    <h3>Tracking do funil de checkout</h3>
+    <p>
+      Endpoints <code>/api/checkout/ensure-visit</code>, <code>/api/checkout/track</code>,
+      <code>/api/checkout/track-field</code> e <code>/api/checkout/track-country</code> registram a jornada.
+      O painel de tracking agrega <strong>KPIs, funil, gráfico de receita, mapa-múndi de visitas por país,
+      ranking de países, fontes UTM, card de ad spend, pagamentos por método e vendas recentes</strong>.
+      O ad spend é editável manualmente por dia e por período (<code>tracking_ad_spends</code> +
+      <code>tracking_ad_spend_overrides</code>).
+    </p>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <h2><span class="idx">03</span>Gateways de pagamento</h2>
+    <p class="sec-sub">
+      Oito gateways nativos, implementados como drivers atrás de um contrato comum
+      (<code>GatewayDriver</code>) e orquestrados pelo <code>PaymentService</code> com
+      <strong>redundância automática</strong>: se o gateway primário falha, o próximo da ordem configurada é
+      tentado (timeout de 5s por tentativa, deadline total de 25s).
+    </p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Gateway</th><th>Métodos</th><th>Escopo</th><th>Destaques técnicos</th></tr></thead>
+      <tbody>
+        <tr><td><strong>CajuPay</strong></td><td>PIX, Cartão, Apple Pay, Google Pay, PIX Parcelado, PIX Auto</td><td>Internacional</td><td>SDK com checkout sessions, split de payout, saldo/wallet, webhook auto-registrado, parcelado com regras por produto</td></tr>
+        <tr><td><strong>Efí</strong></td><td>PIX, Cartão, Boleto, PIX Auto</td><td>Nacional</td><td>Certificado P12, PIX Recorrente, webhook de notificação, <code>payment-token-efi</code> no front</td></tr>
+        <tr><td><strong>Stripe</strong></td><td>Cartão</td><td>Internacional</td><td>PaymentIntent, 3DS, Stripe Link opcional, rota de retorno dedicada</td></tr>
+        <tr><td><strong>Mercado Pago</strong></td><td>PIX, Cartão, Boleto</td><td>Internacional</td><td>SDK oficial, Bricks tokenização, 7 países Latin America</td></tr>
+        <tr><td><strong>Pagar.me</strong></td><td>PIX, Cartão, Boleto</td><td>Nacional</td><td>API v5, checkout transparente, tokenização via <code>tokenizecard</code></td></tr>
+        <tr><td><strong>Asaas</strong></td><td>PIX, Cartão, Boleto</td><td>Nacional</td><td>Customer CRUD, parcelas</td></tr>
+        <tr><td><strong>Pushin Pay</strong></td><td>PIX, PIX Auto</td><td>Nacional</td><td>PIX Recorrente</td></tr>
+        <tr><td><strong>PayPal</strong></td><td>PayPal</td><td>Internacional</td><td>4 modos de checkout (auto / expanded / buttons / wallet), OAuth client-side</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Configuração</h3>
+    <ul>
+      <li>Credenciais <strong>por tenant</strong> (<code>gateway_credentials</code>), com teste de conexão e botão de rotação do webhook secret (CajuPay)</li>
+      <li><strong>Ordem de redundância configurável</strong> por método de pagamento</li>
+      <li><strong>Taxas por gateway</strong> (<code>gateway_fee_settings</code>) — usadas no cálculo do valor líquido e nos reports</li>
+      <li>Configuração de endereço de cobrança (cliente vs. endereço fixo da empresa) para Pagar.me e Efí</li>
+      <li>Regras de PIX Parcelado por produto: número de parcelas, entrada fixa ou percentual</li>
+    </ul>
+
+    <h3>Fluxo de confirmação</h3>
+    <div class="flow">
+      <div class="step"><div class="k">01</div><div class="t"><b>Checkout</b>POST <code>/checkout</code> → <code>PaymentService::create*Payment</code></div></div>
+      <div class="step"><div class="k">02</div><div class="t"><b>Redundância</b>Tenta gateway primário (5s) → próximo da fila → deadline 25s</div></div>
+      <div class="step"><div class="k">03</div><div class="t"><b>Pedido criado</b><code>orders</code> com status <code>pending</code>, moeda, UTMs, IP e metadados</div></div>
+      <div class="step"><div class="k">04</div><div class="t"><b>Webhook</b>10 controllers dedicados + dispatcher genérico para plugins</div></div>
+      <div class="step"><div class="k">05</div><div class="t"><b>OrderCompleted</b>Dispara listeners: e-mail de acesso, comissões, Meta CAPI, push, cache, Utmify, Cademi, Spedy</div></div>
+      <div class="step"><div class="k">06</div><div class="t"><b>Reconciliação</b><code>payments:reconcile-pending</code> (1 min) e <code>orders:cancel-stale-pending</code> (1 h)</div></div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <h2><span class="idx">04</span>Área de membros</h2>
+    <p class="sec-sub">
+      Ambiente de consumo do aluno. Hierarquia de conteúdo <strong>Seção → Módulo → Aula</strong>,
+      com drip content, turmas, comunidade, gamificação, loja interna e certificados.
+    </p>
+
+    <h3>Tipos de aula</h3>
+    <div class="cols">
+      <div class="card"><div class="ch">Vídeo</div><p>Player Vidstack, fullscreen mobile (iPhone), marcação de progresso.</p></div>
+      <div class="card"><div class="ch">Texto / HTML</div><p>Conteúdo textual com formatação e links.</p></div>
+      <div class="card"><div class="ch">Material (download)</div><p>PDFs e arquivos para baixar; múltiplos arquivos por aula.</p></div>
+      <div class="card"><div class="ch">Apresentação (PDF)</div><p>Leitura inline com anterior/próximo, setas do teclado, tela cheia, paisagem no celular, clique na metade da tela. Não auto-conclui — o aluno confirma.</p></div>
+      <div class="card"><div class="ch">Link externo</div><p>Entrega de conteúdo em URL de terceiro.</p></div>
+    </div>
+
+    <h3>Recursos</h3>
+    <ul>
+      <li><strong>Drip content</strong> — liberação por <code>release_after_days</code>, <code>release_at_date</code>, <code>release_progress_percent</code> ou <code>release_required_module_ids</code></li>
+      <li><strong>Duração de acesso</strong> — <code>access_duration_days</code> por produto/plano</li>
+      <li><strong>Progresso</strong> — aula concluída, anotações, likes, comentários, logs de atividade</li>
+      <li><strong>Leitor PDF</strong> — anotações persistidas e likes por aula</li>
+      <li><strong>Turmas / coortes</strong> — matrícula de alunos e manage pelo Member Builder</li>
+      <li><strong>Comunidade</strong> — páginas, posts, comentários, likes, mídia (imagem/vídeo), membros ativos, sugestões</li>
+      <li><strong>Loja interna</strong> — produtos relacionados</li>
+      <li><strong>Certificados</strong> de conclusão, com código de verificação</li>
+      <li><strong>Conquistas / gamificação</strong> com página de compartilhamento social</li>
+      <li><strong>Notificações</strong> in-app + push, centro de notificações com leitura em lote</li>
+      <li><strong>Modo cinema</strong> e <strong>PWA própria</strong> (manifest + service worker por produto)</li>
+      <li><strong>Reembolso pelo aluno</strong> — elegibilidade validada por prazo e modo (automático ou aprovação manual)</li>
+    </ul>
+
+    <h3>Estratégias de URL</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Estratégia</th><th>Exemplo</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr><td>Path</td><td><code>meudominio.com/m/{slug}</code></td><td>Padrão</td></tr>
+        <tr><td>Subdomínio</td><td><code>{slug}.members.meudominio.com</code></td><td>Resolvido por host</td></tr>
+        <tr><td>Domínio customizado</td><td><code>areademembros.com</code></td><td>Vínculo em <code>member_area_domains</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Autenticação da área</h3>
+    <ul>
+      <li>Login próprio (com ou <strong>sem senha</strong>), recuperação de senha e <strong>magic link</strong> assinado</li>
+      <li>Login por host delega ao controller de área de membros sem sobrescrever o login da plataforma</li>
+      <li>Conta editável dentro da área (perfil e senha)</li>
+    </ul>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <h2><span class="idx">05</span>Painel do produtor</h2>
+    <p class="sec-sub">
+      Painel Inertia/Blade com sidebar colapsável, navegação mobile (bottom nav), notificações e 8 layouts distintos.
+    </p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Módulo</th><th>Funcionalidades</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dashboard</strong></td><td>KPIs, gráfico de receita, funil de tracking, mapa-múndi, ranking de países, fontes UTM, ad spend, vendas recentes, widget de conquistas, visão clássica opcional</td></tr>
+        <tr><td><strong>Vendas</strong></td><td>Listagem com busca e filtros avançados, detalhe lateral, reenvio de e-mail de acesso, aprovação manual, reembolso, botão de WhatsApp, exportação, dossiê de comprovação</td></tr>
+        <tr><td><strong>Produtos</strong></td><td>CRUD, duplicar, importar/exportar pacotes (.zip), ofertas, order bumps, planos, turmas, alunos, external member area, refund config, pixel de conversão</td></tr>
+        <tr><td><strong>Member Builder</strong></td><td>Editor completo de seções, módulos, aulas, turmas, comentários, páginas da comunidade, produtos internos, upload de imagens/PDFs/badges, reordenação por drag-and-drop, duplicação, preview</td></tr>
+        <tr><td><strong>Financeiro</strong></td><td>Visão geral de saldos, saque via CajuPay, chave PIX, aprovação de saques de parceiros, taxas por gateway</td></tr>
+        <tr><td><strong>Reembolsos</strong></td><td>Listagem, aprovar, rejeitar — com revogação automática do acesso do aluno ao concluir</td></tr>
+        <tr><td><strong>Relatórios</strong></td><td>Período, moeda por agrupamento, export CSV de público comprador e engajado (Meta Ads)</td></tr>
+        <tr><td><strong>Assinaturas</strong></td><td>Listagem e detalhe, cancelar, sincronizar, retry de charge, refund de charge</td></tr>
+        <tr><td><strong>Alunos</strong></td><td>CRUD, importação em lote com modelo pronto, vínculo e desvinculação de produtos, busca por nome/e-mail</td></tr>
+        <tr><td><strong>Equipe</strong></td><td>Cargos, membros, permissões por cargo, log de auditoria e limpeza de logs</td></tr>
+        <tr><td><strong>Usuários</strong></td><td>CRUD completo (restrito a <code>admin</code>)</td></tr>
+        <tr><td><strong>Configurações</strong></td><td>Abas: e-mail, storage, traduções, moedas, push (VAPID), cron, atualização — + abas de plugins</td></tr>
+        <tr><td><strong>Plugins</strong></td><td>Instalar, atualizar, instalar de ZIP, registrar, loja de plugins, habilitar/desabilitar</td></tr>
+        <tr><td><strong>API Pagamentos</strong></td><td>CRUD de aplicações, regeneração de chave, logo, documentação interativa e playground de testes</td></tr>
+        <tr><td><strong>Email Marketing</strong></td><td>Ver seção 10</td></tr>
+        <tr><td><strong>Conquistas</strong></td><td>Gestão de gamificação e compartilhamento</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Checkout Builder — recursos do editor</h3>
+    <ul>
+      <li>Painel lateral por produto (imagem, cor, blocos, SEO, redes sociais, Open Graph)</li>
+      <li>Blocos de conteúdo customizáveis (vídeo, texto, imagem, iframe) via <code>content_blocks</code></li>
+      <li>Editor de código com realce e validação (CodeMirror 6)</li>
+      <li>Importação/exportação de produtos em pacote (.zip) com manifesto versionado</li>
+    </ul>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <h2><span class="idx">06</span>Afiliados &amp; co-produtores</h2>
+    <p class="sec-sub">
+      Dois modelos de parceria sobre a mesma engrenagem de comissão: <strong>afiliado</strong> promove e recebe
+      comissão; <strong>co-produtor</strong> co-cria, gerencia o produto e pode precisar da configuração de split.
+    </p>
+
+    <h3>Fluxo de comissão</h3>
+    <div class="flow">
+      <div class="step"><div class="k">01</div><div class="t"><b>OrderCompleted</b>Evento dispara <code>AllocateCommissionsOnOrderCompleted</code></div></div>
+      <div class="step"><div class="k">02</div><div class="t"><b>Resolução</b><code>CommissionBeneficiaryResolver</code> identifica co-produtores (<code>product_coproducers</code>) e afiliados (<code>product_affiliates</code>)</div></div>
+      <div class="step"><div class="k">03</div><div class="t"><b>Split</b><code>CommissionSplitService</code> calcula as alocações por regra configurada</div></div>
+      <div class="step"><div class="k">04</div><div class="t"><b>Carência</b><code>commission_entries</code> fica <code>pending</code> até <code>commissions:release</code> (1 h)</div></div>
+      <div class="step"><div class="k">05</div><div class="t"><b>Wallet</b><code>wallet_transactions</code> mantém o ledger do parceiro</div></div>
+      <div class="step"><div class="k">06</div><div class="t"><b>Saque</b><code>payout_requests</code> + <code>payout_request_allocations</code> → payout via CajuPay, reconciliado a cada minuto</div></div>
+    </div>
+
+    <h3>Funcionalidades</h3>
+    <ul>
+      <li><strong>Programa de afiliação por produto</strong> — regras de comissão, limite, duração e aprovação</li>
+      <li><strong>Página pública</strong> <code>/afiliar/{slug}</code> com cadastro do afiliado</li>
+      <li><strong>Painel de afiliados</strong> — hub de afiliados e listagem de programas por produto</li>
+      <li><strong>Co-produtores</strong> — convite por token (<code>/convite/co-producao/{token}</code>), aprovação, revogação, reenvio, candidatos, regras de coprodução</li>
+      <li><strong>Split nativo CajuPay</strong> (<code>cajupay_split_payout_enabled</code>) para repasses diretos</li>
+      <li><strong>Estimativa de comissão</strong> do parceiro e apresentação de comprador</li>
+      <li><strong>Painel do parceiro</strong> (<code>/parceiro</code>) — dashboard, produtos, vendas, financeiro, saque, edição de pixels</li>
+      <li>Convite de equipe e aprovação de afiliado atualizam o <code>role</code> do usuário automaticamente</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <h2><span class="idx">07</span>Sistema de plugins</h2>
+    <p class="sec-sub">
+      O Getfy é uma plataforma extensível de verdade: plugins podem registrar gateways, rotas, eventos,
+      migrations, comandos, agenda, middleware, tipos de produto e — via SDK JavaScript — UI completa.
+    </p>
+
+    <h3>Manifesto <code>plugin.json</code></h3>
+    <p>
+      Campos suportados: <code>slug</code>, <code>name</code>, <code>version</code>, <code>type</code>,
+      <code>requires</code>, <code>gateway</code>, <code>frontend</code>, <code>routes</code>,
+      <code>public_routes</code>, <code>api_routes</code>, <code>events</code>, <code>migrations</code>,
+      <code>commands</code>, <code>schedule</code>, <code>middleware</code>, <code>menu</code>,
+      <code>settings_tab</code>, <code>integration_app</code>, <code>product_panel</code>,
+      <code>checkout_builder_templates</code>, <code>checkout_extensions</code>, <code>dashboard_widgets</code>,
+      <code>member_area_panels</code>, <code>financeiro_tabs</code>, <code>order_fulfillment_providers</code>,
+      <code>theme</code>, <code>capabilities</code>, <code>render_zones</code>, <code>commerce_scopes</code>.
+    </p>
+
+    <h3>Tipos e descoberta</h3>
+    <ul>
+      <li>Tipos: <code>gateway</code>, <code>integration</code>, <code>member</code>, <code>commerce</code>, <code>generic</code></li>
+      <li>Fontes: bundled (<code>plugins/</code>), instalados pelo usuário (<code>GETFY_PLUGINS_USER_PATH</code> ou <code>.docker/plugins-installed/</code>) e scan extra (<code>GETFY_PLUGINS_EXTRA_SCAN</code>)</li>
+      <li>Autoloader próprio de classes (<code>PluginClassAutoloader</code>) com validação de sintaxe do <code>bootstrap.php</code> via <code>token_get_all</code> (compatível com <code>php-fpm</code>)</li>
+    </ul>
+
+    <h3>Plugin SDK</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Facade</th><th>Permite</th></tr></thead>
+      <tbody>
+        <tr><td><code>Getfy::config()</code></td><td>Configuração persistida do plugin, por tenant</td></tr>
+        <tr><td><code>Getfy::tenant()</code></td><td>Contexto do tenant atual</td></tr>
+        <tr><td><code>Getfy::products()</code></td><td>CRUD de produtos</td></tr>
+        <tr><td><code>Getfy::orders()</code></td><td>Consulta de pedidos</td></tr>
+        <tr><td><code>Getfy::commerce()</code></td><td>Catálogo, carrinho e checkout</td></tr>
+        <tr><td><code>Getfy::assets()</code></td><td>Upload e resolução de assets</td></tr>
+        <tr><td><code>Getfy::hooks()</code></td><td>Actions e filters (estilo WordPress)</td></tr>
+        <tr><td><code>Getfy::gateways()</code></td><td>Registro de novos gateways</td></tr>
+        <tr><td><code>Getfy::extensions()</code></td><td>Slots de extensão de UI</td></tr>
+        <tr><td><code>Getfy::productTypes()</code></td><td>Tipos de produto customizados</td></tr>
+        <tr><td><code>Getfy::capabilities()</code></td><td>Permissões do plugin</td></tr>
+        <tr><td><code>Getfy::events()</code></td><td>Dispatch de eventos</td></tr>
+        <tr><td><code>Getfy::license()</code></td><td>Verificação de licença</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Hooks, slots e frontend</h3>
+    <ul>
+      <li><strong>Hook bus</strong> com callbacks ordenados por prioridade; hooks ativos <code>order.completed</code> e <code>order.completed.context</code></li>
+      <li><strong>Slots de UI</strong> renderizados em páginas core: settings_tab, integration_app, product_panel, checkout_extensions, dashboard_widgets, member_area_panels, financeiro_tabs, render_zones</li>
+      <li>Dois modos de front: <strong>legacy</strong> (<code>resources/js/PluginPages/</code>) e <strong>runtime</strong> (manifest <code>dist/ui.manifest.json</code>)</li>
+      <li>SDK JavaScript paralelo: <code>assets.js</code>, <code>hooks.js</code>, <code>slots.js</code></li>
+      <li>Bridge Vue para plugins em runtime (<code>getfyPluginVueBridge.js</code>)</li>
+    </ul>
+
+    <h3>Loja de plugins</h3>
+    <ul>
+      <li>Marketplace em <code>getfy.org/plugins</code> — listagem, detalhe, download e licença</li>
+      <li>Instalação via loja, via <strong>ZIP</strong> ou registro manual; atualização com rollback</li>
+      <li>Comandos <code>plugin:make</code>, <code>plugin:build</code>, <code>plugin:validate</code>, <code>plugins:test-store</code></li>
+    </ul>
+
+    <h3>Plugins presentes no repositório</h3>
+    <ul>
+      <li><code>ai-member</code> — assistente de IA na área de membros</li>
+      <li><code>AutoZap</code> — editor visual de automações (canvas + integrações + painel por produto)</li>
+      <li><code>WhiteLabel</code> — branding global (logo, favicon, tema, e-mails)</li>
+      <li><code>Example</code> — referência de plugin</li>
+      <li>Modelos completos em <code>4Dev/</code>: <code>getfy-example-gateway</code> e <code>getfy-plugin-starter</code></li>
+    </ul>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <h2><span class="idx">08</span>Integrações</h2>
+    <p class="sec-sub">
+      Cada integração é assíncrona por padrão (fila Redis), com fallback síncrono quando a fila não está
+      disponível ou quando o evento é crítico de pagamento.
+    </p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Integração</th><th>Função</th><th>Mecanismo</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Utmify</strong></td><td>Sincroniza pedidos eUTMs/src/sck</td><td>Job <code>UtmifySendOrderJob</code>; valores convertidos para BRL</td></tr>
+        <tr><td><strong>Spedy</strong></td><td>Emissão de nota fiscal</td><td>Job <code>SpedyIssueInvoiceJob</code> via subscriber de evento</td></tr>
+        <tr><td><strong>Cademi</strong></td><td>LMS — concede acesso a produto/tag Cademi</td><td>Job <code>CademiGrantAccessJob</code>; mapeamento por produto + postback</td></tr>
+        <tr><td><strong>IntegraX</strong></td><td>SMS: PIX gerado, acesso pós-compra, recuperação</td><td>Jobs dedicados + evento <code>PixGenerated</code> e <code>AccessDeliveryReady</code></td></tr>
+        <tr><td><strong>Meta Conversions API</strong></td><td>Evento Purchase server-side</td><td><code>SendMetaPurchaseCapiJob</code> com retry e dedup por <code>event_id</code>; múltiplos pixels por produto</td></tr>
+        <tr><td><strong>Pixel X (Twitter)</strong></td><td>Conversão no X/Twitter</td><td><code>DispatchPixelXJob</code>, logs e teste manual</td></tr>
+        <tr><td><strong>Conversion Pixels</strong></td><td>Meta, Google, TikTok — audiências e conversões</td><td>Resolução por produto + globais do tenant; export CSV de públicos</td></tr>
+        <tr><td><strong>Checkout externo</strong></td><td>Checkout em sistema de terceiros</td><td>Endpoints inbound com token 64-hex e assinatura HMAC</td></tr>
+        <tr><td><strong>Webhooks HTTP</strong></td><td>Notificação genérica de eventos</td><td>13 eventos, payload preview, logs, reenvio, KPIs de entrega</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Webhooks de saída</h3>
+    <ul>
+      <li><strong>Pagamento</strong> — OrderPending, OrderCompleted, AccessDeliveryReady, OrderRejected, OrderCancelled, OrderRefunded, PixGenerated, BoletoGenerated</li>
+      <li><strong>Recuperação</strong> — CartAbandoned</li>
+      <li><strong>Assinatura</strong> — SubscriptionCreated, SubscriptionRenewed, SubscriptionCancelled, SubscriptionPastDue</li>
+      <li>Payloads com arrays detalhados de produto, oferta e itens do pedido</li>
+      <li>Reconfirmação via API do gateway em eventos destrutivos (política <code>accept</code> por padrão, <code>reject</code> no Mercado Pago)</li>
+    </ul>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <h2><span class="idx">09</span>Assinaturas</h2>
+    <p class="sec-sub">Ciclo de vida completo de recorrência, com cobrança automática e renovação assistida.</p>
+    <ul>
+      <li><strong>Planos por produto</strong> — ciclo, preço, moeda, dias de carência e dias de aviso</li>
+      <li><strong>PIX Recorrente</strong> — Efí e Pushin Pay, com serviços dedicados de recorrência</li>
+      <li><strong>Cobrança automática</strong> (<code>SubscriptionAutoBillingService</code>) + <code>subscriptions:process-lifecycle</code> a cada hora</li>
+      <li><strong>Lembretes</strong> — e-mail diário (<code>subscriptions:send-reminders</code>) e push</li>
+      <li><strong>Renovação assistida</strong> — página pública <code>/renovar/{token}</code> com PIX direto</li>
+      <li><strong>Gestão no painel</strong> — cancelar, sincronizar estado, retry de charge e refund de charge individual</li>
+      <li>Acesso à área de membros controlado por assinatura (<code>SubscriptionAccessService</code>) ou por compra (<code>UserProductAccessService</code>)</li>
+    </ul>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <h2><span class="idx">10</span>E-mail &amp; email marketing</h2>
+
+    <h3>Transporte</h3>
+    <ul>
+      <li>Nove provedores suportados: <strong>SMTP, SES, Postmark, Resend, Sendmail, Brevo, log, array, failover, round-robin</strong></li>
+      <li>Configuração <strong>por tenant</strong> via <code>TenantMailConfigService</code> — cada tenant usa seu próprio SMTP</li>
+      <li>Testes de conexão e de envio real pelo painel, com e-mail de remetente separado do usuário SMTP</li>
+    </ul>
+
+    <h3>Mailables transacionais</h3>
+    <ul>
+      <li><strong>AccessGrantedMail</strong> — entrega de acesso pós-compra (com senha provisória quando aplicável)</li>
+      <li><strong>CartRecoveryMail</strong> — recuperação de carrinho</li>
+      <li><strong>SubscriptionReminderMail</strong> — aviso de renovação</li>
+      <li><strong>AffiliateApprovedMail</strong> — aprovação de afiliado</li>
+      <li><strong>CoproducerInviteMail</strong> — convite de co-produção</li>
+      <li><strong>TeamMemberAccessMail</strong> — convite de equipe</li>
+      <li><strong>CampaignMail</strong> — campanhas de marketing</li>
+      <li><strong>TestEmail</strong> — diagnóstico</li>
+    </ul>
+
+    <h3>Email Marketing</h3>
+    <ul>
+      <li>Criação e edição de campanhas com template e variáveis</li>
+      <li><strong>Preview de destinatários</strong> por filtro, antes do envio</li>
+      <li>Agendamento, envio assíncrono, e controle de <strong>pausar / retomar / cancelar</strong></li>
+      <li>Status por envio (<code>email_campaign_sends</code>) com rastreio de erro e reenvio</li>
+    </ul>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <h2><span class="idx">11</span>API de pagamentos (v1)</h2>
+    <p class="sec-sub">
+      API REST para platforms construírem checkout próprio sobre o Getfy. Autenticação por
+      <strong>Bearer token</strong> ou header <strong>X-API-Key</strong>, com <strong>whitelist de IPs</strong> por aplicação.
+    </p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Método</th><th>Endpoint</th><th>Função</th></tr></thead>
+      <tbody>
+        <tr><td>POST</td><td><code>/v1/checkout/sessions</code></td><td>Cria sessão de checkout hospedado (Checkout Pro)</td></tr>
+        <tr><td>POST</td><td><code>/v1/payments/pix</code></td><td>Cria pagamento PIX</td></tr>
+        <tr><td>POST</td><td><code>/v1/payments/card</code></td><td>Cria pagamento com cartão</td></tr>
+        <tr><td>POST</td><td><code>/v1/payments/boleto</code></td><td>Cria pagamento boleto</td></tr>
+        <tr><td>GET</td><td><code>/v1/payments/{order}</code></td><td>Status do pagamento</td></tr>
+      </tbody>
+    </table></div>
+
+    <ul>
+      <li><strong>Checkout Pro</strong> — página hospedada com dados do cliente na sessão, fluxo CajuPay próprio e PIX Automático</li>
+      <li><strong>Checkout Transparente</strong> — pagamento direto via API</li>
+      <li>Por aplicação: <strong>logo</strong>, <strong>URL de retorno</strong> padrão, <strong>pixels de conversão</strong> próprios e webhook de notificação</li>
+      <li>Acesso ao produto é liberado <strong>somente após pagamento confirmado</strong></li>
+      <li>Valor da API é <strong>validado contra o preço</strong> do produto/oferta/plano</li>
+      <li>Documentação interativa em <code>/docs/api-pagamentos</code> com playground de teste</li>
+    </ul>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <h2><span class="idx">12</span>Commerce (multi-produto)</h2>
+    <p class="sec-sub">
+      Camada de catálogo e carrinho para lojas com múltiplos produtos — base para plugins de vitrine.
+    </p>
+    <ul>
+      <li><strong>Catálogo</strong> — <code>/commerce/catalog/products</code> e detalhe por id/slug</li>
+      <li><strong>Carrinho</strong> — adicionar, atualizar e remover linhas, limpar carrinho</li>
+      <li><strong>Checkout multi-produto</strong> — <code>/commerce/checkout/{token}</code> + rota de pagamento</li>
+      <li><strong>TTL</strong> — carrinho 14 dias (máx. 50 linhas); sessão de checkout 2 horas</li>
+      <li><strong>Escopo por plugin</strong> — <code>EnforcePluginCommerceScope</code> isola dados por tenant e por plugin</li>
+      <li>Bridge entre checkout de commerce e o checkout padrão (mesmo <code>PaymentService</code>, antifraude e gatilhos)</li>
+    </ul>
+  </section>
+
+  <!-- 13 -->
+  <section id="s13">
+    <h2><span class="idx">13</span>Operação &amp; infraestrutura</h2>
+
+    <h3>Instalação</h3>
+    <ul>
+      <li><strong>Instalador web</strong> <code>/install</code> — 4 etapas (URL, banco, driver de sessão, finalização); marca <code>APP_INSTALLED=true</code> e auto-desativa renomeando <code>public/install</code> → <code>public/.install</code></li>
+      <li><strong>VPS</strong> — <code>install.sh</code> instala Docker, clona o repo e sobe os containers; setup final em <code>/docker-setup</code></li>
+      <li><strong>Docker na Hostinger / Dokploy</strong> — deploy por URL do GitHub com <code>docker-compose.yml</code>; variantes com Caddy e sem Redis</li>
+      <li><strong>Criação do primeiro admin</strong> em <code>/criar-admin</code> (redireciona se já existir admin)</li>
+    </ul>
+
+    <h3>Atualização</h3>
+    <ul>
+      <li><strong>Pelo painel</strong> — verificação de update, checagem de integridade, rodar migrations e update completo, com feedback de progresso</li>
+      <li><strong>Por script</strong> — <code>update.sh</code> (VPS/Docker) ou pacote <code>#ZIP-UPDATE</code> (hospedagem compartilhada)</li>
+      <li><code>APP_AUTO_MIGRATE=true</code> para migração automática em update por ZIP</li>
+    </ul>
+
+    <h3>Agendamentos</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Comando</th><th>Frequência</th><th>Função</th></tr></thead>
+      <tbody>
+        <tr><td><code>checkout:send-cart-recovery-emails</code></td><td>1 min</td><td>Recuperação de carrinho por e-mail</td></tr>
+        <tr><td><code>checkout:send-cart-recovery-sms</code></td><td>1 min</td><td>Recuperação de carrinho por SMS</td></tr>
+        <tr><td><code>payments:reconcile-pending</code></td><td>1 min</td><td>Reconciliação de pagamentos pendentes</td></tr>
+        <tr><td><code>payouts:reconcile</code></td><td>1 min</td><td>Conciliação de saques</td></tr>
+        <tr><td><code>email-campaign:process</code></td><td>1 min</td><td>Processa campanhas agendadas</td></tr>
+        <tr><td><code>checkout:fire-abandoned-cart-webhooks</code></td><td>10 min</td><td>Dispara webhook de carrinho abandonado</td></tr>
+        <tr><td><code>subscriptions:process-lifecycle</code></td><td>1 h</td><td>Ciclo de vida das assinaturas</td></tr>
+        <tr><td><code>orders:cancel-stale-pending</code></td><td>1 h</td><td>Cancela pedidos pendentes travados</td></tr>
+        <tr><td><code>commissions:release</code></td><td>1 h</td><td>Libera comissões após carência</td></tr>
+        <tr><td><code>subscriptions:send-reminders</code></td><td>Diário 09:00</td><td>Lembretes de renovação</td></tr>
+        <tr><td><code>coproducers:expire-invites</code></td><td>Diário</td><td>Expira convites de co-produção</td></tr>
+        <tr><td><code>schedule:heartbeat</code></td><td>1 min</td><td>Heartbeat do scheduler</td></tr>
+      </tbody>
+    </table></div>
+    <p>
+      Em hospedagem compartilhada o scheduler é acionado por <strong>cron HTTP</strong>:
+      <code>/cron?token={CRON_SECRET}</code> a cada minuto, com throttle e resposta JSON.
+    </p>
+
+    <h3>PWA &amp; push</h3>
+    <ul>
+      <li>Manifest dinâmico (nome, tema, ícones, <code>display: standalone</code>) para painel e para cada área de membros</li>
+      <li>Service worker com anti-cache agressivo para forçar atualização de versão</li>
+      <li>Chaves VAPID geradas pela UI e gravadas no <code>.env</code>, com backup no volume compartilhado</li>
+      <li>Preferências de notificação por método (PIX / Boleto / Cartão) e multi-dispositivo</li>
+      <li>Instalação em tela cheia com botão de prompt</li>
+    </ul>
+
+    <h3>Storage</h3>
+    <ul>
+      <li>Providers: <strong>Local, S3, Cloudflare R2, Wasabi, DigitalOcean Spaces</strong> (detecção por endpoint)</li>
+      <li>Configuração por tenant: <code>storage_provider</code>, chaves, bucket e URL pública</li>
+      <li>Teste de conexão e <strong>migração entre providers</strong> pelo painel</li>
+      <li>Servidor de arquivos próprio (<code>/storage/{path}</code>) para hosts sem symlink</li>
+    </ul>
+
+    <h3>Comprovação / Dossiê</h3>
+    <ul>
+      <li>Página por venda com dados do comprador, produto e evidências: progresso, aulas concluídas, logs, IP e UTMs</li>
+      <li>Exportação em <strong>PDF e ZIP</strong> por período, com filtros de data, produto, forma de pagamento e status</li>
+      <li><strong>Código de verificação</strong> + página pública <code>/verify/{code}</code> com resumo mascarado</li>
+      <li>Isolamento por tenant verificado em teste automatizado</li>
+    </ul>
+  </section>
+
+  <!-- 14 -->
+  <section id="s14">
+    <h2><span class="idx">14</span>Segurança</h2>
+
+    <h3>Cabeçalhos e CSP</h3>
+    <ul>
+      <li><strong>Content Security Policy</strong> configurável — domínios dos SDKs de pagamento, analytics, WebSocket e Meta CAPI Gateway</li>
+      <li>Extensão via <code>.env</code>: <code>CSP_EXTRA_SCRIPT_SRC</code>, <code>CSP_EXTRA_CONNECT_SRC</code></li>
+      <li>HSTS com preload em produção, <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: SAMEORIGIN</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code></li>
+      <li><strong>Bloqueio de paths sensíveis</strong> — <code>.env</code>, <code>.git</code>, <code>vendor/</code>, <code>config/</code>, <code>storage/</code> — com redundância no <code>.htaccess</code> e no middleware</li>
+      <li>Force HTTPS via proxy (<code>X-Forwarded-Proto</code>) com proxies confiáveis</li>
+    </ul>
+
+    <h3>Rate limiting</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Limiter</th><th>Taxa</th><th>Chave</th></tr></thead>
+      <tbody>
+        <tr><td><code>api</code></td><td>60/min</td><td>user ID ou IP</td></tr>
+        <tr><td><code>checkout-process</code></td><td>20/min</td><td>IP</td></tr>
+        <tr><td><code>checkout-card</code></td><td>5/min</td><td>IP</td></tr>
+        <tr><td><code>checkout-pix</code></td><td>20/5min</td><td>IP</td></tr>
+        <tr><td><code>checkout-email</code></td><td>30/hora</td><td>hash do e-mail</td></tr>
+        <tr><td><code>checkout-product-ip</code></td><td>40/hora</td><td>IP + produto</td></tr>
+        <tr><td><code>platform-login</code></td><td>20/min</td><td>IP + e-mail</td></tr>
+        <tr><td><code>password-reset</code></td><td>6/min</td><td>IP + e-mail</td></tr>
+        <tr><td><code>payout</code></td><td>3/min</td><td>user ID</td></tr>
+        <tr><td><code>member-login</code>, <code>magic-access</code></td><td>—</td><td>Área de membros</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Outras garantias</h3>
+    <ul>
+      <li>Validação <strong>HMAC</strong> em webhooks de plugin e em endpoints inbound de checkout externo</li>
+      <li><strong>Whitelist de IPs</strong> por aplicação de API</li>
+      <li>Confirmação de valor da API contra o preço real do produto</li>
+      <li>Reconfirmação via API do gateway em eventos destrutivos (cancelamento, recusa, reembolso)</li>
+      <li>Revogação automática de acesso do aluno ao concluir reembolso</li>
+      <li>Isolamento multi-tenant verificado por testes de feature</li>
+      <li>Login sem senha na área de membros <strong>não</strong> dá acesso ao painel da plataforma</li>
+    </ul>
+
+    <h3>Cobertura de testes</h3>
+    <p>
+      Mais de <strong>140 testes automatizados</strong> (<code>tests/Feature</code> e <code>tests/Unit</code>) cobrindo
+      gateways (CajuPay, Stripe, PayPal, Efí), antifraude de checkout, webhooks e reenvio, plugins e SDK,
+      área de membros, comissões, recompensas, permissões de equipe, multi-moeda, rastreamento de funil,
+      comprovação de venda e integrações.
+    </p>
+  </section>
+
+  <!-- 15 -->
+  <section id="s15">
+    <h2><span class="idx">15</span>Divergências no documento interno</h2>
+    <p class="sec-sub">
+      O repositório contém <code>Getfy/RELATORIO-COMPLETO-SISTEMA.md</code>, gerado em 24/08/2026 contra a
+      versão 2.0.4. A leitura direta do código aponta <strong>duas imprecisões</strong> nesse documento.
+    </p>
+
+    <div class="note warn">
+      <div class="h">Correção 1 — Gateways</div>
+      <p>
+        O relatório interno lista <strong>9 gateways</strong> incluindo <strong>Spacepag</strong>.
+        No código atual há <strong>8</strong>: não existe driver Spacepag em <code>app/Gateways/</code> e
+        o slug não aparece em <code>config/gateways.php</code>. O Spacepag constava no changelog até a
+        versão 1.0.x e foi removido — a integração histórica pode dar a impressão de estar ativa.
+      </p>
+    </div>
+
+    <div class="note warn">
+      <div class="h">Correção 2 — Plugins bundled</div>
+      <p>
+        O relatório interno cita uma pasta <code>plugins/</code> na raiz do projeto com 6 plugins de exemplo
+        (commerce, gateway, integration, member, starter, white-label). <strong>Essa pasta não existe no
+        repositório</strong>. Os plugins são distribuídos pela loja (<code>getfy.org/plugins</code>) e os
+        modelos de referência estão em <code>Getfy/4Dev/</code> (<code>getfy-example-gateway</code>,
+        <code>getfy-plugin-starter</code>). As páginas Vue de plugin legadas vivem em
+        <code>resources/js/PluginPages/</code> (<code>ai-member</code>, <code>AutoZap</code>,
+        <code>WhiteLabel</code>, <code>Example</code>).
+      </p>
+    </div>
+
+    <div class="note info">
+      <div class="h">Verificado como correto</div>
+      <p>
+        Contagens de models, controllers, services, middlewares, jobs, commands, migrations, tabelas,
+        gateways na lista de webhooks, eventos, jobs, comandos agendados, middlewares, slots de plugin,
+        SDK e layout de frontend conferem com o código. O relatório interno cobre bem a arquitetura —
+        as duas correções acima são as únicas divergências materiais.
+      </p>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="fi">
+    <div>Relatório gerado por análise estática do repositório <code>Getfy/</code> · versão 2.0.4</div>
+    <div>Documento interno — sem ligação com o produto comercial <code>getfy.org</code></div>
+  </div>
+</footer>
+
+<button class="totop" id="toTop" title="Voltar ao topo">↑</button>
+
+<script>
+(function(){
+  // Tema
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  var saved=null; try{saved=localStorage.getItem('getfy-doc-theme')}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  btn.addEventListener('click',function(){
+    var next = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('getfy-doc-theme',next)}catch(e){}
+  });
+
+  // Scrollspy
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var map={};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)]=a; });
+  var secs=[].slice.call(document.querySelectorAll('main section'));
+  var top=document.getElementById('toTop');
+
+  function onScroll(){
+    var y=window.scrollY+120, current=secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].offsetTop<=y) current=secs[i]; }
+    links.forEach(function(a){a.classList.remove('active')});
+    if(map[current.id]) map[current.id].classList.add('active');
+    top.classList.toggle('on', window.scrollY>600);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});
+  onScroll();
+})();
+</script>
+</body>
+</html>

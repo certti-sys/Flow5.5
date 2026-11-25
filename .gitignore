@@ -58,3 +58,6 @@ audit-result.json
 # Referências externas (não versionar)
 Getfy/
 Lixo/
+
+# Configuração local do agente
+.commandcode/
