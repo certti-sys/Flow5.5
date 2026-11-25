@@ -26,6 +26,10 @@ import { z } from "zod";
 import { detectPlatform, getPlatformInfo, extractVideoUrl, normalizeVimeoUrl, normalizePandaVideoUrl, normalizeBunnyUrl, normalizeVTurbUrl, normalizeGoogleDriveUrl } from "@/lib/videoUtils";
 import { VideoPreview } from "./VideoPreview";
 import { MaterialEditor, Material, MaterialType } from "./MaterialEditor";
+import {
+  ReleaseScheduleField,
+} from "./ReleaseScheduleField";
+import { releaseColumns, releaseModeOf, type ReleaseMode } from "@/lib/release-schedule";
 import { Info, AlertTriangle, Plus, GripVertical, Trash2, Pencil, Link2, FileText, Download, Code, Play } from "lucide-react";
 
 // Schema now makes video_url and duration optional
@@ -77,6 +81,29 @@ export function LessonFormModal({
   const [materialEditorOpen, setMaterialEditorOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | undefined>(undefined);
 
+  const [releaseMode, setReleaseMode] = useState<ReleaseMode>("none");
+  const [releaseAfterDays, setReleaseAfterDays] = useState("");
+  const [releaseAtDate, setReleaseAtDate] = useState("");
+
+  // Bloqueio herdado do módulo: a aula nunca é liberada antes dele.
+  const { data: parentModule } = useQuery({
+    queryKey: ["moduleRelease", moduleId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("modules")
+        .select("release_after_days, release_at_date")
+        .eq("id", moduleId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: open && !!moduleId,
+  });
+  const inheritedLock = parentModule?.release_at_date
+    ? `na data ${new Date(`${parentModule.release_at_date}T00:00:00`).toLocaleDateString("pt-BR")}`
+    : parentModule?.release_after_days
+      ? `${parentModule.release_after_days} dias após o acesso`
+      : null;
+
   // Fetch existing materials when editing
   const { data: existingMaterials = [] } = useQuery({
     queryKey: ["lessonMaterials", lesson?.id],
@@ -103,6 +130,16 @@ export function LessonFormModal({
       setModuleId(lesson.module_id || preselectedModuleId || "");
       setDescription(lesson.description || "");
       setIsPublic(lesson.is_public ?? true);
+      setReleaseMode(
+        releaseModeOf({
+          release_after_days: lesson.release_after_days ?? null,
+          release_at_date: lesson.release_at_date ?? null,
+        }),
+      );
+      setReleaseAfterDays(
+        lesson.release_after_days ? String(lesson.release_after_days) : "",
+      );
+      setReleaseAtDate(lesson.release_at_date || "");
       
       // Auto-detect platform from existing URL
       if (lesson.video_url) {
@@ -120,6 +157,9 @@ export function LessonFormModal({
       setIsPublic(true);
       setSelectedPlatform("");
       setMaterials([]);
+      setReleaseMode("none");
+      setReleaseAfterDays("");
+      setReleaseAtDate("");
     }
   }, [open, lesson, preselectedModuleId]);
 
@@ -251,6 +291,7 @@ export function LessonFormModal({
       }
 
       let lessonId = lesson?.id;
+      const release = releaseColumns(releaseMode, releaseAfterDays, releaseAtDate);
 
       if (lesson) {
         const { error } = await supabase
@@ -262,6 +303,7 @@ export function LessonFormModal({
             module_id: moduleId,
             description,
             is_public: isPublic,
+            ...release,
           })
           .eq("id", lesson.id);
         if (error) throw error;
@@ -282,6 +324,7 @@ export function LessonFormModal({
           description,
           is_public: isPublic,
           order_index: (maxOrder?.order_index || 0) + 1,
+          ...release,
         }).select().single();
         
         if (error) throw error;
@@ -597,6 +640,17 @@ export function LessonFormModal({
                   className="data-[state=checked]:bg-primary"
                 />
               </div>
+
+              {/* Ver a nota na migration: `is_public` não isenta do drip. */}
+              <ReleaseScheduleField
+                mode={releaseMode}
+                afterDays={releaseAfterDays}
+                atDate={releaseAtDate}
+                onModeChange={setReleaseMode}
+                onAfterDaysChange={setReleaseAfterDays}
+                onAtDateChange={setReleaseAtDate}
+                inheritedLock={inheritedLock}
+              />
             </div>
           </div>
 

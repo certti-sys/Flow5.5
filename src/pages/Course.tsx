@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useHasAccessToCourse } from "@/hooks/useHasAccessToCourse";
 import { useUserProgress } from "@/hooks/useUserProgress";
+import { useCourseRelease } from "@/hooks/useCourseRelease";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 
@@ -59,6 +60,7 @@ const Course = () => {
 
   // Check if user has access to this course
   const { hasAccess, loading: loadingAccess, failed: accessCheckFailed } = useHasAccessToCourse(courseId || null);
+  const { releaseMap, loadingRelease } = useCourseRelease(courseId || null);
 
   // Módulos sem aulas não servem de ponto de entrada: a primeira aula pode
   // estar num módulo posterior. Antes, `modules[0]` vazio fazia o curso com
@@ -69,19 +71,26 @@ const Course = () => {
 
   // Find current/next lesson to watch
   const findCurrentLesson = () => {
-    // Se o progresso for 100%, retorne a primeira aula para re-assistir
+    // Se o progresso for 100%, retorne a primeira aula liberada para re-assistir
     if (progressPercentage === 100 && firstLesson) {
-      return { lesson: firstLesson, module: firstModule };
+      const unlocked = modulesWithLessons
+        .flatMap((m) => m.lessons || [])
+        .find((lesson: any) => !releaseMap[lesson.id]);
+      return unlocked ? { lesson: unlocked, module: firstModule } : null;
     }
 
     for (const module of modules) {
       for (const lesson of module.lessons || []) {
-        if (!isLessonCompleted(lesson.id)) {
+        if (!isLessonCompleted(lesson.id) && !releaseMap[lesson.id]) {
           return { lesson, module };
         }
       }
     }
-    return { lesson: firstLesson, module: firstModule };
+    // Tudo concluído ou tudo travado por drip: cai na primeira aula liberada.
+    const unlocked = modulesWithLessons
+      .flatMap((m) => m.lessons || [])
+      .find((lesson: any) => !releaseMap[lesson.id]);
+    return unlocked ? { lesson: unlocked, module: firstModule } : null;
   };
 
   // Redirect based on access
@@ -91,10 +100,10 @@ const Course = () => {
 
     // Only redirect after course data has loaded, is synced, and access verification is complete.
     // Se a verificação falhou, não redireciona: erro não é o mesmo que "sem acesso".
-    if (isDataSynced && !isLoading && course && !loadingAccess && !accessCheckFailed && courseId) {
+    if (isDataSynced && !isLoading && course && !loadingAccess && !loadingRelease && !accessCheckFailed && courseId) {
       if (hasAccess) {
         // Has access - redirect to first uncompleted lesson
-        const { lesson } = findCurrentLesson();
+        const lesson = findCurrentLesson()?.lesson;
         if (lesson) {
           navigate(`/aula/${lesson.id}`, { replace: true });
         }
@@ -103,16 +112,18 @@ const Course = () => {
         navigate(`/curso/${courseId}/info`, { replace: true });
       }
     }
-  }, [hasAccess, loadingAccess, accessCheckFailed, courseId, navigate, isLoading, course, modules]);
+  }, [hasAccess, loadingAccess, loadingRelease, accessCheckFailed, courseId, navigate, isLoading, course, modules, releaseMap]);
 
-  const { lesson: currentLesson } = findCurrentLesson();
+  const currentLesson = findCurrentLesson()?.lesson;
 
   // Enquanto a navegação não acontece, mantém o spinner: sem isso a visão
   // geral da página pisca por um instante antes da aula (ou da página de venda).
+  // `currentLesson` nulo significa "acesso ok, mas nada liberado ainda" (drip):
+  // aí a página tem que renderizar, senão o aluno fica preso no spinner.
   const isRedirecting =
     !accessCheckFailed && (hasAccess ? !!currentLesson : !!course);
 
-  if (isLoading || loadingAccess || isRedirecting) {
+  if (isLoading || loadingAccess || loadingRelease || isRedirecting) {
     return (
       <div className="min-h-screen">
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">

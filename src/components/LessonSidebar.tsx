@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { CheckCircle2, Circle, Clock, BookOpen, PlayCircle, Loader2, FileBadge } from "lucide-react";
+import { CheckCircle2, Circle, Clock, BookOpen, PlayCircle, Loader2, FileBadge, Lock } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { prefetchLesson } from "@/lib/lessonQueries";
 import { useUserProgress } from "@/hooks/useUserProgress";
+import { useCourseRelease } from "@/hooks/useCourseRelease";
+import { releaseLabel } from "@/lib/release-schedule";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ export const LessonSidebar = ({
   const { isLessonCompleted } = useUserProgress();
   const { user } = useAuth();
   const { settings } = usePlatformSettings();
+  const { releaseMap } = useCourseRelease(courseId);
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   const handleGenerateCertificate = async () => {
@@ -153,6 +156,7 @@ export const LessonSidebar = ({
             const moduleLessons = module.lessons || [];
             const moduleCompleted = moduleLessons.filter((l: any) => isLessonCompleted(l.id)).length;
             const isAllCompleted = moduleCompleted === moduleLessons.length && moduleLessons.length > 0;
+            const moduleLock = releaseLabel(releaseMap[module.id]);
 
             return (
               <AccordionItem key={module.id} value={module.id} className="border-b border-white/5 last:border-b-0">
@@ -165,9 +169,10 @@ export const LessonSidebar = ({
                     <div className="min-w-0 pr-4">
                       <p className="font-medium text-sm truncate">{module.title}</p>
                       <p className="text-[12px] text-muted-foreground">
-                        {moduleCompleted}/{moduleLessons.length} aulas
+                        {moduleLock ?? `${moduleCompleted}/${moduleLessons.length} aulas`}
                       </p>
                     </div>
+                    {moduleLock && <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                   </div>
                 </AccordionTrigger>
 
@@ -176,6 +181,32 @@ export const LessonSidebar = ({
                     {moduleLessons.map((lesson: any, lessonIndex: number) => {
                       const completed = isLessonCompleted(lesson.id);
                       const isActive = lessonId === lesson.id;
+                      const lockLabel = releaseLabel(releaseMap[lesson.id]);
+
+                      if (lockLabel) {
+                        return (
+                          <div
+                            key={lesson.id}
+                            title={lockLabel}
+                            className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-b-0 opacity-55 cursor-not-allowed"
+                          >
+                            <div className="flex-shrink-0">
+                              <div className="w-5 h-5 rounded-full bg-muted/30 flex items-center justify-center">
+                                <Lock className="w-3 h-3 text-muted-foreground" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate text-muted-foreground">
+                                {lessonIndex + 1}. {lesson.title}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 mt-0.5">
+                                <Clock className="w-3 h-3" />
+                                <span>{lockLabel}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
 
                       return (
                         <Link

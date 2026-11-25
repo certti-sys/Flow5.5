@@ -109,6 +109,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Drip content: aula agendada não gera progresso, XP nem conquista.
+    // A UI já esconde o player, mas a chamada direta à edge é o caminho que um
+    // aluno curioso tentaria — e é aqui que ele precisa parar.
+    if (action !== 'get_course_progress') {
+      // Chamada pelo `supabaseAdmin`: a variante "_for" recebe o usuário
+      // explícito e só a service role pode executá-la. Pelo client do aluno
+      // (`supabase`) o PostgREST recusaria com permission denied — e como o
+      // erro aqui é engolido de propósito, a guarda ficaria inerte em silêncio.
+      const { data: releaseRows, error: releaseError } = await supabaseAdmin.rpc(
+        'get_course_release_map_for',
+        { p_user_id: user.id, p_course_id: courseId },
+      );
+      // Falha na checagem não bloqueia: mesmo raciocínio do acesso ao curso,
+      // um erro passageiro não pode tirar do aluno uma aula já liberada.
+      if (!releaseError) {
+        const locked = (releaseRows ?? []).find(
+          (row: { kind: string; id: string }) => row.kind === 'lesson' && row.id === lessonId,
+        );
+        if (locked) {
+          return new Response(
+            JSON.stringify({
+              error: 'Esta aula ainda não foi liberada.',
+              availableAt: (locked as { available_at?: string }).available_at ?? null,
+            }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        logger.error('Falha ao checar liberação da aula (seguindo sem bloquear)', releaseError);
+      }
+    }
+
     if (action === 'get') {
       const { data, error } = await supabase
         .from('user_progress')

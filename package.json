@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "check:theme": "node scripts/check-theme-presets.mjs",
     "check:upsell": "node scripts/check-checkout-upsell.mjs",
-    "check:cart": "node scripts/check-cart-recovery.mjs"
+    "check:cart": "node scripts/check-cart-recovery.mjs",
+    "check:drip": "node scripts/check-drip-content.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

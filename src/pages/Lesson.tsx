@@ -21,6 +21,7 @@ import {
   Heart,
   NotebookPen,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +49,8 @@ import {
 } from "@/lib/lessonQueries";
 import { useAuth } from "@/hooks/useAuth";
 import { useHasAccessToCourse } from "@/hooks/useHasAccessToCourse";
+import { useCourseRelease } from "@/hooks/useCourseRelease";
+import { releaseLabel } from "@/lib/release-schedule";
 import { useGamification, Achievement } from "@/hooks/useGamification";
 import { useLessonEngagement } from "@/hooks/useLessonEngagement";
 import { AchievementUnlockedModal } from "@/components/gamification/AchievementUnlockedModal";
@@ -170,6 +173,9 @@ const Lesson = () => {
   });
 
   const courseId = lessonData?.modules?.courses?.id;
+
+  const { releaseMap } = useCourseRelease(courseId || null);
+  const lockLabel = releaseLabel(releaseMap[lessonId]);
 
   // Check if user has access to this course
   const { hasAccess, loading: loadingAccess, failed: accessCheckFailed } = useHasAccessToCourse(courseId || null);
@@ -639,6 +645,22 @@ const Lesson = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
           {/* Video + Materials + Comments Section */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Aula travada por drip: nada de player, anotações ou comentários.
+                O bloqueio real está na edge `lesson-progress`; isto é só a UI. */}
+            {lockLabel ? (
+              <div className="glass-card rounded-[24px] border-white/10 p-10 md:p-14 text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
+                  <Lock className="w-7 h-7 text-primary" />
+                </div>
+                <h2 className="text-[20px] md:text-[24px] font-bold tracking-tight">
+                  Conteúdo ainda não liberado
+                </h2>
+                <p className="text-[14px] text-muted-foreground max-w-md mx-auto">
+                  {lockLabel}.
+                </p>
+              </div>
+            ) : (
+              <>
             {/* Video Player - Only show if lesson has video */}
             {lessonData.video_url && (
               <div className="overflow-hidden rounded-[24px] bg-black shadow-2xl ring-1 ring-white/10">
@@ -679,7 +701,8 @@ const Lesson = () => {
                 <Button
                   onClick={() => toggleCompleteMutation.mutate()}
                   variant={progress?.completed ? "default" : "outline"}
-                  disabled={toggleCompleteMutation.isPending}
+                  disabled={toggleCompleteMutation.isPending || !!lockLabel}
+                  title={lockLabel ?? undefined}
                   className={`gap-2 h-[44px] md:h-[48px] px-6 rounded-[12px] font-bold transition-all duration-fast transform active:scale-95 group shrink-0 relative z-20 ${progress?.completed
                     ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20 shadow-premium"
                     : "gradient-primary text-white shadow-glow hover:opacity-90 border-0"
@@ -787,6 +810,8 @@ const Lesson = () => {
                 </div>
               </CollapsibleContent>
             </Collapsible>
+              </>
+            )}
           </div>
 
           {/* Sidebar - hidden on mobile, show collapsible accordion instead */}

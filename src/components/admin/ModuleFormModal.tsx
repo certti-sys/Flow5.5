@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ import {
 import { FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  ReleaseScheduleField,
+} from "./ReleaseScheduleField";
+import { releaseColumns, releaseModeOf, type ReleaseMode } from "@/lib/release-schedule";
 
 const moduleSchema = z.object({
   title: z.string().min(3, "Título deve ter no mínimo 3 caracteres"),
@@ -35,6 +39,31 @@ export function ModuleFormModal({
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(module?.title || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [releaseMode, setReleaseMode] = useState<ReleaseMode>(
+    releaseModeOf({
+      release_after_days: module?.release_after_days ?? null,
+      release_at_date: module?.release_at_date ?? null,
+    }),
+  );
+  const [releaseAfterDays, setReleaseAfterDays] = useState(
+    module?.release_after_days ? String(module.release_after_days) : "",
+  );
+  const [releaseAtDate, setReleaseAtDate] = useState(module?.release_at_date || "");
+
+  // O modal fica montado: sem isso, editar o módulo B mostra os campos do A.
+  useEffect(() => {
+    if (!open) return;
+    setTitle(module?.title || "");
+    setErrors({});
+    setReleaseMode(
+      releaseModeOf({
+        release_after_days: module?.release_after_days ?? null,
+        release_at_date: module?.release_at_date ?? null,
+      }),
+    );
+    setReleaseAfterDays(module?.release_after_days ? String(module.release_after_days) : "");
+    setReleaseAtDate(module?.release_at_date || "");
+  }, [open, module]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -53,7 +82,7 @@ export function ModuleFormModal({
       if (module) {
         const { error } = await supabase
           .from("modules")
-          .update({ title })
+          .update({ title, ...releaseColumns(releaseMode, releaseAfterDays, releaseAtDate) })
           .eq("id", module.id);
         if (error) throw error;
       } else {
@@ -69,6 +98,7 @@ export function ModuleFormModal({
           course_id: courseId,
           title,
           order_index: (maxOrder?.order_index || 0) + 1,
+          ...releaseColumns(releaseMode, releaseAfterDays, releaseAtDate),
         });
         if (error) throw error;
       }
@@ -121,6 +151,15 @@ export function ModuleFormModal({
                 <p role="alert" className="text-sm text-destructive">{errors.title}</p>
               )}
             </div>
+
+            <ReleaseScheduleField
+              mode={releaseMode}
+              afterDays={releaseAfterDays}
+              atDate={releaseAtDate}
+              onModeChange={setReleaseMode}
+              onAfterDaysChange={setReleaseAfterDays}
+              onAtDateChange={setReleaseAtDate}
+            />
           </div>
         </div>
 

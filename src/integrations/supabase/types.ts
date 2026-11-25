@@ -1242,6 +1242,8 @@ export type Database = {
           is_public: boolean | null
           module_id: string | null
           order_index: number
+          release_after_days: number | null
+          release_at_date: string | null
           title: string
           video_url: string | null
         }
@@ -1253,6 +1255,8 @@ export type Database = {
           is_public?: boolean | null
           module_id?: string | null
           order_index: number
+          release_after_days?: number | null
+          release_at_date?: string | null
           title: string
           video_url?: string | null
         }
@@ -1264,6 +1268,8 @@ export type Database = {
           is_public?: boolean | null
           module_id?: string | null
           order_index?: number
+          release_after_days?: number | null
+          release_at_date?: string | null
           title?: string
           video_url?: string | null
         }
@@ -1319,6 +1325,8 @@ export type Database = {
           created_at: string | null
           id: string
           order_index: number
+          release_after_days: number | null
+          release_at_date: string | null
           title: string
         }
         Insert: {
@@ -1326,6 +1334,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           order_index: number
+          release_after_days?: number | null
+          release_at_date?: string | null
           title: string
         }
         Update: {
@@ -1333,6 +1343,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           order_index?: number
+          release_after_days?: number | null
+          release_at_date?: string | null
           title?: string
         }
         Relationships: [
