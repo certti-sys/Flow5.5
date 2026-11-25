@@ -43,6 +43,9 @@ verify_jwt = true
 [functions.check-achievements]
 verify_jwt = true
 
+[functions.lesson-file-url]
+verify_jwt = true
+
 [functions.webhook-payment]
 verify_jwt = false
 

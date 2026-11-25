@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,9 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link2, FileText, Download, Code } from "lucide-react";
+import { Link2, FileText, Download, Code, BookOpen, Upload, Loader2, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export type MaterialType = "link" | "text" | "download" | "embed";
+export type MaterialType = "link" | "text" | "download" | "embed" | "pdf";
 
 export interface Material {
   id?: string;
@@ -31,6 +33,8 @@ export interface Material {
   description?: string;
   is_required: boolean;
   order_index: number;
+  /** Só para type=pdf: content é o caminho no bucket lesson-files. */
+  file_meta?: { size?: number; name?: string };
 }
 
 interface MaterialEditorProps {
@@ -65,7 +69,15 @@ const materialTypeInfo: Record<MaterialType, { icon: React.ReactNode; label: str
     placeholder: "https://www.figma.com/embed?...",
     hint: "URL de embed (Figma, Canva, Google Docs, etc.)",
   },
+  pdf: {
+    icon: <BookOpen className="w-4 h-4" />,
+    label: "PDF (leitor)",
+    placeholder: "",
+    hint: "Arquivo enviado para o bucket privado e aberto no leitor da aula",
+  },
 };
+
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
 export function MaterialEditor({
   open,
@@ -78,6 +90,9 @@ export function MaterialEditor({
   const [content, setContent] = useState("");
   const [description, setDescription] = useState("");
   const [isRequired, setIsRequired] = useState(false);
+  const [fileMeta, setFileMeta] = useState<{ size?: number; name?: string } | undefined>();
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync form state with material prop when modal opens
   useEffect(() => {
@@ -87,14 +102,46 @@ export function MaterialEditor({
       setContent(material.content);
       setDescription(material.description || "");
       setIsRequired(material.is_required);
+      setFileMeta(material.file_meta);
     } else if (open && !material) {
       setType("link");
       setTitle("");
       setContent("");
       setDescription("");
       setIsRequired(false);
+      setFileMeta(undefined);
     }
   }, [open, material]);
+
+  const uploadPdf = async (file: File) => {
+    if (file.type !== "application/pdf") {
+      toast.error("Envie um arquivo PDF.");
+      return;
+    }
+    if (file.size > MAX_PDF_BYTES) {
+      toast.error("PDF acima de 50 MB.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Nome aleatório: caminho não adivinhável, e o bucket é privado de todo
+      // jeito — o aluno só lê por URL assinada.
+      const path = `pdf/${crypto.randomUUID()}.pdf`;
+      const { error } = await supabase.storage
+        .from("lesson-files")
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: "application/pdf" });
+      if (error) throw error;
+
+      setContent(path);
+      setFileMeta({ size: file.size, name: file.name });
+      if (!title.trim()) setTitle(file.name.replace(/\.pdf$/i, ""));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha no upload do PDF");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = () => {
     if (!title.trim() || !content.trim()) return;
@@ -105,6 +152,7 @@ export function MaterialEditor({
       content: content.trim(),
       description: description.trim() || undefined,
       is_required: isRequired,
+      file_meta: type === "pdf" ? fileMeta : undefined,
     });
 
     onOpenChange(false);
@@ -156,7 +204,7 @@ export function MaterialEditor({
 
           <div className="space-y-2">
             <Label htmlFor="material-content">
-              {type === "text" ? "Conteúdo" : "URL"}
+              {type === "text" ? "Conteúdo" : type === "pdf" ? "Arquivo PDF" : "URL"}
             </Label>
             {type === "text" ? (
               <Textarea
@@ -166,6 +214,56 @@ export function MaterialEditor({
                 placeholder={info.placeholder}
                 rows={5}
               />
+            ) : type === "pdf" ? (
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void uploadPdf(file);
+                    e.target.value = "";
+                  }}
+                />
+                {content ? (
+                  <div className="flex items-center gap-2 rounded-[10px] border border-white/10 bg-white/[0.02] px-3 py-2">
+                    <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm truncate flex-1">
+                      {fileMeta?.name || content.split("/").pop()}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setContent("");
+                        setFileMeta(undefined);
+                      }}
+                      aria-label="Remover arquivo"
+                      className="h-7 w-7 p-0 shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="w-full h-[44px] gap-2 glass-card border-white/10 bg-transparent"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {uploading ? "Enviando…" : "Escolher PDF"}
+                  </Button>
+                )}
+              </div>
             ) : (
               <Input
                 id="material-content"

@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { PdfViewer } from "@/components/PdfViewer";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Link2,
   FileText,
@@ -10,17 +13,20 @@ import {
   Code,
   ExternalLink,
   ChevronDown,
-  FolderOpen
+  FolderOpen,
+  BookOpen,
+  Loader2
 } from "lucide-react";
 
 interface Material {
   id: string;
-  type: "link" | "text" | "download" | "embed";
+  type: "link" | "text" | "download" | "embed" | "pdf";
   title: string;
   content: string;
   description?: string | null;
   is_required: boolean;
   order_index: number;
+  file_meta?: { size?: number; name?: string } | null;
 }
 
 interface LessonMaterialsProps {
@@ -32,6 +38,7 @@ const materialIcons = {
   text: FileText,
   download: Download,
   embed: Code,
+  pdf: BookOpen,
 };
 
 const materialLabels = {
@@ -39,7 +46,82 @@ const materialLabels = {
   text: "Texto",
   download: "Download",
   embed: "Embed",
+  pdf: "PDF",
 };
+
+const formatSize = (bytes?: number) => {
+  if (!bytes) return null;
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
+
+/**
+ * PDF da aula. A URL assinada só é pedida quando o aluno abre o material:
+ * gerar para todos de uma vez gastaria assinaturas e estouraria o rate limit
+ * da edge em aulas com vários arquivos.
+ */
+function PdfMaterialCard({ material }: { material: Material }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const Icon = materialIcons.pdf;
+  const size = formatSize(material.file_meta?.size);
+
+  const open = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lesson-file-url", {
+        body: { materialId: material.id },
+      });
+      if (error) {
+        const res = (error as { context?: Response }).context;
+        const body = res && typeof res.json === "function" ? await res.json().catch(() => null) : null;
+        throw new Error(body?.error || error.message);
+      }
+      if (data?.error) throw new Error(data.error);
+      setUrl(data.url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao abrir o PDF");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="glass-card border-white/10">
+      <CardHeader className="pb-3">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-[10px] bg-primary/10 flex items-center justify-center shrink-0">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-sm font-semibold">{material.title}</CardTitle>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Badge variant="outline" className="text-xs">{materialLabels.pdf}</Badge>
+              {size && <span className="text-xs text-muted-foreground">{size}</span>}
+              {material.is_required && (
+                <Badge variant="secondary" className="text-xs">Obrigatório</Badge>
+              )}
+            </div>
+          </div>
+          {!url && (
+            <Button size="sm" onClick={open} disabled={loading} className="shrink-0 gap-1">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
+              Abrir
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {material.description && (
+          <p className="text-xs text-muted-foreground">{material.description}</p>
+        )}
+        {url && (
+          <PdfViewer url={url} title={material.title} fileName={material.file_meta?.name} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function LessonMaterials({ materials }: LessonMaterialsProps) {
   const [expandedTexts, setExpandedTexts] = useState<Set<string>>(new Set());
@@ -222,6 +304,9 @@ export function LessonMaterials({ materials }: LessonMaterialsProps) {
             </CardContent>
           </Card>
         );
+
+      case "pdf":
+        return <PdfMaterialCard key={material.id} material={material} />;
 
       default:
         return null;

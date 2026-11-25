@@ -30,7 +30,7 @@ import {
   ReleaseScheduleField,
 } from "./ReleaseScheduleField";
 import { releaseColumns, releaseModeOf, type ReleaseMode } from "@/lib/release-schedule";
-import { Info, AlertTriangle, Plus, GripVertical, Trash2, Pencil, Link2, FileText, Download, Code, Play } from "lucide-react";
+import { Info, AlertTriangle, Plus, GripVertical, Trash2, Pencil, Link2, FileText, Download, Code, Play, BookOpen } from "lucide-react";
 
 // Schema now makes video_url and duration optional
 const lessonSchema = z.object({
@@ -47,6 +47,7 @@ const materialIcons: Record<MaterialType, React.ReactNode> = {
   text: <FileText className="w-4 h-4" />,
   download: <Download className="w-4 h-4" />,
   embed: <Code className="w-4 h-4" />,
+  pdf: <BookOpen className="w-4 h-4" />,
 };
 
 interface LessonFormModalProps {
@@ -174,6 +175,7 @@ export function LessonFormModal({
         description: m.description,
         is_required: m.is_required,
         order_index: m.order_index,
+        file_meta: m.file_meta ?? undefined,
       })));
     }
   }, [existingMaterials]);
@@ -349,6 +351,7 @@ export function LessonFormModal({
             description: m.description || null,
             is_required: m.is_required,
             order_index: index,
+            file_meta: m.file_meta ?? null,
           }));
 
           const { error: materialError } = await supabase
@@ -542,7 +545,7 @@ export function LessonFormModal({
                 <div>
                   <Label className="text-white/80 font-medium">📎 Materiais Complementares</Label>
                   <p className="text-xs text-muted-foreground pt-1">
-                    Links, textos, downloads ou embeds
+                    Links, textos, downloads, embeds ou PDFs
                   </p>
                 </div>
                 <Button

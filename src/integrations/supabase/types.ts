@@ -1143,6 +1143,7 @@ export type Database = {
           content: string
           created_at: string | null
           description: string | null
+          file_meta: Json | null
           id: string
           is_required: boolean | null
           lesson_id: string | null
@@ -1154,6 +1155,7 @@ export type Database = {
           content: string
           created_at?: string | null
           description?: string | null
+          file_meta?: Json | null
           id?: string
           is_required?: boolean | null
           lesson_id?: string | null
@@ -1165,6 +1167,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           description?: string | null
+          file_meta?: Json | null
           id?: string
           is_required?: boolean | null
           lesson_id?: string | null
