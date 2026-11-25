@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow5.5 — Plano das pendências restantes</title>
+<style>
+  :root{
+    --bg:#0b0d0c;
+    --bg-soft:#111412;
+    --panel:#141816;
+    --panel-2:#181d1a;
+    --line:#232a26;
+    --line-soft:#1b211e;
+    --ink:#e8ece6;
+    --ink-2:#a8b3a6;
+    --ink-3:#6f7a70;
+    --accent:#74d909;
+    --accent-dim:#5aa807;
+    --accent-soft:rgba(116,217,9,.10);
+    --blue:#4aa8ff;
+    --amber:#f5b942;
+    --violet:#a78bfa;
+    --rose:#fb7185;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --maxw:1320px;
+  }
+  html[data-theme="light"]{
+    --bg:#f7f8f6;
+    --bg-soft:#eef0ec;
+    --panel:#ffffff;
+    --panel-2:#f4f6f2;
+    --line:#dfe4dc;
+    --line-soft:#eaeee6;
+    --ink:#161a17;
+    --ink-2:#4a544b;
+    --ink-3:#7b867c;
+    --accent-soft:rgba(116,217,9,.14);
+    --accent-dim:#4f8f06;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+
+  .hero{
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(900px 380px at 12% -10%, rgba(116,217,9,.10), transparent 60%),
+      radial-gradient(700px 300px at 88% 0%, rgba(74,168,255,.07), transparent 62%),
+      var(--bg);
+    padding:64px 32px 52px;
+  }
+  .hero-inner{max-width:var(--maxw);margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:34px;height:1px;background:var(--accent);opacity:.7}
+  h1{
+    margin:0 0 18px;font-size:clamp(34px,5.4vw,64px);line-height:1.02;
+    font-weight:600;letter-spacing:-.035em;max-width:20ch;
+  }
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{max-width:74ch;color:var(--ink-2);font-size:17px;margin:0 0 30px}
+  .metaline{
+    display:flex;flex-wrap:wrap;gap:10px 26px;font-family:var(--mono);font-size:12px;
+    color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px;
+  }
+  .metaline b{color:var(--ink-2);font-weight:500}
+
+  .stats{
+    max-width:var(--maxw);margin:0 auto;padding:0 32px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+    gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-top:none;border-radius:0 0 14px 14px;overflow:hidden;
+  }
+  .stat{background:var(--bg-soft);padding:20px 18px}
+  .stat .n{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+  .stat .n small{font-size:14px;color:var(--accent)}
+  .stat .l{font-size:11.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;margin-top:5px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;display:grid;grid-template-columns:236px 1fr;gap:56px}
+  nav{
+    position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;
+    padding:44px 0 40px;
+  }
+  nav .navtitle{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:14px;
+  }
+  nav ol{list-style:none;margin:0;padding:0;counter-reset:n}
+  nav li{counter-increment:n}
+  nav a{
+    display:flex;gap:9px;align-items:baseline;
+    padding:6px 10px;margin-left:-10px;border-radius:6px;
+    font-size:13px;color:var(--ink-3);transition:.15s;
+  }
+  nav a::before{
+    content:counter(n,decimal-leading-zero);font-family:var(--mono);font-size:10.5px;
+    color:var(--ink-3);opacity:.55;flex:none;
+  }
+  nav a:hover{color:var(--ink);background:var(--panel)}
+  nav a.active{color:var(--accent);background:var(--accent-soft)}
+  nav a.active::before{color:var(--accent);opacity:1}
+  main{padding:44px 0 100px;min-width:0}
+
+  section{padding-bottom:54px;margin-bottom:44px;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:none}
+  h2{
+    margin:0 0 8px;font-size:27px;font-weight:600;letter-spacing:-.025em;
+    display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .idx{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--accent-soft);background:var(--accent-soft);
+    padding:3px 8px;border-radius:5px;flex:none;letter-spacing:.05em;
+  }
+  .sec-sub{color:var(--ink-2);margin:0 0 26px;max-width:82ch;font-size:15px}
+  h3{
+    margin:30px 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:500;
+    padding-bottom:8px;border-bottom:1px solid var(--line-soft);
+  }
+  p{margin:0 0 14px;max-width:88ch}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;max-width:90ch}
+  li{position:relative;padding-left:20px;margin-bottom:7px;color:var(--ink-2)}
+  li::before{
+    content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);opacity:.55;
+  }
+  li strong{color:var(--ink);font-weight:600}
+  code{
+    font-family:var(--mono);font-size:.87em;background:var(--panel-2);
+    border:1px solid var(--line-soft);padding:1.5px 6px;border-radius:5px;color:var(--ink);
+  }
+  .tag{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    padding:2px 7px;border-radius:4px;background:var(--accent-soft);
+    color:var(--accent);border:1px solid var(--accent-soft);margin-right:6px;
+  }
+  .tag.b{background:rgba(74,168,255,.10);color:var(--blue);border-color:rgba(74,168,255,.18)}
+  .tag.a{background:rgba(245,185,66,.10);color:var(--amber);border-color:rgba(245,185,66,.18)}
+  .tag.v{background:rgba(167,139,250,.10);color:var(--violet);border-color:rgba(167,139,250,.18)}
+  .tag.r{background:rgba(251,113,133,.10);color:var(--rose);border-color:rgba(251,113,133,.18)}
+
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 20px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+  th{
+    text-align:left;padding:11px 16px;background:var(--panel-2);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2)}
+  tr:last-child td{border-bottom:none}
+  td strong{color:var(--ink);font-weight:600}
+  tbody tr:hover td{background:rgba(116,217,9,.03)}
+
+  .flow{
+    display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;margin:0 0 20px;
+  }
+  .step{background:var(--panel);padding:14px 18px;display:flex;gap:14px;align-items:flex-start}
+  .step .k{
+    font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;padding-top:2px;
+    min-width:22px;
+  }
+  .step .t{font-size:13.5px;color:var(--ink-2)}
+  .step .t b{color:var(--ink);display:block;font-weight:600;margin-bottom:2px;font-size:14px}
+
+  .note{
+    border:1px solid var(--line);border-left:3px solid var(--accent);
+    background:var(--panel);border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 20px;
+  }
+  .note.warn{border-left-color:var(--amber)}
+  .note.info{border-left-color:var(--blue)}
+  .note.risk{border-left-color:var(--rose)}
+  .note .h{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:7px;
+  }
+  .note p{margin:0;font-size:14px}
+  .note p + p{margin-top:9px}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:0 0 20px}
+  .card{
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:18px 20px;
+  }
+  .card .ch{
+    font-size:14px;font-weight:600;color:var(--ink);margin-bottom:9px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .card .ch::before{content:"";width:4px;height:14px;background:var(--accent);border-radius:2px;flex:none}
+  .card p{font-size:13.5px;color:var(--ink-2);margin:0}
+  .card ul{margin:0;font-size:13.5px}
+
+  footer{
+    border-top:1px solid var(--line);padding:28px 32px 60px;color:var(--ink-3);font-size:12.5px;
+  }
+  footer .fi{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 30px;justify-content:space-between}
+  footer code{background:transparent;border:none;padding:0;color:var(--ink-3)}
+
+  .totop{
+    position:fixed;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;
+    display:none;place-items:center;font-size:15px;backdrop-filter:blur(6px);
+  }
+  .totop:hover{color:var(--accent);border-color:var(--accent-soft)}
+  .totop.on{display:grid}
+  .themebtn{
+    position:fixed;top:18px;right:22px;z-index:50;background:var(--panel);
+    border:1px solid var(--line);color:var(--ink-2);border-radius:8px;
+    padding:7px 11px;font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.05em;
+  }
+  .themebtn:hover{color:var(--accent);border-color:var(--accent-soft)}
+
+  @media(max-width:960px){
+    .wrap{grid-template-columns:1fr;gap:0}
+    nav{position:static;max-height:none;padding:28px 0 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+    nav ol{display:flex;flex-wrap:wrap;gap:4px}
+    nav a{font-size:12px}
+    main{padding-top:30px}
+    .hero{padding:48px 20px 40px}
+    .stats{padding:0 20px;grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+    .wrap{padding:0 20px}
+  }
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themeBtn" title="Alternar tema">◐ TEMA</button>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">PLANO DE EXECUÇÃO</div>
+    <h1>As 11 pendências restantes<br>e a ordem para resolvê-las</h1>
+    <p class="lede">
+      Sim — a lista de 11 é a lista completa do que sobrou. Nenhuma feature de conversão falta:
+      upsell/downsell, drip, PDF, carrinho abandonado e pagamentos estão fechados. O que resta é
+      conformidade, operação, privacidade e um projeto estrutural (assinaturas), mais higiene do
+      repositório.
+    </p>
+    <div class="metaline">
+      <span><b>Data</b> 25/11/2026</span>
+      <span><b>Base</b> commit <code>e5e5ace</code></span>
+      <span><b>Fonte</b> <code>docs/relatorio-pendencias-paridade.html</code></span>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="n">11</div><div class="l">Pendências abertas</div></div>
+  <div class="stat"><div class="n">4</div><div class="l">Fases de execução</div></div>
+  <div class="stat"><div class="n">2</div><div class="l">Decisões antes de começar</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">Fora de escopo (fundamentado)</div></div>
+  <div class="stat"><div class="n">10</div><div class="l">Commits não pushados</div></div>
+</div>
+
+<div class="wrap">
+  <nav>
+    <div class="navtitle">Sumário</div>
+    <ol>
+      <li><a href="#s1">Confirmação e princípios</a></li>
+      <li><a href="#s2">Mapa de dependências</a></li>
+      <li><a href="#s3">Sequência em 4 fases</a></li>
+      <li><a href="#s4">Os 11 itens em detalhe</a></li>
+      <li><a href="#s5">Decisões prévias</a></li>
+      <li><a href="#s6">Por que 5 features ficaram fora</a></li>
+      <li><a href="#s7">Critério de pronto</a></li>
+      <li><a href="#s8">O que não é pendência</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="s1">
+      <h2><span class="idx">01</span>Confirmação e princípios</h2>
+      <p class="sec-sub">
+        A lista de 11 que você colou é exatamente a ordem sugerida do relatório de pendências,
+        depois das correções de design system. Está completa e atualizada.
+      </p>
+
+      <div class="note">
+        <div class="h">O que já não conta mais como pendência</div>
+        <p>
+          Os 12 bugs funcionais da auditoria de design system, o vazamento de cartão no console,
+          os 24 pares de contraste reprovados e o gate de tipos que não checava nada foram fechados
+          em <code>751cd7c</code>, <code>e5e5ace</code> e <code>deeda1e</code>. A dívida visual
+          (codemod de <code>white/black</code>, <code>text-[Npx]</code>) foi registrada como
+          dívida, não pendência — reescrever o checkout fechado por estética não tem ganho
+          funcional e tem risco de regressão.
+        </p>
+      </div>
+
+      <h3>Regras que o plano segue</h3>
+      <ul>
+        <li><strong>Nada de migration em produção sem confirmação sua.</strong> Os itens 3, 4, 5 e 10 mexem em banco; o <code>db push</code> só roda depois de você autorizar</li>
+        <li><strong>Webhook e trigger de saída nunca desfazem pagamento nem acesso.</strong> Vale para os eventos novos de assinatura e para o endpoint de teste</li>
+        <li><strong>Checkout público continua igual.</strong> A exceção é o item 6 (método inicial), que é configurável por produto e tem <em>default</em> cartão — ninguém muda sem ligar o campo</li>
+        <li><strong>Preset global não vaza para o checkout.</strong> Qualquer trabalho de tema respeita <code>body.checkout-scope</code></li>
+        <li><strong>Verificação por DOM, toast, console e rede</strong> — nunca por imagem</li>
+      </ul>
+    </section>
+
+    <section id="s2">
+      <h2><span class="idx">02</span>Mapa de dependências</h2>
+      <p class="sec-sub">
+        Quase tudo é independente. Duas relações importam e definem a ordem: assinaturas destravam
+        os eventos <code>subscription.*</code> dos webhooks, e conquistas/d RIP compartilham a
+        mesma régua de acesso que assinaturas pode alterar.
+      </p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>De</th><th>Para</th><th>Relação</th><th>Consequência prática</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>10 — Assinaturas</strong></td>
+              <td><strong>4 — Webhooks</strong></td>
+              <td><code>subscription.created/renewed/canceled/past_due</code> só existem quando há cobrança recorrente</td>
+              <td>Catálogo e <code>bearer_token</code> podem ir antes; os 4 eventos entram junto com assinaturas</td>
+            </tr>
+            <tr>
+              <td><strong>10 — Assinaturas</strong></td>
+              <td><strong>8 — Drip</strong></td>
+              <td>Hoje acesso é por pedido pago, sem prazo. Assinatura introduce acesso com vigência</td>
+              <td>Decidir o modelo <em>antes</em> de implementar, senão cria régua paralela ao drip</td>
+            </tr>
+            <tr>
+              <td><strong>5 — Opt-out ranking</strong></td>
+              <td><strong>8 — Conquistas</strong></td>
+              <td>Ambos mexem em <code>profiles</code> e na experiência de gamificação</td>
+              <td>Podem sair juntos; nenhum bloqueia o outro tecnicamente</td>
+            </tr>
+            <tr>
+              <td><strong>3 — RLS</strong></td>
+              <td>—</td>
+              <td>Policy depende da sidebar listar materiais antes de checar acesso</td>
+              <td>Precisa de homologação da listagem, não só do <code>using(true)</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="idx">03</span>Sequência em 4 fases</h2>
+      <p class="sec-sub">
+        Do mais barato e independente para o mais caro e acoplado. Cada fase fecha com verificação
+        própria — não precisa esperar a fase seguinte para entrar em produção.
+      </p>
+
+      <div class="flow">
+        <div class="step"><div class="k">F0</div><div class="t"><b>Decisões prévias (30 min, sem código)</b>Texto jurídico, modelo de acesso de assinatura e para onde vai o webhook de teste. Sem isso as fases 2 e 4 param</div></div>
+        <div class="step"><div class="k">F1</div><div class="t"><b>Itens 1, 2, 6 — conformidade, aula legada e checkout</b>Páginas legais, aula MP4 → embed, <code>payment_methods.default</code>. Nenhuma migration. Cabe em um dia</div></div>
+        <div class="step"><div class="k">F2</div><div class="t"><b>Itens 3, 4, 5 — migrations pequenas</b>RLS de <code>lesson_materials</code>, <code>bearer_token</code> + catálogo de webhook, opt-out do ranking. Uma janela de banco com confirmação</div></div>
+        <div class="step"><div class="k">F3</div><div class="t"><b>Itens 7, 8, 9 — integrações e observabilidade</b>E-mail de drip, critérios de conquista + tela de admin, clique de campanha. Dependem só das tabelas já existentes</div></div>
+        <div class="step"><div class="k">F4</div><div class="t"><b>Item 10 — assinaturas (projeto)</b>Edge de cobrança recorrente, cron de renovação/dunning, UI de plano, eventos <code>subscription.*</code> e régua de acesso. Único item grande</div></div>
+        <div class="step"><div class="k">F5</div><div class="t"><b>Item 11 — higiene final</b>Push dos commits e marcar <code>docs/relatorio-portacao-getfy.dm</code> como histórico. Fazer no fim para empurrar tudo de uma vez</div></div>
+      </div>
+
+      <div class="note info">
+        <div class="h">Sequência curta recomendada</div>
+        <p>
+          <strong>0 → 1 → 2</strong> em dois dias fecha conformidade, vídeo legado e privacidade de
+          material. <strong>3</strong> fecha operação. <strong>4</strong> é escolha de produto.
+          <strong>10</strong> só começa depois da decisão sobre prazo de acesso.
+        </p>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="idx">04</span>Os 11 itens em detalhe</h2>
+      <p class="sec-sub">
+        Para cada item: por que importa, onde mexer, como fazer, critério de aceite e risco. Os
+        números de esforço são do relatório de pendências, conferidos no código.
+      </p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Item / por que</th><th>Arquivos e abordagem</th><th>Aceite</th><th>Risco</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><strong>Páginas legais + links</strong> — consentimento no botão de pagar sem link é frágil; 5 pontos da UI prometem o que não existe</td>
+              <td>Rotas <code>/termos</code> e <code>/privacidade</code> em <code>src/App.tsx</code>; texto em arquivo próprio. Trocar 3 <code>&lt;button&gt;</code> em <code>Dashboard.tsx:326-332</code>, 2 <code>&lt;span&gt;</code> em <code>CheckoutLayout.tsx:33-34</code> e o texto em <code>Checkout.tsx:1189</code> por <code>Link</code>. Suporte → canal existente nas config ou <code>mailto</code></td>
+              <td>5 links navegam; nenhum <code>&lt;button&gt;</code> sem <code>onClick</code> no rodapé</td>
+              <td>Baixo — texto jurídico é decisão sua</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><strong>Aula MP4 → embed</strong> — contraria a política de vídeo; o formulário novo já recusa <code>file</code>, mas uma linha antiga no banco segue tocando</td>
+              <td>Aula <code>15ab4264-c8e6-45de-bf69-d912c75a5f7a</code>, URL <code>pullvideosbr.b-cdn.net/…mp4</code>. Trocar por embed de YouTube/Panda/Bunny. <code>UniversalVideoPlayer.tsx:79</code> e <code>videoUtils.ts:102</code> mantêm o caso <code>file</code> — decidir se removem ou documentam exceção</td>
+              <td>Player abre via iframe; nenhum <code>.mp4</code> direto no banco</td>
+              <td>Médio — não apagar antes de trocar a URL</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><strong>RLS de <code>lesson_materials</code></strong> — qualquer logado lê título/tipo/caminho de material de curso não comprado. O arquivo em si já é protegido por <code>lesson-file-url</code></td>
+              <td>Policy <code>Authenticated read lesson_materials</code> com <code>using(true)</code>. Trocar por <code>exists</code> em <code>user_course_access</code> do curso dono da aula, mantendo <code>has_role(uid,'admin')</code></td>
+              <td>Aluno sem acesso não vê material; aluno com acesso vê; admin vê tudo; a sidebar do curso continua listando</td>
+              <td>Médio — fechar direto quebra a listagem da sidebar</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><strong>Webhooks: <code>bearer_token</code> + endpoint real</strong> — 10/13 eventos e 0 endpoints; o pipeline nunca foi exercitado com destinatário</td>
+              <td>Coluna em <code>webhook_endpoints</code>; 3 eventos faltantes no catálogo <code>WebhookOutbound.tsx:26-36</code>; os 4 <code>subscription.*</code> entram com o item 10. Infra já pronta: fila, HMAC, 5 tentativas, reenvio e teste — não mexer</td>
+              <td>Endpoint de teste recebe <code>order.paid</code> com assinatura e token; reenvio manual funciona</td>
+              <td>Baixo — emissão já isolada por <code>exception when others → raise warning</code></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><strong>Opt-out do ranking</strong> — expor nome e progresso em ranking público sem saída é decisão de LGPD, não de gamificação</td>
+              <td>Coluna booleana <code>leaderboard_opt_out</code> em <code>profiles</code>; filtro na RPC <code>get_leaderboard_v2</code> (<code>Leaderboard.tsx:53</code>); toggle no perfil</td>
+              <td>Quem desliga desaparece do ranking; ninguém reaparece sem reativar</td>
+              <td>Baixo — 1 coluna + 1 filtro</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td><strong>Método inicial do checkout</strong> — PIX é o método que mais converte no Brasil; hoje cartão é fixo no código</td>
+              <td>Campo opcional <code>payment_methods.default</code> em <code>checkout_config</code>. <code>checkout-gateways.ts:57</code> mantém <code>METHOD_ORDER</code> como fallback; <code>Checkout.tsx:60</code> usa o valor configurado. Um valor por produto, sem tabela nova</td>
+              <td>Produto sem campo abre em cartão (igual hoje); produto com <code>pix</code> abre em PIX; método desligado nunca é selecionado</td>
+              <td>Baixo — default preserva o comportamento atual</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td><strong>E-mail "conteúdo liberado"</strong> — aluno só descobre o drip abrindo o curso</td>
+              <td>Cron diário chamando assistente de liberação do dia; reusa <code>enqueueEmail</code> com tipo <code>notification</code> (respeita opt-out). <strong>Um e-mail por aluno/dia</strong> com todas as aulas liberadas — nunca um por aula</td>
+              <td>Curso com 40 aulas com drip gera 1 e-mail/dia, não 40</td>
+              <td>Baixo — reusa job e fila existentes</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td><strong>Conquistas: 3 de 5 critérios + tela de admin</strong> — curadoria hoje só por migration</td>
+              <td><code>check-achievements/index.ts:80-83</code> trata <code>lessons_completed</code>, <code>streak_days</code>, <code>daily_lessons</code>. Acrescentar <code>course_completed</code> e <code>comments_count</code> (join em <code>modules</code>); tela <code>/admin/conquistas</code> sem migration nova</td>
+              <td>Admin cria/edita conquista sem SQL; 5 critérios disparam</td>
+              <td>Médio — join em <code>modules</code> precisa de índice</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td><strong>Clique em campanha</strong> — painel mostra abertura, não clique; <code>clicked_at</code> existe e nunca é preenchido</td>
+              <td><code>campaign-track</code> hoje trata <code>a=open</code> e <code>a=unsubscribe</code>. Redirect <code>?a=click&amp;u=&lt;url&gt;</code> com allowlist <code>http/https</code> para não virar open redirect; reescrever só <code>href="http…"</code> no envio, nunca no editor</td>
+              <td>Painel mostra cliques; nenhum redirect para esquema arbitrário</td>
+              <td>Médio — só com demanda real de relatório</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td><strong>Assinaturas</strong> — tabela de 15 colunas, 0 linhas, sem edge, sem cron, sem UI. Único gap estrutural; destrava 4 eventos de webhook</td>
+              <td>Edge de cobrança recorrente (reusa <code>payment-ops</code>), cron de renovação/dunning, UI de plano no admin, eventos <code>subscription.*</code> e régua de acesso. Decisão prévia: <code>user_course_access</code> passa a ter prazo?</td>
+              <td>Assinatura paga renova, realms acesso por período, cancelamento revoga; drip e assinatura não divergem</td>
+              <td>Alto — mexe em pagamento, acesso e banco</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td><strong>Higiene</strong> — 10 commits só locais e um relatório desatualizado</td>
+              <td><code>git push</code> de <code>main</code>; marcar <code>docs/relatorio-portacao-getfy.dm</code> como histórico (ainda lista upsell, drip e anotações como não portados)</td>
+              <td><code>origin/main</code> igual a <code>main</code>; relatório antigo com aviso de histórico</td>
+              <td>Baixo</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="idx">05</span>Decisões prévias</h2>
+      <p class="sec-sub">Três perguntas que precisam de resposta antes de escrever código.</p>
+
+      <div class="cols">
+        <div class="card">
+          <div class="ch">Texto jurídico</div>
+          <p>
+            Quem redige Termos e Privacidade? A estrutura técnica das rotas e dos 5 links fica
+            pronta; o conteúdo é seu. Sem isso o item 1 fica com texto provisório.
+          </p>
+        </div>
+        <div class="card">
+          <div class="ch">Prazo de acesso</div>
+          <p>
+            Assinatura muda <code>user_course_access</code> de "pedido pago" para "acesso com
+            vigência"? Sem definir, a implementação cria uma segunda régua paralela ao drip e as
+            duas divergem. Esta é a decisão que bloqueia o item 10.
+          </p>
+        </div>
+        <div class="card">
+          <div class="ch">Destinatário do webhook</div>
+          <p>
+            Para onde vai o endpoint de teste? Hoje <code>webhook_endpoints = 0</code>. Precisa de
+            uma URL real (seu sistema ou um request bin) para exercitar assinatura, token,
+            backoff e reenvio ponta a ponta.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="s6">
+      <h2><span class="idx">06</span>Por que 5 features ficaram fora</h2>
+      <p class="sec-sub">
+        Não é "não deu tempo". Cada uma tem motivo concreto no código das duas bases — e duas delas
+        nem existem mais no próprio Getfy.
+      </p>
+
+      <h3>1. API pública v1 / checkout hospedado por token</h3>
+      <p>
+        <strong>No Getfy:</strong> é uma plataforma de integração para lojistas terceiros —
+        <code>routes/api.php</code> com <code>POST /api/v1/checkout/sessions</code>,
+        <code>ApiApplication</code> com chave própria e allowlist de IP, <code>ApiCheckoutSession</code>
+        com token de 5 a 1440 minutos, página <code>/api-checkout/{token}</code>, 10 migrations e
+        UI admin de aplicações. São ~20–25 arquivos e mexe diretamente em <code>Order</code>,
+        <code>PaymentService</code>, gateways e eventos de pagamento.
+      </p>
+      <p>
+        <strong>No Flow:</strong> o que existe é link público por <code>checkout_slug</code> e a RPC
+        <code>get_order_public</code> — leito escopado de um pedido, não API. Não há tabela de
+        aplicação, nem autenticação de consumidor por API key; as chaves que aparecem no código
+        são credenciais de terceiros (Brevo, Evolution, CajuPay, UTMfy).
+      </p>
+      <div class="note warn">
+        <div class="h">Motivo</div>
+        <p>
+          É <strong>outro produto</strong>: vender checkout como serviço para sistemas externos.
+          Não é paridade do que o aluno ou o admin usam hoje. Exige modelo de credenciais,
+          validação server-side de preço (o Getfy usa tolerância de R$ 0,02), webhook por aplicação
+          e documentação de API. Está no plano original como "nunca portado" — fora do escopo dos
+          8 itens que o plano cobria.
+        </p>
+      </div>
+
+      <h3>2. Sistema de plugins</h3>
+      <p>
+        <strong>No Getfy:</strong> é uma plataforma dentro da plataforma — 21 arquivos em
+        <code>app/Plugins</code> (registro, manifesto, hook bus, slots de checkout, rotas API,
+        capabilities, autoloader, tema), 15 no SDK, 6 controllers, 4 middlewares e uma página de
+        admin de 32 KB. Inclui loja externa em <code>getfy.org</code>, licenças pagas com
+        <code>purchase_token</code> e verificação HMAC. O próprio carrinho multi-produto do Getfy
+        é "core para plugins de vitrine".
+      </p>
+      <p>
+        <strong>No Flow:</strong> nada disso existe. O que há é integração nativa fixa — o próprio
+        <code>src/lib/integration-catalog.ts:3-9</code> diz textualmente que cada app tem contrato
+        próprio e "um app novo é código novo, não configuração". Webhooks outbound e filas são
+        configuração, não extensibilidade.
+      </p>
+      <div class="note warn">
+        <div class="h">Motivo</div>
+        <p>
+          É um ecossistema com dependência de serviço externo pago, não uma feature. Portar
+          exigiria replicar registro, hooks, slots de UI, bridge front, loja e licenciamento — e
+          mudaria o modelo de integrações que já está fechado e funcionando. Fora do escopo por
+          decisão de produto, não por falta de tempo.
+        </p>
+      </div>
+
+      <h3>3. Meta Cloud API do WhatsApp</h3>
+      <p>
+        <strong>Aqui está o ponto que muda a conversa:</strong> o Getfy <strong>não tem</strong>
+        WhatsApp Business Cloud API. Buscas por <code>waba</code>, <code>phone_number_id</code>,
+        <code>messaging_product</code> retornam zero. O único uso de Graph API da Meta é
+        <code>MetaConversionsApiService</code> — CAPI de pixel (<code> Purchase</code>), não
+        mensageria. O envio real de WhatsApp no Getfy passa pelo plugin externo AutoZap, com
+        Z-API/Evolution/Menia.
+      </p>
+      <p>
+        <strong>No Flow:</strong> a UI já mostra "Meta Cloud API — Em breve" e o banco tem colunas
+        <code>meta_phone_number_id</code>, <code>meta_access_token</code> e
+        <code>meta_business_account_id</code> órfãs — <code>send-whatsapp</code> trata somente
+        <code>case 'evolution'</code>, sem secret preparado.
+      </p>
+      <div class="note warn">
+        <div class="h">Motivo</div>
+        <p>
+          <strong>Não é paridade</strong> — a referência não tem essa feature. Seria greenfield,
+          com credenciais WABA/Graph e um provider novo na edge de envio. Ficou como "Adiado por
+          decisão" no relatório e segue assim: Evolution API atende a operação hoje.
+        </p>
+      </div>
+
+      <h3>4. Carrinho multi-produto</h3>
+      <p>
+        <strong>No Getfy:</strong> é uma trilha separada — <code>commerce_carts</code>,
+        <code>commerce_cart_lines</code> com quantidade, <code>commerce_checkout_sessions</code>,
+        services, controllers, 3 eventos e escopo <code>cart:write</code> de plugin. O código diz
+        explicitamente que o evento de abandono do carrinho de loja é <em>distinto</em> do abandono
+        do checkout por produto.
+      </p>
+      <p>
+        <strong>No Flow:</strong> checkout é 1 <code>productId</code> (ou slug),
+        <code>cart_leads</code> tem uma coluna <code>product_id</code>, e <code>payment-ops</code>
+        exige exatamente 1 item <code>kind='main'</code> mais N itens <code>order_bump</code> com
+        quantidade fixa 1. Order bumps são produtos diferentes, mas atrelados a um produto gatilho
+        — não são carrinho livre.
+      </p>
+      <div class="note warn">
+        <div class="h">Motivo</div>
+        <p>
+          Muda o modelo de pedido e de pagamento, e a decisão fechada nº 5 do projeto é
+          <strong>1 pedido + N <code>order_items</code></strong> com um principal. É outro modelo de
+          venda (vitrine), não uma lacuna do checkout atual. Alto risco e sem demanda declarada —
+          fora do escopo.
+        </p>
+      </div>
+
+      <h3>5. CAPTCHA / Turnstile</h3>
+      <p>
+        <strong>O Getfy descontinuou.</strong> O commit <code>df740a31</code> (07/06/2026) apagou
+        <code>TurnstileVerifier.php</code>, <code>CheckoutTurnstileSettings.php</code>, o controller
+        de configuração e a verificação <code>requiresCaptcha()</code> do middleware. Sobreviveram
+        só env comentado, allowlist de CSP e dois textos órfãos "protegido pelo reCAPTCHA" sem
+        widget. A proteção viva é honeypot + rate limits.
+      </p>
+      <p>
+        <strong>No Flow:</strong> honeypot em <code>CustomerForm.tsx:27-37</code> que responde 200
+        com <code>orderId</code> falso, CSRF por <code>X-Requested-With</code> + allowlist, limits de
+        10 req/min em payment-ops, 25 pedidos pendentes por IP e 15 por e-mail por hora, e limites
+        por admin/telefone/destinatário nas demais edges. Não há Turnstile nem reCAPTCHA.
+      </p>
+      <div class="note warn">
+        <div class="h">Motivo</div>
+        <p>
+          Reativar seria <strong>regressão em relação à referência</strong>, que removeu a feature.
+          O plano original já tinha marcado "CAPTCHA/Turnstile: segunda etapa". Se um dia houver
+          fraude real, a decisão é implementar do zero — não "portar".
+        </p>
+      </div>
+
+      <div class="note risk">
+        <div class="h">Regra para não reabrir</div>
+        <p>
+          Os cinco itens acima só voltam para o planejamento com <strong>motivo novo e explícito</strong>:
+          demanda de cliente, problema de fraude, ou decisão de vender checkout como API. Até lá,
+          "o Getfy tem" não é argumento — quatro dos cinco nem existem mais como produto na
+          referência, e o quinto é um serviço pago externo.
+        </p>
+      </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="idx">07</span>Critério de pronto</h2>
+      <p class="sec-sub">
+        Cada fase só é considerada entregue quando passa pelo gate. Nunca validar por imagem.
+      </p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>Fase</th><th>Gate</th><th>Evidência</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>F1</td>
+              <td>Rotas legais respondem 200; player de embed carrega; método inicial configurável</td>
+              <td>DOM com 5 links navegáveis; iframe no lugar do <code>&lt;video src=".mp4"&gt;</code>; produto com <code>default=pix</code> abre em PIX</td>
+            </tr>
+            <tr>
+              <td>F2</td>
+              <td>Migrations aplicadas em produção com autorização; webhook entregue</td>
+              <td>RLS negando leitura sem acesso; ranking filtrado; endpoint recebe <code>order.paid</code> com assinatura e token</td>
+            </tr>
+            <tr>
+              <td>F3</td>
+              <td>Jobs e edges respondem; admin edita conquista</td>
+              <td>1 e-mail/dia por aluno com drip; 5 critérios disparam; clique com redirect seguro</td>
+            </tr>
+            <tr>
+              <td>F4</td>
+              <td>Cobrança recorrente e renovação funcionais</td>
+              <td>Assinatura paga gera acesso com prazo; renovação e cancelamento revogam; 4 eventos <code>subscription.*</code> no webhook</td>
+            </tr>
+            <tr>
+              <td>Todas</td>
+              <td><code>npm run typecheck</code>, <code>npm run build</code>, 6 scripts <code>check:*</code></td>
+              <td>0 erros de tipo, build OK, checks verdes, 0 erros de console no fluxo alterado</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s8">
+      <h2><span class="idx">08</span>O que não é pendência</h2>
+      <ul>
+        <li><strong>Dívida visual registrada.</strong> Codemod de 3.285 <code>white/black</code>, 1.169 cores cruas e 1.089 <code>text-[Npx]</code>. Sem ganho funcional, risco no checkout fechado. Só com redesign</li>
+        <li><strong>Já fechado.</strong> 12 bugs de design system, vazamento de cartão, contraste dos presets, gate de tipos, QR PIX local, <code>inputMode</code>/<code>autoComplete</code>, acessibilidade de teclado</li>
+        <li><strong>Por decisão.</strong> Conquista por faturamento, desconto PIX, Fases 14 e 15 do plano original</li>
+        <li><strong>Fora de escopo.</strong> Os cinco detalhados na seção 6, multi-tenant e CAPTCHA/Turnstile</li>
+      </ul>
+
+      <div class="note">
+        <div class="h">Próximo passo concreto</div>
+        <p>
+          Responder as três decisões da seção 5 — principalmente o prazo de acesso de assinaturas —
+          e autorizar a Fase 1. Os itens 1, 2 e 6 não dependem de nada e podem começar agora.
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="fi">
+    <div>Plano montado a partir de código, migrations e relatórios verificados — não de suposição</div>
+    <div><code>flow5</code> · <code>pbrdmjcpipuatbnkvekz</code> · 25/11/2026</div>
+  </div>
+</footer>
+
+<button class="totop" id="toTop" title="Voltar ao topo">↑</button>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  var saved=null; try{saved=localStorage.getItem('flow-doc-theme')}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  btn.addEventListener('click',function(){
+    var next = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('flow-doc-theme',next)}catch(e){}
+  });
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var map={};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)]=a; });
+  var secs=[].slice.call(document.querySelectorAll('main section'));
+  var top=document.getElementById('toTop');
+  function onScroll(){
+    var y=window.scrollY+120, current=secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].offsetTop<=y) current=secs[i]; }
+    links.forEach(function(a){a.classList.remove('active')});
+    if(map[current.id]) map[current.id].classList.add('active');
+    top.classList.toggle('on', window.scrollY>600);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
