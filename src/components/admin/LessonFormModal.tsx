@@ -106,7 +106,7 @@ export function LessonFormModal({
       : null;
 
   // Fetch existing materials when editing
-  const { data: existingMaterials = [] } = useQuery({
+  const { data: existingMaterials = [], isSuccess: materialsLoaded } = useQuery({
     queryKey: ["lessonMaterials", lesson?.id],
     queryFn: async () => {
       if (!lesson?.id) return [];
@@ -164,21 +164,22 @@ export function LessonFormModal({
     }
   }, [open, lesson, preselectedModuleId]);
 
-  // Sync materials when existing materials are loaded
+  // Sync materials when existing materials are loaded. Depende de `isSuccess`:
+  // sem isso, uma aula sem materiais nunca zerava a lista e o modal salvava os
+  // materiais da aula anterior na aula aberta.
   useEffect(() => {
-    if (existingMaterials.length > 0) {
-      setMaterials(existingMaterials.map((m: any) => ({
-        id: m.id,
-        type: m.type as MaterialType,
-        title: m.title,
-        content: m.content,
-        description: m.description,
-        is_required: m.is_required,
-        order_index: m.order_index,
-        file_meta: m.file_meta ?? undefined,
-      })));
-    }
-  }, [existingMaterials]);
+    if (!materialsLoaded) return;
+    setMaterials((existingMaterials as any[]).map((m) => ({
+      id: m.id,
+      type: m.type as MaterialType,
+      title: m.title,
+      content: m.content,
+      description: m.description,
+      is_required: m.is_required,
+      order_index: m.order_index,
+      file_meta: m.file_meta ?? undefined,
+    })));
+  }, [existingMaterials, materialsLoaded]);
 
   // Auto-detect platform when URL changes
   useEffect(() => {
@@ -335,6 +336,12 @@ export function LessonFormModal({
 
       // Save materials
       if (lessonId) {
+        // PDFs trocados/removidos deixariam arquivo órfão no bucket: guarda os
+        // caminhos antigos, regrava e apaga do storage o que não é mais usado.
+        const oldPdfPaths = (existingMaterials as { type: string; content: string }[])
+          .filter((m) => m.type === "pdf")
+          .map((m) => m.content);
+
         // Delete existing materials first
         await supabase
           .from("lesson_materials")
@@ -359,6 +366,14 @@ export function LessonFormModal({
             .insert(materialsToInsert);
 
           if (materialError) throw materialError;
+        }
+
+        const stillUsed = new Set(materials.filter((m) => m.type === "pdf").map((m) => m.content));
+        const orphans = oldPdfPaths.filter((p) => p && !stillUsed.has(p));
+        if (orphans.length > 0) {
+          // Falha aqui não pode derrubar o salvamento da aula: o material já
+          // está gravado, sobra um arquivo sem referência (custo, não bug).
+          await supabase.storage.from("lesson-files").remove(orphans);
         }
       }
     },
