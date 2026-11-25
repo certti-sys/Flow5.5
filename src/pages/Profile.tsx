@@ -320,7 +320,7 @@ const Profile = () => {
                               {achievement.description}
                             </CardDescription>
                             <Badge variant="outline" className={cn(
-                              "mt-2 text-[8px] font-black uppercase tracking-widest px-1.5 py-0",
+                              "mt-2 text-[10px] font-black uppercase tracking-widest px-1.5 py-0",
                               isUnlocked ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "text-muted-foreground"
                             )}>
                               +{achievement.xp_reward} XP

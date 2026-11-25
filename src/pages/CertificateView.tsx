@@ -499,7 +499,7 @@ export default function CertificateView() {
               <p className="text-xs text-white/60 mt-4">Finalizado em {issueDate}</p>
             </div>
             <div className="absolute bottom-12 left-12 right-12 flex justify-between items-end z-10">
-              <div><ShieldCheck className="w-8 h-8 text-primary/50 mb-1" /><p className="text-[8px] text-white/60 font-mono break-all max-w-[180px]">{cert.id}</p></div>
+              <div><ShieldCheck className="w-8 h-8 text-primary/50 mb-1" /><p className="text-[10px] text-white/60 font-mono break-all max-w-[180px]">{cert.id}</p></div>
               <div className="text-center">
                 {settings.certificate_signature_url && <img src={settings.certificate_signature_url} className="max-h-12 object-contain mb-1" alt="Assinatura" />}
                 <div className="w-40 h-px bg-white/20 mx-auto mb-1" />
@@ -553,7 +553,7 @@ export default function CertificateView() {
                 {certLogo ? <img src={certLogo} alt="Logo" className="h-10 object-contain" /> : <span className="text-lg font-black text-gray-800 tracking-widest">{settings.logo_text || 'STREAM'}</span>}
               </div>
               <div className="w-px h-8 bg-gray-200" />
-              <p className="text-[8px] font-bold text-gray-400 tracking-widest uppercase text-center">Certificado Digital</p>
+              <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase text-center">Certificado Digital</p>
               <div className="w-px h-8 bg-gray-200" />
               <div className="bg-gray-50 rounded-lg p-2 w-full">
                 <p className="text-[7px] font-bold text-gray-300 uppercase tracking-widest mb-1">ID</p>
@@ -588,7 +588,7 @@ export default function CertificateView() {
                 {certLogo ? <img src={certLogo} alt="Logo" className="h-10 object-contain brightness-0 invert" /> : <span className="text-lg font-black text-white tracking-widest">{settings.logo_text || 'STREAM'}</span>}
               </div>
               <div className="text-right">
-                <p className="text-[8px] font-bold text-white/60 tracking-widest uppercase">Certificado Oficial</p>
+                <p className="text-[10px] font-bold text-white/60 tracking-widest uppercase">Certificado Oficial</p>
                 <p className="text-sm font-bold text-white/80 tracking-wider">Certificado de Conclusão</p>
               </div>
             </div>

@@ -1,7 +1,8 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["class"],
+  // Sem bloco `.dark` no CSS: as variantes `dark:` nunca ativam. O tema é
+  // dark-fixo no :root; o checkout claro usa `body[data-checkout-theme]`.
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
@@ -117,12 +118,17 @@ export default {
             transform: "translateX(0)"
           }
         },
+        "caret-blink": {
+          "0%,70%,100%": { opacity: "1" },
+          "20%,50%": { opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down var(--duration-fast) var(--ease-smooth-out)",
         "accordion-up": "accordion-up var(--duration-fast) var(--ease-smooth-out)",
         "fade-in": "fade-in var(--duration-very-slow) var(--ease-smooth-out)",
-        "slide-in": "slide-in var(--duration-slow) var(--ease-smooth-out)"
+        "slide-in": "slide-in var(--duration-slow) var(--ease-smooth-out)",
+        "caret-blink": "caret-blink 1s step-end infinite",
       },
     },
   },

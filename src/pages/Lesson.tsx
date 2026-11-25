@@ -878,7 +878,7 @@ const Lesson = () => {
                 <AlertDialogTitle className="tracking-tight">Confirmar exclusão</AlertDialogTitle>
                 <AlertDialogDescription className="mt-1">
                   Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.
-                  {!user?.id && " Respostas também serão excluídas."}
+                  {user?.id && " Respostas também serão excluídas."}
                 </AlertDialogDescription>
               </div>
             </div>

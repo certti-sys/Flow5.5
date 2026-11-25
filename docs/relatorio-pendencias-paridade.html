@@ -313,7 +313,7 @@
             </tr>
             <tr>
               <td>0b</td>
-              <td><strong>Bug de contraste nos presets de tema</strong>: 24 pares reprovam AA</td>
+              <td><span class="tag v">Corrigido</span> <strong>Bug de contraste nos presets de tema</strong>: 198 pares agora passam AA</td>
               <td>Botão destrutivo ilegível em 10 presets (pior: branco sobre branco) e sidebar ilegível em 14</td>
               <td><span class="tag r">Alta</span></td>
               <td>0,5 dia</td>
@@ -813,70 +813,70 @@
             </tr>
             <tr>
               <td>3</td>
-              <td><strong>Dados de cartão no console</strong>: <code>console.log("&gt;&gt;&gt; Criando token com dados:", cardFormData)</code></td>
+              <td><strong><span class="tag v">Corrigido</span> Dados de cartão no console</strong>: <code>console.log("&gt;&gt;&gt; Criando token com dados:", cardFormData)</code></td>
               <td><code>Checkout.tsx:622</code> (também 587, 707, 737, 867, 892)</td>
               <td><span class="tag r">Alta</span> Número completo, CVV, validade e CPF no console do cliente em produção. Outros 5 logs vazam payload de pagamento. <strong>Primeiro item a corrigir.</strong></td>
               <td>30 min</td>
             </tr>
             <tr>
               <td>4</td>
-              <td><strong>Enter no cupom submete o pagamento</strong></td>
+              <td><strong><span class="tag v">Corrigido</span> Enter no cupom submete o pagamento</strong></td>
               <td><code>CouponInput.tsx:63-70</code></td>
               <td><span class="tag a">Média</span> O input não tem <code>onKeyDown</code> e está dentro do <code>&lt;form&gt;</code> (<code>Checkout.tsx:1140</code>, form em 1026). Enter tenta cobrar sem cupom aplicado</td>
               <td>3 linhas</td>
             </tr>
             <tr>
               <td>5</td>
-              <td><strong><code>R$ 10.50</code></strong> — ponto decimal em pt-BR</td>
+              <td><span class="tag v">Corrigido</span> <strong><code>R$ 10.50</code></strong> — ponto decimal em pt-BR</td>
               <td><code>CouponInput.tsx:38</code></td>
               <td><span class="tag a">Média</span> <code>toFixed(2)</code> sem <code>replace(".", ",")</code>, ao contrário dos outros 5 pontos do checkout. Bug visível ao aplicar cupom</td>
               <td>1 linha</td>
             </tr>
             <tr>
               <td>6</td>
-              <td><strong><code>rgba(var(--primary), 0.3)</code></strong> — sintaxe inválida</td>
+              <td><span class="tag v">Corrigido</span> <strong><code>rgba(var(--primary), 0.3)</code></strong> — sintaxe inválida</td>
               <td><code>LevelUpModal.tsx:35, 43, 94</code></td>
               <td><span class="tag a">Média</span> O token é <code>H S% L%</code>, não RGB. Os três <code>shadow</code>/<code>drop-shadow</code> são descartados e o modal de level up fica sem brilho</td>
               <td>3 linhas</td>
             </tr>
             <tr>
               <td>7</td>
-              <td><code>transition-[margin,opa]</code></td>
+              <td><span class="tag v">Corrigido</span> <code>transition-[margin,opa]</code></td>
               <td><code>sidebar.tsx:364</code></td>
               <td><span class="tag b">Baixa</span> Propriedade <code>opa</code> não existe; a transição do label da sidebar vira só <code>margin</code></td>
               <td>1 linha</td>
             </tr>
             <tr>
               <td>8</td>
-              <td><code>animate-caret-blink</code> sem keyframe</td>
+              <td><span class="tag v">Corrigido</span> <code>animate-caret-blink</code> sem keyframe</td>
               <td><code>input-otp.tsx:44</code></td>
               <td><span class="tag b">Baixa</span> Classe usada 1× e <code>caret-blink</code> não existe em <code>tailwind.config.ts</code> — o cursor do OTP não pisca</td>
               <td>4 linhas</td>
             </tr>
             <tr>
               <td>9</td>
-              <td><code>api.on("reInit", onSelect)</code> sem <code>off</code></td>
+              <td><span class="tag v">Corrigido</span> <code>api.on("reInit", onSelect)</code> sem <code>off</code></td>
               <td><code>carousel.tsx:97-101</code></td>
               <td><span class="tag b">Baixa</span> O cleanup remove <code>select</code> mas não <code>reInit</code> — listener acumula a cada remontagem</td>
               <td>1 linha</td>
             </tr>
             <tr>
               <td>10</td>
-              <td><strong>Condição invertida</strong> no texto de exclusão de comentário</td>
+              <td><span class="tag v">Corrigido</span> <strong>Condição invertida</strong> no texto de exclusão de comentário</td>
               <td><code>Lesson.tsx:881</code></td>
               <td><span class="tag b">Baixa</span> <code>{!user?.id &amp;&amp; " Respostas também serão excluídas."}</code> — só aparece quando <em>não</em> há usuário, ou seja, nunca</td>
               <td>1 linha</td>
             </tr>
             <tr>
               <td>11</td>
-              <td><code>viewport-fit=cover</code> ausente</td>
+              <td><span class="tag v">Corrigido</span> <code>viewport-fit=cover</code> ausente</td>
               <td><code>index.html:5</code></td>
               <td><span class="tag b">Baixa</span> <code>env(safe-area-inset-*)</code> é usado em <code>CheckoutSupportButton.tsx</code> mas resolve 0 — botão encosta na barra do iPhone</td>
               <td>1 linha</td>
             </tr>
             <tr>
               <td>12</td>
-              <td><strong>QR PIX gerado por terceiro</strong></td>
+              <td><span class="tag v">Corrigido</span> <strong>QR PIX gerado por terceiro</strong></td>
               <td><code>ThankYou.tsx:353</code></td>
               <td><span class="tag a">Média</span> Quando o gateway não devolve imagem, o <code>copy_paste</code> (que contém o valor do pedido) vai na URL de <code>api.qrserver.com</code>. A CSP permite <code>img-src https:</code>, então carrega. Fallback raro, mas desnecessário</td>
               <td>0,5 dia (lib local)</td>

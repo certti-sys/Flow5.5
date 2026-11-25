@@ -184,6 +184,7 @@ const Login = () => {
                     <Input
                       id="name"
                       type="text"
+                      autoComplete="name"
                       placeholder="Seu nome completo"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -225,6 +226,8 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
+                  spellCheck={false}
                   placeholder="seu@email.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -255,6 +258,7 @@ const Login = () => {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete={isSignup ? "new-password" : "current-password"}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -266,7 +270,6 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   className="absolute right-3 text-white/60 hover:text-white transition-colors cursor-pointer"
-                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />

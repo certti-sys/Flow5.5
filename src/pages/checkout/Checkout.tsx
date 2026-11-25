@@ -312,14 +312,12 @@ export default function CheckoutPage() {
     useEffect(() => {
         const fetchKeyAndLoadSdk = async () => {
             const gatewaySlug = selectedGateway;
-            console.log('🔍 Fetching gateway config for:', gatewaySlug);
 
             const { data, error } = await supabase.rpc('get_gateway_public_key', { slug_input: gatewaySlug });
             if (error) {
                 console.error("Error fetching PK:", error);
                 return;
             }
-            console.log('📦 Gateway config received:', data);
             if (data && data.length > 0) {
                 const gatewayConfig = data[0];
                 setGatewayId(gatewayConfig.gateway_id);
@@ -449,7 +447,7 @@ export default function CheckoutPage() {
                     },
                 })
                 .then(({ error }) => {
-                    if (error) console.debug("[checkout] lead não capturado:", error.message);
+                    if (error) console.error("[checkout] lead não capturado:", error.message);
                 });
         };
 
@@ -583,12 +581,6 @@ export default function CheckoutPage() {
             }
 
             // Mercado Pago flow continues below
-            // [DEBUG] Temporary instrumentation to verify submit is reached
-            console.log('[checkout] submit disparado', {
-                paymentMethod: selectedMethod,
-                gatewayId,
-                hasPublicKey: Boolean(mpPublicKey),
-            });
             // 1. If Credit Card, Tokenize
             let token = null;
             let paymentMethodId: string = selectedMethod;
@@ -618,8 +610,6 @@ export default function CheckoutPage() {
                         number: (data.cpf || "").replace(/\D/g, "")
                     }
                 };
-
-                console.log(">>> Criando token com dados:", cardFormData);
 
                 try {
                     const tokenResponse = await mp.createCardToken(cardFormData);
@@ -704,8 +694,6 @@ export default function CheckoutPage() {
                 }
             };
 
-            console.log('[checkout] Enviando para payment-ops:', payloadToSend);
-
             const { data: result, error } = await supabase.functions.invoke('payment-ops', {
                 body: payloadToSend
             });
@@ -733,8 +721,6 @@ export default function CheckoutPage() {
             if (result?.error) {
                 throw new Error(result.error);
             }
-
-            console.log('[checkout] Resposta da payment-ops:', result);
 
             // Construir URL de redirecionamento para página de obrigado
             const orderId = result.orderId || result.internalPaymentId || result.external_id;
@@ -864,8 +850,6 @@ export default function CheckoutPage() {
                 }
             };
 
-            console.log('[checkout] Creating Stripe Payment Intent:', payloadToSend);
-
             const { data: result, error } = await supabase.functions.invoke('payment-ops', {
                 body: payloadToSend
             });
@@ -888,8 +872,6 @@ export default function CheckoutPage() {
             if (result?.error) {
                 throw new Error(result.error);
             }
-
-            console.log('[checkout] Payment Intent created:', result);
 
             // 4. Set client secret to render Stripe Elements
             if (result.client_secret) {

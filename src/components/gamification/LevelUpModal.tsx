@@ -32,7 +32,7 @@ export const LevelUpModal = ({ isOpen, onClose, level }: LevelUpModalProps) => {
             />
 
             {/* Main Circle */}
-            <div className="relative z-10 w-64 h-64 glass-card border-primary/20 rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_rgba(var(--primary),0.3)] bg-black/60 backdrop-blur-2xl">
+            <div className="relative z-10 w-64 h-64 glass-card border-primary/20 rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_hsl(var(--primary) / 0.3)] bg-black/60 backdrop-blur-2xl">
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -40,7 +40,7 @@ export const LevelUpModal = ({ isOpen, onClose, level }: LevelUpModalProps) => {
                 className="flex flex-col items-center"
               >
                 <div className="relative mb-2">
-                  <Trophy className="w-16 h-16 text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
+                  <Trophy className="w-16 h-16 text-primary drop-shadow-[0_0_10px_hsl(var(--primary) / 0.5)]" />
                   <motion.div
                     animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -91,7 +91,7 @@ export const LevelUpModal = ({ isOpen, onClose, level }: LevelUpModalProps) => {
             >
               <Button 
                 onClick={onClose}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-10 py-6 rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)] transition-all hover:scale-105 active:scale-95 text-lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-10 py-6 rounded-full shadow-[0_0_20px_hsl(var(--primary) / 0.5)] transition-all hover:scale-105 active:scale-95 text-lg"
               >
                 CONTINUAR JORNADA
               </Button>

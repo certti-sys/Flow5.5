@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,6 +69,24 @@ export default function ThankYouPage() {
 
     const pixCode = qrCode ?? pixFallback?.copy_paste ?? null;
     const pixImage = qrCodeBase64 ?? pixFallback?.qr_code_base64 ?? null;
+
+    // Fallback local: quando o gateway não devolve a imagem, geramos o QR
+    // aqui. Nunca enviar o copy_paste (que contém valor e destinatário) para
+    // um serviço de QR de terceiro.
+    const [localQr, setLocalQr] = useState<string | null>(null);
+    useEffect(() => {
+      if (pixImage || !pixCode) {
+        setLocalQr(null);
+        return;
+      }
+      let active = true;
+      QRCode.toDataURL(pixCode, { width: 256, margin: 1 }).then((url) => {
+        if (active) setLocalQr(url);
+      }).catch(() => {
+        if (active) setLocalQr(null);
+      });
+      return () => { active = false; };
+    }, [pixCode, pixImage]);
 
     const [copied, setCopied] = useState(false);
     const [order, setOrder] = useState<PublicOrder | null>(null);
@@ -251,11 +270,15 @@ export default function ThankYouPage() {
         return () => clearTimeout(timer);
     }, [isPaid, redirectAfterPurchase]);
 
-    const handleCopy = (text: string) => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        toast.success("Copiado!");
-        setTimeout(() => setCopied(false), 2000);
+    const handleCopy = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            toast.success("Copiado!");
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            toast.error("Não foi possível copiar. Selecione o código manualmente.");
+        }
     };
 
     const formatCurrency = (amount: number, currency = "BRL") => {
@@ -346,11 +369,11 @@ export default function ThankYouPage() {
                     <Separator />
 
                     {/* QR Code PIX */}
-                    {paymentMethod === "pix" && (pixImage || pixCode) && !isPaid && (
+                    {paymentMethod === "pix" && (pixImage || localQr) && !isPaid && (
                         <div className="space-y-4">
                             <div className="p-4 bg-white rounded-lg inline-block">
                                 <img
-                                    src={pixImage ? `data:image/png;base64,${pixImage}` : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixCode!)}`}
+                                    src={pixImage ? `data:image/png;base64,${pixImage}` : localQr!}
                                     alt="QR Code PIX"
                                     className="w-48 h-48"
                                     loading="eager"

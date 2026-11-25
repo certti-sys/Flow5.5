@@ -133,7 +133,10 @@ const Dashboard = () => {
       if (!container) return;
 
       const scrollLeft = container.scrollLeft;
-      const itemWidth = 440;
+      // Os cards medem 300/340/360px e o container usa gap-4 (16px).
+      // O valor fixo 440 fazia o índice dos dots errar em todo card.
+      const card = container.querySelector("a") as HTMLElement | null;
+      const itemWidth = (card?.offsetWidth ?? 360) + 16;
       const index = Math.round(scrollLeft / itemWidth);
       setContinueActiveIndex(index);
     };
@@ -149,8 +152,9 @@ const Dashboard = () => {
   const scrollContinueCarousel = (direction: "left" | "right") => {
     const carousel = continueCarouselRef.current;
     if (carousel) {
-      const cardWidth = isMobile ? 300 : 420;
-      const gap = 12;
+      const first = carousel.querySelector("a") as HTMLElement | null;
+      const cardWidth = first?.offsetWidth ?? (isMobile ? 300 : 360);
+      const gap = 16;
       const scrollAmount = cardWidth + gap;
       carousel.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,

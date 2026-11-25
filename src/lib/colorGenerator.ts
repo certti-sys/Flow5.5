@@ -180,23 +180,46 @@ export function readableTextOn(hex: string): string {
 }
 
 /**
- * Escolhe texto claro ou escuro para ficar sobre a cor informada,
- * comparando a razão de contraste WCAG dos dois candidatos.
- * Exportada também para o preset do checkout reaproveitar a regra.
+ * Luminância relativa (WCAG) de um token HSL no formato `H S% L%`.
+ * Um único cálculo para as três rotas que precisam escolher texto.
  */
-export function readableForeground(hsl: string): string {
+export function relativeLuminance(hsl: string): number {
   const [h, s, l] = hsl.split(' ').map((v) => parseFloat(v));
-  // HSL -> luminância relativa
   const sat = s / 100;
   const light = l / 100;
   const k = (n: number) => (n + h / 30) % 12;
   const a = sat * Math.min(light, 1 - light);
   const f = (n: number) => light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   const lin = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-  const lum = 0.2126 * lin(f(0)) + 0.7152 * lin(f(8)) + 0.0722 * lin(f(4));
-  const ratio = (x: number) => (Math.max(x, lum) + 0.05) / (Math.min(x, lum) + 0.05);
-  // luminância de branco = 1, de quase-preto (240 10% 10%) ≈ 0.01
-  return ratio(1) >= ratio(0.01) ? '0 0% 100%' : '240 10% 10%';
+  return 0.2126 * lin(f(0)) + 0.7152 * lin(f(8)) + 0.0722 * lin(f(4));
+}
+
+/** Razão de contraste WCAG entre dois tokens HSL. */
+export function contrastRatio(a: string, b: string): number {
+  const [x, y] = [relativeLuminance(a), relativeLuminance(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+/**
+ * Escolhe texto claro ou escuro para ficar sobre a cor informada,
+ * comparando a razão de contraste WCAG dos dois candidatos.
+ * Exportada também para o preset do checkout reaproveitar a regra.
+ */
+export function readableForeground(hsl: string): string {
+  const branco = contrastRatio(hsl, '0 0% 100%');
+  const escuro = contrastRatio(hsl, '240 10% 10%');
+  if (branco >= 4.5 || escuro >= 4.5) {
+    return branco >= escuro ? '0 0% 100%' : '240 10% 10%';
+  }
+  // Fundos de faixa média (L≈50): branco e quase-preto dão ~4.2 e nenhum
+  // atinge 4.5. Varre a luminância do texto até um dos dois passar.
+  for (let i = 0; i <= 10; i++) {
+    const claro = `0 0% ${100 - i}%`;
+    if (contrastRatio(hsl, claro) >= 4.5) return claro;
+    const escuroVar = `240 10% ${10 - i}%`;
+    if (i > 0 && contrastRatio(hsl, escuroVar) >= 4.5) return escuroVar;
+  }
+  return '0 0% 100%';
 }
 
 /**
@@ -215,8 +238,8 @@ const PRESET_TOKENS: string[] = [
   '--border', '--input', '--ring',
   '--radius', '--radius-xl', '--radius-2xl', '--radius-3xl',
   '--sidebar-background', '--sidebar-foreground', '--sidebar-border',
-  '--sidebar-primary', '--sidebar-ring', '--sidebar-accent',
-  '--sidebar-accent-foreground',
+  '--sidebar-primary', '--sidebar-primary-foreground',
+  '--sidebar-ring', '--sidebar-accent', '--sidebar-accent-foreground',
 ];
 
 /**
@@ -253,6 +276,7 @@ export function buildPresetVariables(presetId: string | null | undefined): Recor
     // Tokens derivados que não vêm do preset: sidebar e brilho do gradiente
     // precisam seguir a cor do preset, senão ficam na cor manual antiga.
     vars['--sidebar-primary'] = primary;
+    vars['--sidebar-primary-foreground'] = readableForeground(primary);
     vars['--sidebar-ring'] = primary;
     vars['--sidebar-accent'] = preset.dark['--accent'] ?? primary;
     vars['--gradient-primary'] = `linear-gradient(135deg, hsl(${primary}) 0%, hsl(${h} 95% 55%) 100%)`;
@@ -268,6 +292,28 @@ export function buildPresetVariables(presetId: string | null | undefined): Recor
   vars['--sidebar-border'] = preset.dark['--border'] ?? preset.dark['--muted'] ?? sidebarBg ?? '240 5% 15%';
   vars['--sidebar-accent-foreground'] =
     preset.dark['--accent-foreground'] ?? preset.dark['--foreground'] ?? '0 0% 100%';
+
+  // Um preset pode declarar foregrounds que não atingem AA contra o fundo que
+  // escolheu (9 pares medidos, pior caso 2.00:1). Manter o valor declarado
+  // quando passa — ele carrega a intenção do preset — e só substituir quando
+  // reprova. Também cobre os que o preset omite e cairiam no branco do :root.
+  // Roda por último: os tokens da sidebar acabaram de ser derivados acima.
+  const ensureContrast = (bgToken: string, fgToken: string) => {
+    const bg = vars[bgToken];
+    const fg = vars[fgToken];
+    if (!bg) return;
+    if (!fg || contrastRatio(bg, fg) < 4.5) {
+      vars[fgToken] = readableForeground(bg);
+    }
+  };
+  for (const token of [
+    '--foreground', '--card-foreground', '--popover-foreground',
+    '--primary-foreground', '--secondary-foreground', '--muted-foreground',
+    '--accent-foreground', '--destructive-foreground',
+    '--sidebar-foreground', '--sidebar-primary-foreground', '--sidebar-accent-foreground',
+  ]) {
+    ensureContrast(token.replace('-foreground', ''), token);
+  }
 
   if (preset.radius) Object.assign(vars, presetRadiusVariables(preset.radius));
   if (preset.font) vars['--preset-font'] = preset.font;

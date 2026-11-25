@@ -312,7 +312,7 @@ export default function Orders() {
               <div>
                 <span className="text-[12px] font-bold text-emerald-400 uppercase tracking-widest mb-1 block">Faturamento Total</span>
                 <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-2xl font-black text-white">{formatCurrency(stats.total)}</span>
+                  <span className="text-2xl font-black text-white tabular-nums">{formatCurrency(stats.total)}</span>
                 </div>
               </div>
               <div className="p-3 rounded-full bg-emerald-500/20 border border-emerald-500/30">
@@ -445,7 +445,7 @@ export default function Orders() {
                       <td className="px-6 py-5 text-center">
                         <StatusBadge status={order.status} />
                       </td>
-                      <td className="px-6 py-5 text-right font-black text-white text-[15px] tracking-tight">
+                      <td className="px-6 py-5 text-right font-black text-white text-[15px] tracking-tight tabular-nums">
                         {formatCurrency(order.total_amount)}
                       </td>
                       <td className="px-6 py-5 text-right">
@@ -523,7 +523,7 @@ export default function Orders() {
                   </div>
                   <div className="p-5 rounded-[16px] bg-white/[0.02] border border-white/5 text-right flex flex-col items-end">
                     <span className="text-[12px] text-muted-foreground uppercase font-black tracking-widest block mb-2">Total do Checkout</span>
-                    <span className="text-[24px] font-black text-white leading-none tracking-tighter">{formatCurrency(selectedOrder.total_amount)}</span>
+                    <span className="text-[24px] font-black text-white leading-none tracking-tighter tabular-nums">{formatCurrency(selectedOrder.total_amount)}</span>
                   </div>
                 </div>
 

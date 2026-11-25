@@ -171,8 +171,18 @@ Não reabrir sem motivo novo:
 21. **Design system é dívida, não pendência.** Codemod de `white/black`
     (3.285), cores cruas (1.169) e `text-[Npx]` (1.089) é reescrita visual sem
     ganho funcional e com risco no checkout, que está fechado. Só fazer se
-    houver redesign. O que entra é bug funcional e acessibilidade — lista em
+    houver redesign. Os bugs funcionais e de acessibilidade da auditoria foram
+    corrigidos; o que sobrou está em
     `docs/relatorio-pendencias-paridade.html` §13 e §14.
+22. **Contraste é validado em todos os pares, não só no CTA.**
+    `check-theme-presets.mjs` percorre 11 pares fg/bg por preset (198 no total)
+    e exige AA ≥ 4.5. `readableForeground` deriva o texto e, em fundos de faixa
+    média onde branco e preto dão ~4.2, varre a luminância até passar. Preset
+    que declara foreground que reprova é substituído; o que passa é mantido.
+23. **Nada de dado sensível no console do checkout.** Payment-ops, token de
+    cartão, CVV e CPF nunca são logados — só `console.error` para falha real.
+    O QR PIX é gerado localmente (`qrcode`) quando o gateway não devolve
+    base64; o `copy_paste` nunca vai para serviço de terceiro.
 
 ---
 

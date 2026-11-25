@@ -1,6 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
-
 @tailwind base;
+  /* Controles nativos (select, date, spinner) acompanham o tema escuro.
+     O checkout claro redefine no próprio bloco de tema. */
+  :root { color-scheme: dark; }
+  body[data-checkout-theme="light"] { color-scheme: light; }
 @tailwind components;
 @tailwind utilities;
 
@@ -315,31 +317,34 @@ All colors MUST be HSL.
   }
 }
 
-/* Aplicar scrollbar styled globalmente */
-* {
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: hsl(240 6% 25%) hsl(240 10% 10%);
-}
+/* Scrollbar global dentro de @layer base: assim .scrollbar-hide e
+   .scrollbar-none (em @layer utilities) conseguem esconder a barra. Fora de
+   layer, o seletor * vencia por cascata e anulava os utilitários no Firefox. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(240 6% 25%) hsl(240 10% 10%);
+  }
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-*::-webkit-scrollbar-track {
-  background: hsl(240 10% 10%);
-  border-radius: 4px;
-}
+  *::-webkit-scrollbar-track {
+    background: hsl(240 10% 10%);
+    border-radius: 4px;
+  }
 
-*::-webkit-scrollbar-thumb {
-  background: hsl(240 6% 25%);
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
+  *::-webkit-scrollbar-thumb {
+    background: hsl(240 6% 25%);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
 
-*::-webkit-scrollbar-thumb:hover {
-  background: hsl(240 6% 35%);
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(240 6% 35%);
+  }
 }
 
 /* Force modals to render above everything with correct positioning */

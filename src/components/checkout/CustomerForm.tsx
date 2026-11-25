@@ -43,7 +43,7 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
                     <FormItem>
                         <FormLabel className="text-foreground">Nome completo</FormLabel>
                         <FormControl>
-                            <Input placeholder="Digite seu nome completo" className="h-11 bg-background" {...field} />
+                            <Input placeholder="Digite seu nome completo" autoComplete="name" className="h-11 bg-background" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -57,7 +57,7 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
                     <FormItem>
                         <FormLabel className="text-foreground">E-mail</FormLabel>
                         <FormControl>
-                            <Input type="email" placeholder="seu@email.com" className="h-11 bg-background" {...field} />
+                            <Input type="email" placeholder="seu@email.com" autoComplete="email" spellCheck={false} className="h-11 bg-background" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -76,6 +76,8 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
                                     <FormControl>
                                         <Input
                                             placeholder="000.000.000-00"
+                                            inputMode="numeric"
+                                            autoComplete="off"
                                             className="h-11 bg-background"
                                             {...field}
                                             value={field.value ?? ""}
@@ -100,6 +102,9 @@ export function CustomerForm({ form, showCpf = true, showPhone = true }: Custome
                                             <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                             <Input
                                                 placeholder="(00) 00000-0000"
+                                                type="tel"
+                                                inputMode="tel"
+                                                autoComplete="tel"
                                                 className="pl-10 h-11 bg-background"
                                                 {...field}
                                                 value={field.value ?? ""}

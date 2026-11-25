@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2, Tag, CheckCircle2 } from 'lucide-react';
 import { useCouponValidation } from '../hooks/useCouponValidation';
+import { formatCurrency } from '@/utils/currency';
 import type { CouponValidationResult } from '../types';
 
 interface CouponInputProps {
@@ -17,6 +19,14 @@ export function CouponInput({ productId, amount, onApply, disabled }: CouponInpu
   const [code, setCode] = useState('');
   const [applied, setApplied] = useState(false);
   const validateMutation = useCouponValidation();
+
+  // O input vive dentro do <form> do checkout. Sem isto, Enter dispara o
+  // submit do pagamento em vez de aplicar o cupom.
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (!applied && !validateMutation.isPending) void handleApply();
+  };
 
   const handleApply = async () => {
     if (!code.trim()) {
@@ -35,7 +45,7 @@ export function CouponInput({ productId, amount, onApply, disabled }: CouponInpu
         setApplied(true);
         onApply(result);
         toast.success(
-          `Cupom aplicado! Desconto: R$ ${result.discount_applied?.toFixed(2)}`,
+          `Cupom aplicado! Desconto: ${formatCurrency((result.discount_applied ?? 0) * 100, 'BRL')}`,
           { icon: <CheckCircle2 className="text-green-500" /> }
         );
       } else {
@@ -64,6 +74,7 @@ export function CouponInput({ productId, amount, onApply, disabled }: CouponInpu
             placeholder="Digite o código"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={handleKeyDown}
             disabled={disabled || applied || validateMutation.isPending}
             className="pl-10"
             maxLength={50}

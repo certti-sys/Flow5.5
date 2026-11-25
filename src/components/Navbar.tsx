@@ -219,7 +219,7 @@ export const Navbar = ({ hideLogo = false, hideNavLinks = false, showMobileSideb
             <div className="flex md:hidden items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.08]">
+                  <Button variant="ghost" size="icon" aria-label="Abrir menu" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.08]">
                     <Menu className="w-5 h-5 text-white/80" />
                   </Button>
                 </DropdownMenuTrigger>

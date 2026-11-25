@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from "react";
+import { MotionConfig } from "framer-motion";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
@@ -91,6 +92,7 @@ const App = () => (
       <ThemeProvider>
         <PlatformSettingsProvider>
           <TooltipProvider>
+            <MotionConfig reducedMotion="user">
             <Sonner />
             <BrowserRouter>
               <Suspense fallback={<RouteFallback />}>
@@ -432,6 +434,7 @@ const App = () => (
                 </Routes>
               </Suspense>
             </BrowserRouter>
+            </MotionConfig>
           </TooltipProvider>
         </PlatformSettingsProvider>
       </ThemeProvider>

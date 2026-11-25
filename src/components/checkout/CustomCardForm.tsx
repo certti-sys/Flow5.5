@@ -36,6 +36,8 @@ export function CustomCardForm({ form, installmentOptions = [], onCardNumberChan
                             <div className="relative">
                                 <Input
                                     placeholder="0000 0000 0000 0000"
+                                    inputMode="numeric"
+                                    autoComplete="cc-number"
                                     className="pl-4 pr-12 h-11 bg-background"
                                     {...field}
                                     onChange={(e) => {
@@ -69,6 +71,7 @@ export function CustomCardForm({ form, installmentOptions = [], onCardNumberChan
                         <FormControl>
                             <Input
                                 placeholder="Como aparece no cartão"
+                                autoComplete="cc-name"
                                 className="h-11 bg-background"
                                 {...field}
                                 onChange={(e) => field.onChange(e.target.value.toUpperCase())}
@@ -90,6 +93,8 @@ export function CustomCardForm({ form, installmentOptions = [], onCardNumberChan
                             <FormControl>
                                 <Input
                                     placeholder="MM/AA"
+                                    inputMode="numeric"
+                                    autoComplete="cc-exp"
                                     className="h-11 bg-background"
                                     {...field}
                                     onChange={(e) => {
@@ -113,6 +118,8 @@ export function CustomCardForm({ form, installmentOptions = [], onCardNumberChan
                             <FormControl>
                                 <Input
                                     placeholder="000"
+                                    inputMode="numeric"
+                                    autoComplete="cc-csc"
                                     className="h-11 bg-background"
                                     {...field}
                                     onChange={(e) => {
