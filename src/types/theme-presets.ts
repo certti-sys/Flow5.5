@@ -30,7 +30,7 @@ export interface ThemePreset {
     dark: Partial<Record<ThemeToken, string>>;
 }
 
-export const THEME_PRESETS: CheckoutPreset[] = [
+export const THEME_PRESETS: ThemePreset[] = [
     {
         id: "default",
         name: "Padrão (Slate)",
@@ -433,7 +433,6 @@ export const THEME_PRESETS: CheckoutPreset[] = [
             '--card-foreground': '292 20% 94%',
             '--popover': '293 15% 11%',
             '--popover-foreground': '292 20% 94%',
-            '--primary': '243 99% 70%',
             '--primary-foreground': '292 56% 98%',
             '--secondary': '253 10% 36%',
             '--secondary-foreground': '292 20% 94%',

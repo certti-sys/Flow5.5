@@ -24,7 +24,7 @@ quais decisões já estão fechadas. Detalhe por fase em
 ```bash
 npm run dev            # Vite (5173; se ocupado, cai pra 5174)
 npm run build          # vite build — precisa passar antes de commitar
-npx tsc --noEmit       # type-check da raiz (é o que vale; 0 erros)
+npm run typecheck      # tsc -p tsconfig.app.json --noEmit (é o que vale)
 npm run lint
 
 npm run check:theme    # presets de tema
@@ -38,6 +38,10 @@ npx supabase db query --remote --read-only --file q.sql   # leitura em prod
 npx supabase db push --remote --include-all --yes         # migration em prod
 npx supabase functions deploy <nome> --no-verify-jwt --yes
 ```
+
+> **Atenção:** `npx tsc --noEmit` na raiz não checa nada — o
+> `tsconfig.json` tem `"files": []` e só referências, sai com código 0 sem ler
+> um arquivo. Use `npm run typecheck`.
 
 `--read-only` roda como `supabase_read_only_user`: sem EXECUTE em funções novas
 e rejeita `SET`. Só devolve o **último** statement do arquivo — um statement por
@@ -154,6 +158,21 @@ Não reabrir sem motivo novo:
 16. **Conquistas por faturamento**: não implementar (decisão do usuário).
 17. **Multi-tenant, CAPTCHA/Turnstile**: fora de escopo.
 18. **Fases 14 e 15** do plano e **desconto PIX** ficam para a segunda fase.
+19. **Preset nunca declara `--destructive-foreground` nem
+    `--sidebar-primary-foreground`** — os dois são derivados do fundo em
+    `buildPresetVariables` com `readableForeground`. 17 dos 18 presets não
+    declaravam e caíam no branco do `:root`: 10 reprovavam AA no botão
+    destrutivo e 14 na sidebar. Foreground declarado à mão volta a divergir
+    quando a cor muda.
+20. **Preset só aplica o mapa `dark`.** O mapa `light` de cada preset existe no
+    tipo mas não é lido (`buildPresetVariables` usa `preset.dark`); o único
+    tema claro do produto é o do checkout, em `body[data-checkout-theme="light"]`.
+    Não reintroduzir `darkMode: ["class"]` — não existe bloco `.dark`.
+21. **Design system é dívida, não pendência.** Codemod de `white/black`
+    (3.285), cores cruas (1.169) e `text-[Npx]` (1.089) é reescrita visual sem
+    ganho funcional e com risco no checkout, que está fechado. Só fazer se
+    houver redesign. O que entra é bug funcional e acessibilidade — lista em
+    `docs/relatorio-pendencias-paridade.html` §13 e §14.
 
 ---
 

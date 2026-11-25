@@ -261,7 +261,9 @@
   <div class="stat"><div class="n">0</div><div class="l">Assinaturas ativas</div></div>
   <div class="stat"><div class="n">1</div><div class="l">Aula com MP4 legado</div></div>
   <div class="stat"><div class="n">3<small>/5</small></div><div class="l">Critérios de conquista</div></div>
-  <div class="stat"><div class="n">7</div><div class="l">Commits não pushados</div></div>
+  <div class="stat"><div class="n">6</div><div class="l">Logs com dado de cartão</div></div>
+  <div class="stat"><div class="n">24</div><div class="l">Pares de contraste reprovados</div></div>
+  <div class="stat"><div class="n">8</div><div class="l">Commits não pushados</div></div>
 </div>
 
 <div class="wrap">
@@ -280,7 +282,9 @@
       <li><a href="#s10">RLS residual</a></li>
       <li><a href="#s11">Fora de escopo</a></li>
       <li><a href="#s12">Higiene do repositório</a></li>
-      <li><a href="#s13">Ordem sugerida</a></li>
+      <li><a href="#s13">Design system: bugs reais</a></li>
+      <li><a href="#s14">Design system: dívida</a></li>
+      <li><a href="#s15">Ordem sugerida</a></li>
     </ol>
   </nav>
 
@@ -300,6 +304,20 @@
             <tr><th>#</th><th>Pendência</th><th>Impacto</th><th>Prioridade</th><th>Esforço</th></tr>
           </thead>
           <tbody>
+            <tr>
+              <td>0</td>
+              <td><strong>Dados de cartão no <code>console.log</code></strong> em produção</td>
+              <td>Risco de segurança: número, CVV, validade e CPF expostos no console do cliente</td>
+              <td><span class="tag r">Crítica</span></td>
+              <td>30 min</td>
+            </tr>
+            <tr>
+              <td>0b</td>
+              <td><strong>Bug de contraste nos presets de tema</strong>: 24 pares reprovam AA</td>
+              <td>Botão destrutivo ilegível em 10 presets (pior: branco sobre branco) e sidebar ilegível em 14</td>
+              <td><span class="tag r">Alta</span></td>
+              <td>0,5 dia</td>
+            </tr>
             <tr>
               <td>1</td>
               <td><strong>Termos, Privacidade e Suporte</strong> sem página e sem link</td>
@@ -734,7 +752,7 @@
           <tbody>
             <tr>
               <td><code>main</code> vs <code>origin/main</code></td>
-              <td>7 commits à frente, nada pushado (<code>origin/main = 6daa183</code>)</td>
+              <td>8 commits à frente, nada pushado (<code>origin/main = 6daa183</code>)</td>
               <td>Push — o trabalho está só local</td>
             </tr>
             <tr>
@@ -744,13 +762,18 @@
             </tr>
             <tr>
               <td><code>.commandcode/</code></td>
-              <td>Fora do <code>.gitignore</code>, não versionado</td>
-              <td>Ignorar ou commitar — decidir</td>
+              <td><span class="tag v">Feito</span> Configuração local do agente, agora no <code>.gitignore</code></td>
+              <td>Nada</td>
             </tr>
             <tr>
               <td><code>docs/relatorio-getfy-sistema.html</code>, <code>docs/relatorio-design-system.html</code></td>
-              <td>Untracked</td>
-              <td>Commitar como documentação de referência</td>
+              <td><span class="tag v">Feito</span> Versionados em <code>e3e47a2</code></td>
+              <td>Nada</td>
+            </tr>
+            <tr>
+              <td><code>npx tsc --noEmit</code> na raiz</td>
+              <td><span class="tag r">Corrigido</span> Não checava nada: <code>tsconfig.json</code> tem <code>"files": []</code> e só referências, então saía com código 0 sem ler um arquivo. Foi assim que o <code>CheckoutPreset</code> inexistente passou</td>
+              <td><code>npm run typecheck</code> (<code>tsc -p tsconfig.app.json</code>) — usar daqui em diante</td>
             </tr>
             <tr>
               <td>Testes automatizados</td>
@@ -762,29 +785,259 @@
       </div>
     </section>
 
+
     <section id="s13">
-      <h2><span class="idx">13</span>Ordem sugerida</h2>
+      <h2><span class="idx">13</span>Design system: bugs reais</h2>
+      <p class="sec-sub">
+        Veio da auditoria de <code>docs/relatorio-design-system.html</code>. Cada item abaixo foi
+        reconferido em código; o que não se confirmou está na seção 14, com o motivo.
+      </p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Bug</th><th>Local</th><th>Efeito real</th><th>Esforço</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><code>THEME_PRESETS: CheckoutPreset[]</code> — tipo inexistente</td>
+              <td><code>theme-presets.ts:33</code></td>
+              <td><span class="tag r">Corrigido</span> O <code>vite build</code> passa porque o esbuild só remove tipos; o erro ficava invisível. Ver seção 14</td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><code>--primary</code> duplicado no preset <code>material-design</code> (dark)</td>
+              <td><code>theme-presets.ts:436 e 450</code></td>
+              <td><span class="tag r">Corrigido</span> O segundo valor (62%) vencia; o primeiro (70%) era letra morta e o TS acusava <code>TS1117</code></td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><strong>Dados de cartão no console</strong>: <code>console.log("&gt;&gt;&gt; Criando token com dados:", cardFormData)</code></td>
+              <td><code>Checkout.tsx:622</code> (também 587, 707, 737, 867, 892)</td>
+              <td><span class="tag r">Alta</span> Número completo, CVV, validade e CPF no console do cliente em produção. Outros 5 logs vazam payload de pagamento. <strong>Primeiro item a corrigir.</strong></td>
+              <td>30 min</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><strong>Enter no cupom submete o pagamento</strong></td>
+              <td><code>CouponInput.tsx:63-70</code></td>
+              <td><span class="tag a">Média</span> O input não tem <code>onKeyDown</code> e está dentro do <code>&lt;form&gt;</code> (<code>Checkout.tsx:1140</code>, form em 1026). Enter tenta cobrar sem cupom aplicado</td>
+              <td>3 linhas</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><strong><code>R$ 10.50</code></strong> — ponto decimal em pt-BR</td>
+              <td><code>CouponInput.tsx:38</code></td>
+              <td><span class="tag a">Média</span> <code>toFixed(2)</code> sem <code>replace(".", ",")</code>, ao contrário dos outros 5 pontos do checkout. Bug visível ao aplicar cupom</td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td><strong><code>rgba(var(--primary), 0.3)</code></strong> — sintaxe inválida</td>
+              <td><code>LevelUpModal.tsx:35, 43, 94</code></td>
+              <td><span class="tag a">Média</span> O token é <code>H S% L%</code>, não RGB. Os três <code>shadow</code>/<code>drop-shadow</code> são descartados e o modal de level up fica sem brilho</td>
+              <td>3 linhas</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td><code>transition-[margin,opa]</code></td>
+              <td><code>sidebar.tsx:364</code></td>
+              <td><span class="tag b">Baixa</span> Propriedade <code>opa</code> não existe; a transição do label da sidebar vira só <code>margin</code></td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td><code>animate-caret-blink</code> sem keyframe</td>
+              <td><code>input-otp.tsx:44</code></td>
+              <td><span class="tag b">Baixa</span> Classe usada 1× e <code>caret-blink</code> não existe em <code>tailwind.config.ts</code> — o cursor do OTP não pisca</td>
+              <td>4 linhas</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td><code>api.on("reInit", onSelect)</code> sem <code>off</code></td>
+              <td><code>carousel.tsx:97-101</code></td>
+              <td><span class="tag b">Baixa</span> O cleanup remove <code>select</code> mas não <code>reInit</code> — listener acumula a cada remontagem</td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td><strong>Condição invertida</strong> no texto de exclusão de comentário</td>
+              <td><code>Lesson.tsx:881</code></td>
+              <td><span class="tag b">Baixa</span> <code>{!user?.id &amp;&amp; " Respostas também serão excluídas."}</code> — só aparece quando <em>não</em> há usuário, ou seja, nunca</td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td><code>viewport-fit=cover</code> ausente</td>
+              <td><code>index.html:5</code></td>
+              <td><span class="tag b">Baixa</span> <code>env(safe-area-inset-*)</code> é usado em <code>CheckoutSupportButton.tsx</code> mas resolve 0 — botão encosta na barra do iPhone</td>
+              <td>1 linha</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td><strong>QR PIX gerado por terceiro</strong></td>
+              <td><code>ThankYou.tsx:353</code></td>
+              <td><span class="tag a">Média</span> Quando o gateway não devolve imagem, o <code>copy_paste</code> (que contém o valor do pedido) vai na URL de <code>api.qrserver.com</code>. A CSP permite <code>img-src https:</code>, então carrega. Fallback raro, mas desnecessário</td>
+              <td>0,5 dia (lib local)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Itens 1 e 2 já estão corrigidos neste commit — e expuseram um problema maior: até agora
+        <code>npx tsc --noEmit</code> na raiz <strong>não checava nada</strong>, porque o
+        <code>tsconfig.json</code> tem <code>"files": []</code> e só referências. O comando saía com
+        código 0 sem ler um único arquivo. Adicionado <code>npm run typecheck</code>
+        (<code>tsc -p tsconfig.app.json</code>), que acusa esses 3 erros e fecha o buraco.
+      </p>
+    </section>
+
+    <section id="s14">
+      <h2><span class="idx">14</span>Design system: dívida real e o que o relatório errou</h2>
+      <p class="sec-sub">
+        A auditoria tem 18 bugs na seção 11 e 4 fases de roadmap. Boa parte dos números está certa,
+        mas três achados não se confirmaram e duas métricas estão infladas. Importa separar antes de
+        planejar.
+      </p>
+
+      <div class="cols">
+        <div class="card">
+          <div class="ch">Não se confirmou</div>
+          <ul>
+            <li><strong>Tokens presos na troca preset→preset</strong> (<code>colorGenerator.ts:320-329</code>): o código já limpa <code>PRESET_TOKENS</code> — só quando <em>não</em> há preset. Preset→preset redefine todos os 19 tokens no <code>dark</code>, então não sobra resíduo. Os campos <code>light</code> nunca são aplicados: <code>buildPresetVariables</code> usa só <code>preset.dark</code>. Não é bug, é código morto (17 dos 18 presets têm mapa <code>light</code> sem uso)</li>
+            <li><strong>Timer não para no zero</strong> (<code>CheckoutTimer.tsx:35-41</code>): o <code>setSeconds</code> satura em 0 e o <code>clearInterval</code> existe no cleanup. O contador continua rodando sem mudar a tela — irrelevante</li>
+            <li><strong>Câmbio fixo usado em fluxo real</strong> (<code>utils/currency.ts:108-127</code>): <code>convertCurrency</code> tem <strong>zero</strong> chamadas fora do próprio arquivo. O preço nunca é convertido — é só código morto</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="ch">Números recontados</div>
+          <ul>
+            <li><strong>white/black</strong>: relatório 3.276 · contagem real 3.285 — confere</li>
+            <li><strong>cores cruas</strong>: relatório 1.153 · real 1.169 — confere</li>
+            <li><strong>text-[Npx]</strong>: 1.095 · real 1.089 — confere, e são <strong>19</strong> tamanhos distintos (6 a 48px), não 12</li>
+            <li><strong>rounded-[Npx]</strong>: 732 · real 699 — confere de ordem</li>
+            <li><strong>transition-all</strong>: relatório 351 no app · real <strong>206</strong> no total. Inflado</li>
+            <li><strong>Stack Radix de toast morto</strong> (P0): confirmado e maior do que descrito — <code>ui/toast.tsx</code>, <code>ui/toaster.tsx</code>, <code>ui/use-toast.ts</code> e <code>hooks/use-toast.ts</code> só se referenciam entre si; <code>App.tsx</code> monta só o Sonner. <code>@radix-ui/react-toast</code> é dependência morta</li>
+            <li><strong>App.css</strong>: existe e <strong>não</strong> é importado — confirmado</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>Dívida confirmada</th><th>Medida</th><th>Vale agora?</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Tipografia em px arbitrário</td>
+              <td><code>text-[Npx]</code> 1.089× em 19 tamanhos; <code>rounded-[Npx]</code> 699× em 13 valores; <code>h-[Npx]</code> 357×</td>
+              <td>Não. Codemod + lint, só depois dos bugs</td>
+            </tr>
+            <tr>
+              <td><code>transition-all</code></td>
+              <td>206× (relatório dizia 351)</td>
+              <td>Não. Trocar por <code>transition-colors</code> caso a caso</td>
+            </tr>
+            <tr>
+              <td>Scrollbar global fora de <code>@layer</code></td>
+              <td><code>index.css:319-343</code> é o único bloco de scrollbar sem layer. <code>.scrollbar-hide</code> (251) <strong>está</strong> dentro de <code>@layer utilities</code> — o achado P0 estava errado na causa: o <code>* { scrollbar-width: thin }</code> sem layer vence por especificidade e anula o hide no Firefox</td>
+              <td>Sim, é 1 bloco de 25 linhas</td>
+            </tr>
+            <tr>
+              <td>Chrome de modal hardcoded</td>
+              <td><code>bg-black/90</code>, <code>border-white/10</code>, <code>text-white</code> em <code>dialog.tsx:44</code>, <code>alert-dialog.tsx:40</code>, <code>ui/modal.tsx:31</code></td>
+              <td>Não. É o visual intencional do app hoje</td>
+            </tr>
+            <tr>
+              <td>Contraste: <code>--destructive-foreground</code></td>
+              <td>17 dos 18 presets <strong>não</strong> definem o token; caem no branco do <code>:root</code>. Resultado: 10 presets reprovam AA no botão destrutivo — pior caso <code>neo-brutalism</code> (branco sobre branco, <strong>1.00</strong>)</td>
+              <td>Sim, 1 linha de fix por preset</td>
+            </tr>
+            <tr>
+              <td>Contraste: <code>--sidebar-primary-foreground</code></td>
+              <td>Fixado em branco no <code>:root</code> e nunca derivado. <strong>14 dos 18 presets</strong> ficam ilegíveis sobre ele (vercel 1.00, default 1.05, claymorphism 1.05)</td>
+              <td>Sim, <code>readableForeground()</code> no <code>buildPresetVariables</code></td>
+            </tr>
+            <tr>
+              <td><code>design-tokens.ts</code> órfão</td>
+              <td>425 linhas, <strong>nenhum</strong> import. Duplica escala de <code>index.css</code>, com px soltos</td>
+              <td>Deletar — é ganho, não custo</td>
+            </tr>
+            <tr>
+              <td>Fontes: 8 famílias no <code>index.html</code> + <code>@import</code> de Geist no topo do <code>index.css</code></td>
+              <td>Inter carregada e <strong>nunca usada</strong> (o body usa <code>var(--preset-font, 'Geist')</code>)</td>
+              <td>Remover Inter + o <code>@import</code> (bloqueia render)</td>
+            </tr>
+            <tr>
+              <td><code>og:image</code> aponta para <code>lovable.dev/opengraph-image-p98pqg.png</code></td>
+              <td>Preview de link quebrado em toda divulgação</td>
+              <td>Sim, 2 linhas</td>
+            </tr>
+            <tr>
+              <td>Safe area e <code>darkMode: ["class"]</code> sem bloco <code>.dark</code></td>
+              <td><code>darkMode</code> declarado, mas <code>index.css</code> não tem seletor <code>.dark</code> — as 32 utilidades <code>dark:</code> nunca ativam</td>
+              <td>Deletar a config morta</td>
+            </tr>
+            <tr>
+              <td>Carrossel do Dashboard vs <code>DynamicCarousel</code></td>
+              <td>Confirma a divergência: <code>Dashboard.tsx:136</code> assume <code>itemWidth = 440</code> fixo, <code>153</code> usa <code>gap = 12</code>, mas o container real é <code>gap-4</code> (16px) e card de <code>w-[300px] sm:w-[340px] md:w-[360px]</code>. Índice dos dots erra sempre</td>
+              <td>Sim, mas é cosmético no admin do aluno</td>
+            </tr>
+            <tr>
+              <td><code>inputMode</code>/<code>autoComplete</code> nos campos de cartão</td>
+              <td><code>CustomCardForm.tsx</code>: 0 ocorrências de <code>inputMode</code>; <code>CustomerForm.tsx:34</code> só tem <code>autoComplete="off"</code>; <code>Login.tsx</code> sem <code>autoComplete</code> em senha/e-mail</td>
+              <td>Sim, teclado numérico e gerenciador de senha</td>
+            </tr>
+            <tr>
+              <td><code>MotionConfig</code> e <code>color-scheme</code></td>
+              <td>Zero ocorrências de ambos. O guard de <code>prefers-reduced-motion</code> existing cobre só CSS, não framer-motion</td>
+              <td>1 linha cada, acessibilidade</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <div class="h">O que NÃO entra</div>
+        <p>
+          Fase 4 do roadmap do relatório (codemod de 3.285 <code>white/black</code>, 1.169 cores
+          cruas, 1.089 <code>text-[Npx]</code>) é reescrita visual do app inteiro, sem ganho
+          funcional e com risco alto de regressão no checkout — que hoje está visualmente fechado.
+          Fica registrada como dívida; não é pendência. As fases 2 e 3 só fazem sentido se um dia a
+          Fase 4 acontecer.
+        </p>
+      </div>
+    </section>
+
+    <section id="s15">
+      <h2><span class="idx">15</span>Ordem sugerida</h2>
       <p class="sec-sub">
         Do mais barato com mais valor para o mais caro. Itens 1 e 3 podem sair no mesmo dia.
       </p>
 
       <div class="flow">
-        <div class="step"><div class="k">01</div><div class="t"><b>Páginas legais + links (2 h)</b>Termos, Privacidade e Suporte viram rotas. Fecha conformidade no ponto de pagamento.</div></div>
-        <div class="step"><div class="k">02</div><div class="t"><b>Aula MP4 → embed</b>Trocar uma URL e fechar o caso <code>file</code>, ou documentar a exceção.</div></div>
-        <div class="step"><div class="k">03</div><div class="t"><b>Webhooks: <code>bearer_token</code> + endpoint real (0,5 dia)</b>Catálogo pronto e pipeline exercitado de verdade.</div></div>
-        <div class="step"><div class="k">04</div><div class="t"><b>RLS de <code>lesson_materials</code> + opt-out do ranking (1 dia)</b>Dois ajustes pequenos com peso de privacidade.</div></div>
-        <div class="step"><div class="k">05</div><div class="t"><b>Método inicial do checkout configurável (0,5 dia)</b>PIX primeiro por produto, se a conversão pedir.</div></div>
-        <div class="step"><div class="k">06</div><div class="t"><b>Conquistas: critérios e tela de admin (1,5 dia)</b>Curadoria sem migration; <code>course_completed</code> e <code>comments_count</code>.</div></div>
-        <div class="step"><div class="k">07</div><div class="t"><b>E-mail de conteúdo liberado (0,5 dia)</b>Fecha o drip do lado do aluno.</div></div>
-        <div class="step"><div class="k">08</div><div class="t"><b>Clique em campanha (1 dia)</b>Só quando houver demanda por relatório de clique.</div></div>
-        <div class="step"><div class="k">09</div><div class="t"><b>Assinaturas (3 dias)</b>Projeto próprio. Exige decidir antes se o acesso passa a ter prazo.</div></div>
+        <div class="step"><div class="k">01</div><div class="t"><b>Dados de cartão fora do console (30 min)</b><code>Checkout.tsx</code>: 6 <code>console.log</code> com número, CVV e CPF. É o único item que é risco de segurança, não de estilo.</div></div>
+        <div class="step"><div class="k">02</div><div class="t"><b>Enter no cupom + moeda do cupom (1 h)</b><code>CouponInput</code>: <code>onKeyDown</code> com <code>preventDefault</code> e trocar <code>toFixed</code> por <code>formatCurrency</code>. Dois bugs de checkout público.</div></div>
+        <div class="step"><div class="k">03</div><div class="t"><b>Páginas legais + links (2 h)</b>Termos, Privacidade e Suporte viram rotas. Fecha conformidade no ponto de pagamento.</div></div>
+        <div class="step"><div class="k">04</div><div class="t"><b>Aula MP4 → embed</b>Trocar uma URL e fechar o caso <code>file</code>, ou documentar a exceção.</div></div>
+        <div class="step"><div class="k">05</div><div class="t"><b>Preset: contraste derivado (0,5 dia)</b>Estender <code>buildPresetVariables</code> para derivar <code>--destructive-foreground</code> e <code>--sidebar-primary-foreground</code> com <code>readableForeground</code>; estender <code>check-theme-presets.mjs</code> a todos os pares. Mata 24 pares reprovados de uma vez — hoje o check só valida o CTA.</div></div>
+        <div class="step"><div class="k">06</div><div class="t"><b>Webhooks: <code>bearer_token</code> + endpoint real (0,5 dia)</b>Catálogo pronto e pipeline exercitado de verdade.</div></div>
+        <div class="step"><div class="k">07</div><div class="t"><b>Teclado e a11y do checkout (0,5 dia)</b><code>inputMode</code>/<code>autoComplete</code> nos campos de cartão, CPF, telefone, e-mail e senha; <code>viewport-fit=cover</code>; <code>MotionConfig</code>; <code>color-scheme</code>.</div></div>
+        <div class="step"><div class="k">08</div><div class="t"><b>RLS de <code>lesson_materials</code> + opt-out do ranking (1 dia)</b>Dois ajustes pequenos com peso de privacidade.</div></div>
+        <div class="step"><div class="k">09</div><div class="t"><b>Método inicial do checkout configurável (0,5 dia)</b>PIX primeiro por produto, se a conversão pedir.</div></div>
+        <div class="step"><div class="k">10</div><div class="t"><b>Limpeza sem risco (1 h)</b>Deletar <code>design-tokens.ts</code> (425 linhas órfãs), stack Radix de toast, <code>App.css</code>, Inter e o <code>@import</code> de Geist; mover a scrollbar global para <code>@layer base</code>; <code>og:image</code> real.</div></div>
+        <div class="step"><div class="k">11</div><div class="t"><b>Conquistas: critérios e tela de admin (1,5 dia)</b>Curadoria sem migration; <code>course_completed</code> e <code>comments_count</code>.</div></div>
+        <div class="step"><div class="k">12</div><div class="t"><b>E-mail de conteúdo liberado (0,5 dia)</b>Fecha o drip do lado do aluno.</div></div>
+        <div class="step"><div class="k">13</div><div class="t"><b>Clique em campanha (1 dia)</b>Só quando houver demanda por relatório de clique.</div></div>
+        <div class="step"><div class="k">14</div><div class="t"><b>Assinaturas (3 dias)</b>Projeto próprio. Exige decidir antes se o acesso passa a ter prazo.</div></div>
       </div>
 
       <div class="note">
         <div class="h">Sequência curta</div>
         <p>
-          <strong>1 → 2 → 3 → 4</strong> em um dia e meio fecha tudo que é conformidade, operação
-          e privacidade. O resto é escolha de produto.
+          <strong>1 → 2 → 3 → 4 → 5</strong> em dois dias fecha segurança, conformidade, privacidade
+          de tema e operação. O resto é escolha de produto.
         </p>
       </div>
     </section>

@@ -947,7 +947,9 @@ export default function CheckoutPage() {
     // Hero do topo: primeiro bloco de imagem da coluna principal, com formato
     // largo. Ele sai do grid para ocupar a largura do container (desktop) e
     // sangrar até as bordas no mobile — o resto dos blocos fica no form.
-    const mainBlocks = config.appearance.content_blocks.filter((b) => b.placement === "main");
+    const mainBlocks = config.appearance.content_blocks.filter(
+        (b) => b.type === "image" && b.placement === "main",
+    );
     const heroBlock = mainBlocks.find((b) => b.type === "image" && (b.format === "hero" || b.format === "wide"));
     const inlineBlocks = config.appearance.content_blocks.filter((b) => b.id !== heroBlock?.id);
 

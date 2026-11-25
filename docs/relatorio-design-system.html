@@ -124,7 +124,9 @@
   </div>
 </header>
 
-<div class="stats">
+
+
+    <div class="stats">
   <div class="stat"><div class="n bad">3.248</div><div class="l">white/black fora de token</div></div>
   <div class="stat"><div class="n bad">1.135</div><div class="l">cores Tailwind cruas</div></div>
   <div class="stat"><div class="n bad">1.093</div><div class="l">text-[Npx] arbitrários</div></div>
@@ -155,6 +157,23 @@
   </nav>
 
   <main>
+    <div class="note" style="margin:18px 0">
+      <div class="h">Errata — reconferido no código em 25/11/2026</div>
+      <p>
+        Os itens abaixo foram marcados no texto. Medições feitas lendo o código e executando
+        <code>buildPresetVariables()</code> + cálculo de contraste WCAG sobre os 18 presets.
+      </p>
+      <ul>
+        <li><strong>Bugs 1 e 2 corrigidos</strong> (<code>ThemePreset[]</code> e a <code>--primary</code> duplicada). O <code>vite build</code> passava porque o esbuild descarta tipos — o erro só apareceu ao rodar <code>tsc -p tsconfig.app.json</code>. O <code>tsc --noEmit</code> da raiz não checava nada (<code>"files": []</code>).</li>
+        <li><strong>Bug 3 (tokens presos) não se confirmou</strong>: preset→preset redefine os 19 tokens. O que existe é código morto — o mapa <code>light</code> de 17 dos 18 presets nunca é aplicado, porque <code>buildPresetVariables</code> lê só <code>preset.dark</code>.</li>
+        <li><strong>Bug 16 (timer) não se confirmou</strong>: o contador satura em 0 e o <code>clearInterval</code> está no cleanup.</li>
+        <li><strong>Bug 18 (câmbio fixo) não se confirmou</strong>: <code>convertCurrency</code> tem zero chamadas fora de <code>utils/currency.ts</code>. Código morto, não preço errado.</li>
+        <li><strong>Bug 6 com causa errada</strong>: <code>.scrollbar-hide</code> está em <code>@layer utilities</code>; quem anula é o <code>* { scrollbar-width: thin }</code> fora de layer (<code>index.css:319</code>).</li>
+        <li><strong>Contraste medido</strong>: 22 pares reprovam AA no que o app realmente aplica — 10 deles no botão destrutivo (17 dos 18 presets não definem <code>--destructive-foreground</code>; pior caso <code>neo-brutalism</code> = 1.00) e 14 no <code>--sidebar-primary-foreground</code> fixo em branco (vercel 1.00, default 1.05).</li>
+        <li><strong>Métrica inflada</strong>: <code>transition-all</code> são <strong>206</strong> ocorrências, não 351. <code>text-[Npx]</code> usa <strong>19</strong> tamanhos distintos, não 12.</li>
+      </ul>
+    </div>
+
 
   <!-- 1 -->
   <section id="s1">
@@ -254,7 +273,7 @@
 
     <h3>Lacunas de cobertura</h3>
     <ul>
-      <li><span class="sev p1">P1</span><strong><code>--sidebar-primary-foreground</code> nunca definido por preset</strong> (fora do tipo <code>ThemeToken</code>) e fixo branco no root → texto ilegível sobre sidebar-primary clara em ≥5 presets (vercel, claymorphism, graphite, notebook, default dark).<span class="loc">theme-presets.ts:11–20 · index.css:105</span></li>
+      <li><span class="sev p1">P1</span><strong><code>--sidebar-primary-foreground</code> nunca definido por preset</strong> (fora do tipo <code>ThemeToken</code>) e fixo branco no root → texto ilegível sobre <code>sidebar-primary</code> em <strong>14 dos 18</strong> presets (medido: vercel 1.00, default 1.05, claymorphism 1.05, notebook 2.17).<span class="loc">theme-presets.ts:11–20 · index.css:105</span></li>
       <li><span class="sev p1">P1</span><strong>Presets não cobrem tokens de marca</strong> — <code>--gradient-text-*</code>, <code>--gradient-dark</code>, <code>--shadow-card</code>: com preset Vercel (preto/branco), texto em gradiente continua vermelho→laranja.<span class="loc">index.css:49–57</span></li>
       <li><span class="sev p1">P1</span><strong>Paleta manual não recalcula <code>--accent-foreground</code></strong> — marca amarelo/verde-limão → branco sobre claro. Só <code>--primary-foreground</code> é recalculado.<span class="loc">colorGenerator.ts:296–307 · index.css:34</span></li>
       <li><span class="sev p1">P1</span><strong>Check de contraste valida só o CTA</strong> — <code>check-theme-presets.mjs</code> dá "ok, AA em todos" enquanto valida apenas primary-foreground/primary; não valida muted-foreground (onde estão os piores pares), destructive, accent, sidebar; nunca valida os mapas <code>light</code>; ignora alpha silenciosamente.<span class="loc">scripts/check-theme-presets.mjs:38–39, 12–21</span></li>
@@ -421,12 +440,12 @@
     <div class="tw"><table>
       <thead><tr><th>#</th><th>Bug</th><th>Local</th><th>Fix</th></tr></thead>
       <tbody>
-        <tr><td class="num">1</td><td>Tipo <code>CheckoutPreset</code> inexistente</td><td>theme-presets.ts:33</td><td><code>ThemePreset[]</code></td></tr>
-        <tr><td class="num">2</td><td>Chave <code>--primary</code> duplicada</td><td>theme-presets.ts:436/450</td><td>Remover a primeira, manter o valor AA</td></tr>
-        <tr><td class="num">3</td><td>Tokens presos na troca preset→preset</td><td>colorGenerator.ts:320–329</td><td>Limpar PRESET_TOKENS antes de aplicar qualquer preset</td></tr>
+        <tr><td class="num">1</td><td><span class="sev ok">Corrigido</span> Tipo <code>CheckoutPreset</code> inexistente</td><td>theme-presets.ts:33</td><td><code>ThemePreset[]</code></td></tr>
+        <tr><td class="num">2</td><td><span class="sev ok">Corrigido</span> Chave <code>--primary</code> duplicada</td><td>theme-presets.ts:436/450</td><td>Remover a primeira, manter o valor AA</td></tr>
+        <tr><td class="num">3</td><td><span class="sev p2">Não se confirmou</span> Tokens presos na troca preset→preset</td><td>colorGenerator.ts:320–329</td><td>Limpar PRESET_TOKENS antes de aplicar qualquer preset</td></tr>
         <tr><td class="num">4</td><td>CVV no console em produção</td><td>Checkout.tsx:583,618,702,732</td><td>Remover logs (ou redigir campos sensíveis)</td></tr>
         <tr><td class="num">5</td><td>Enter no cupom submete pagamento</td><td>CouponInput.tsx:63–70</td><td><code>onKeyDown</code>: Enter → aplicar cupom + preventDefault</td></tr>
-        <tr><td class="num">6</td><td>Scrollbar-hide nunca funciona (Firefox)</td><td>index.css:319–323</td><td>Mover regra global para <code>@layer base</code></td></tr>
+        <tr><td class="num">6</td><td><span class="sev p1">Causa corrigida</span> Scrollbar-hide anulado (Firefox) — o <code>.scrollbar-hide</code> <em>está</em> em <code>@layer utilities</code>; quem vence é o <code>* { scrollbar-width: thin }</code> de <code>index.css:319</code>, fora de layer</td><td>index.css:319–323</td><td>Mover regra global para <code>@layer base</code></td></tr>
         <tr><td class="num">7</td><td><code>transition-[margin,opa]</code></td><td>sidebar.tsx:364</td><td><code>opacity</code></td></tr>
         <tr><td class="num">8</td><td><code>animate-caret-blink</code> sem keyframe</td><td>input-otp.tsx:44</td><td>Adicionar keyframe <code>caret-blink</code> ao config</td></tr>
         <tr><td class="num">9</td><td>"R$ 10.50" (ponto decimal pt-BR)</td><td>CouponInput.tsx:38</td><td>Usar helper Intl de utils/currency.ts</td></tr>
@@ -436,9 +455,9 @@
         <tr><td class="num">13</td><td>Gap/math do carrossel divergente</td><td>Dashboard.tsx</td><td>Reusar DynamicCarousel ou ler gap real do DOM</td></tr>
         <tr><td class="num">14</td><td>Safe-area sempre 0</td><td>index.html:5</td><td>Adicionar <code>viewport-fit=cover</code></td></tr>
         <tr><td class="num">15</td><td><code>rgba(var(--primary))</code> inválido</td><td>LevelUpModal.tsx:35,43,94</td><td><code>hsl(var(--primary) / .5)</code></td></tr>
-        <tr><td class="num">16</td><td>Timer não para no zero</td><td>CheckoutTimer.tsx:35–41</td><td>clearInterval ao atingir 0</td></tr>
+        <tr><td class="num">16</td><td><span class="sev p2">Não se confirmou</span> Timer não para no zero</td><td>CheckoutTimer.tsx:35–41</td><td>clearInterval ao atingir 0</td></tr>
         <tr><td class="num">17</td><td>QR PIX via terceiro</td><td>ThankYou.tsx:332</td><td>Gerar QR localmente</td></tr>
-        <tr><td class="num">18</td><td>Câmbio fixo "para exemplo"</td><td>utils/currency.ts:108–127</td><td>Verificar uso; remover ou ligar a fonte real</td></tr>
+        <tr><td class="num">18</td><td><span class="sev p2">Não se confirmou</span> Câmbio fixo "para exemplo"</td><td>utils/currency.ts:108–127</td><td>Verificar uso; remover ou ligar a fonte real</td></tr>
       </tbody>
     </table></div>
   </section>
