@@ -1,44 +1,40 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { CheckoutFormValues } from "@/types/checkout-form";
 import { CreditCard, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { METHOD_ICONS } from "@/lib/gateway-brand";
 
+type Method = 'credit_card' | 'pix' | 'bolbradesco';
+
 interface PaymentMethodsProps {
     form: UseFormReturn<CheckoutFormValues>;
-    onMethodChange: (method: 'credit_card' | 'pix' | 'bolbradesco') => void;
+    onMethodChange: (method: Method) => void;
+    /** Método escolhido, controlado pelo checkout. */
+    selectedMethod?: Method;
     allowedMethods?: string[];
     /** Tema visual do checkout. */
     theme?: 'dark' | 'light';
 }
 
-export function PaymentMethods({ form, onMethodChange, allowedMethods = ["credit_card", "pix", "bolbradesco"], theme = 'dark' }: PaymentMethodsProps) {
-    const [method, setMethod] = useState<'credit_card' | 'pix' | 'bolbradesco'>(() => {
-        // Inicializa com o primeiro método disponível
-        if (allowedMethods.includes('credit_card')) return 'credit_card';
-        if (allowedMethods.includes('pix')) return 'pix';
-        return 'bolbradesco';
-    });
+export function PaymentMethods({
+    form,
+    onMethodChange,
+    selectedMethod = 'credit_card',
+    allowedMethods = ["credit_card", "pix", "bolbradesco"],
+    theme = 'dark',
+}: PaymentMethodsProps) {
+    // Estado único: o pai. Antes este componente tinha estado local e chamava
+    // onMethodChange no mount, sobrescrevendo o default configurado no produto.
+    const method = selectedMethod;
 
     useEffect(() => {
-        // Notifica o pai sobre o método inicial
-        onMethodChange(method);
-    }, []);
-
-    useEffect(() => {
-        if (!allowedMethods.includes(method)) {
-            const newMethod = allowedMethods.includes('credit_card') ? 'credit_card'
+        if (allowedMethods.length > 0 && !allowedMethods.includes(method)) {
+            const newMethod: Method = allowedMethods.includes('credit_card') ? 'credit_card'
                 : allowedMethods.includes('pix') ? 'pix' : 'bolbradesco';
-            setMethod(newMethod as any);
-            onMethodChange(newMethod as any);
+            onMethodChange(newMethod);
         }
-    }, [allowedMethods]);
-
-    const handleMethodChange = (value: 'credit_card' | 'pix' | 'bolbradesco') => {
-        setMethod(value);
-        onMethodChange(value);
-    };
+    }, [allowedMethods, method, onMethodChange]);
 
     const light = theme === 'light';
     const idleClass = light ? "border-border bg-card hover:border-primary/60" : "border-white/[0.08] bg-card hover:border-primary/50";
@@ -65,7 +61,7 @@ export function PaymentMethods({ form, onMethodChange, allowedMethods = ["credit
                     <button
                         key={option.key}
                         type="button"
-                        onClick={() => handleMethodChange(option.key)}
+                        onClick={() => onMethodChange(option.key)}
                         aria-pressed={method === option.key}
                         className={cn(
                             "flex-1 flex flex-col items-center justify-center gap-2 border-2 rounded-lg min-h-[84px] p-4 cursor-pointer transition-all",

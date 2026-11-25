@@ -102,12 +102,14 @@ export default function CheckoutPage() {
     const defaultAppliedRef = useRef(false);
     useEffect(() => {
         if (!product || defaultAppliedRef.current) return;
-        defaultAppliedRef.current = true;
         const mapped = configDefaultMethod === 'pix' ? 'pix'
             : configDefaultMethod === 'boleto' ? 'bolbradesco' : 'credit_card';
-        if (allowedMethods.length === 0 || allowedMethods.includes(mapped)) {
-            setSelectedMethod(mapped);
-        }
+        // Só aplica quando os métodos já chegaram; senão o ref travava com
+        // allowedMethods vazio e o default configurado era perdido.
+        if (allowedMethods.length === 0) return;
+        if (!allowedMethods.includes(mapped)) return;
+        defaultAppliedRef.current = true;
+        setSelectedMethod(mapped);
     }, [product, configDefaultMethod, allowedMethods]);
 
     const resolvedProductId = product?.id ?? productId;
@@ -292,11 +294,16 @@ export default function CheckoutPage() {
     const [gatewayId, setGatewayId] = useState<string | null>(null);
     const [mpLoaded, setMpLoaded] = useState(false);
 
-    // Detect currency and gateway on mount
+    // Detect currency and gateway on mount.
+    // O config muda quando o produto chega ('' -> 'mercadopago'); a chamada
+    // disparada com o config default pode responder DEPOIS da correta e
+    // sobrescrever os gateways com Stripe. Cancelar a anterior evita a race.
     useEffect(() => {
+        let canceled = false;
         const load = async () => {
             try {
                 const active = await fetchCheckoutGateways();
+                if (canceled) return;
 
                 if (active.length === 0) {
                     console.error('❌ No active gateways found');
@@ -311,16 +318,26 @@ export default function CheckoutPage() {
                 setMethodGateways(resolved.byMethod as Partial<Record<CheckoutMethod, GatewaySlug>>);
                 setAllowedMethods(resolved.methods);
 
-                if (resolved.fallback) setSelectedGateway(resolved.fallback as GatewaySlug);
+                // O fallback por moeda do navegador só vale quando o produto
+                // não escolheu gateway explicitamente. Senão um locale en-US
+                // jogava o cartão para Stripe e o formulário MP não aparecia.
+                const hasExplicit = Boolean(
+                    config.payment_gateways.card || config.payment_gateways.pix || config.payment_gateways.boleto,
+                );
+                if (resolved.fallback && !hasExplicit) {
+                    setSelectedGateway(resolved.fallback as GatewaySlug);
+                }
             } catch (error) {
-                console.error('Error fetching active gateways:', error);
+                if (!canceled) console.error('Error fetching active gateways:', error);
             }
         };
 
         load();
-        // config muda quando o produto carrega; os gateways só são lidos uma vez.
+        return () => { canceled = true; };
     }, [config.payment_gateways.card, config.payment_gateways.pix, config.payment_gateways.boleto,
         config.payment_methods.card, config.payment_methods.pix, config.payment_methods.boleto]);
+
+;
 
     useEffect(() => {
         const fetchKeyAndLoadSdk = async () => {
@@ -1109,6 +1126,7 @@ export default function CheckoutPage() {
                                     <PaymentMethods
                                         form={form}
                                         theme={checkoutTheme}
+                                        selectedMethod={selectedMethod as 'credit_card' | 'pix' | 'bolbradesco'}
                                         onMethodChange={(m) => {
                                             setSelectedMethod(m);
                                             // Mantém o formulário sincronizado para que a
