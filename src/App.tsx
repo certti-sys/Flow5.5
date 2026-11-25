@@ -11,6 +11,7 @@ import { PlatformSettingsProvider } from "@/components/PlatformSettingsProvider"
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import Login from "./pages/Login";
+import { LegalPage } from "./pages/LegalPage";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { ClientLayout } from "./components/ClientLayout";
@@ -37,6 +38,7 @@ const EmailSettings = lazy(() => import("./pages/admin/EmailSettings"));
 const EmailCampaigns = lazy(() => import("./pages/admin/EmailCampaigns"));
 const AdminWhatsAppSettings = lazy(() => import("./pages/admin/WhatsAppSettings"));
 const AdminMonitoringSettings = lazy(() => import("./pages/admin/MonitoringSettings"));
+const AdminLegalPages = lazy(() => import("./pages/admin/LegalPages"));
 const GatewaysPage = lazy(() => import("./pages/admin/Gateways"));
 const IntegrationsPage = lazy(() => import("./pages/admin/Integrations"));
 const ProductsPage = lazy(() => import("./pages/admin/Products"));
@@ -99,6 +101,11 @@ const App = () => (
                 <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<Login />} />
+
+                {/* Páginas legais públicas — texto puro vindo de legal_pages */}
+                <Route path="/termos" element={<LegalPage kind="terms" />} />
+                <Route path="/privacidade" element={<LegalPage kind="privacy" />} />
+                <Route path="/lgpd" element={<LegalPage kind="lgpd" />} />
 
                 {/* Checkout Routes */}
                 <Route element={<CheckoutLayout />}>
@@ -416,6 +423,16 @@ const App = () => (
                     <AdminProtectedRoute>
                       <AdminLayout>
                         <AdminMonitoringSettings />
+                      </AdminLayout>
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/lgpd"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout>
+                        <AdminLegalPages />
                       </AdminLayout>
                     </AdminProtectedRoute>
                   }

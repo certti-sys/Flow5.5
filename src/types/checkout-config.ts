@@ -84,6 +84,8 @@ export interface CheckoutPaymentMethods {
     card: boolean;
     pix: boolean;
     boleto: boolean;
+    /** Método selecionado ao abrir. Ausente = cartão (comportamento antigo). */
+    default?: CheckoutPaymentMethodKey;
 }
 
 export interface CheckoutReview {
@@ -240,6 +242,7 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         card: true,
         pix: true,
         boleto: true,
+        default: 'card',
     },
     timer: {
         enabled: false,
@@ -467,6 +470,12 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
     if (!config.payment_methods.card && !config.payment_methods.pix && !config.payment_methods.boleto) {
         config.payment_methods.card = true;
     }
+    // Default só pode ser um método ligado; fora disso cai no primeiro ativo.
+    const wanted = config.payment_methods.default;
+    config.payment_methods.default =
+        wanted && wanted in config.payment_methods && config.payment_methods[wanted]
+            ? wanted
+            : (['card', 'pix', 'boleto'] as const).find((k) => config.payment_methods[k]) ?? 'card';
 
     config.youtube_url = asString(config.youtube_url);
     config.youtube_position = config.youtube_position === 'bottom' ? 'bottom' : 'top';

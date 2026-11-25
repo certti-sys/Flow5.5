@@ -322,15 +322,18 @@ const Dashboard = () => {
               © {new Date().getFullYear()} EduStream. Todos os direitos reservados.
             </p>
             <div className="flex gap-6">
-              <button className="hover:text-white transition-colors cursor-pointer py-1.5">
+              <Link to="/termos" className="hover:text-white transition-colors py-1.5">
                 Termos de Uso
-              </button>
-              <button className="hover:text-white transition-colors cursor-pointer py-1.5">
+              </Link>
+              <Link to="/privacidade" className="hover:text-white transition-colors py-1.5">
                 Política de Privacidade
-              </button>
-              <button className="hover:text-white transition-colors cursor-pointer py-1.5">
+              </Link>
+              <Link to="/lgpd" className="hover:text-white transition-colors py-1.5">
+                LGPD
+              </Link>
+              <a href="mailto:suporte@flowmembers.app" className="hover:text-white transition-colors py-1.5">
                 Suporte
-              </button>
+              </a>
             </div>
           </div>
         </footer>

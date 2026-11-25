@@ -260,6 +260,43 @@ const Profile = () => {
               />
             )}
 
+            {/* Privacidade: opt-out do ranking público (LGPD) */}
+            <div className="glass-card rounded-[24px] border-white/10 p-6">
+              <div className="flex items-start gap-3">
+                <Lock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-white">Privacidade no ranking</h3>
+                  <p className="text-sm text-white/60 mt-1">
+                    Você pode sair do ranking público. Seu progresso e conquistas continuam normais.
+                  </p>
+                  <label className="mt-3 flex items-center gap-2 text-sm text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-[hsl(var(--primary))]"
+                      checked={Boolean(profile?.leaderboard_opt_out)}
+                      onChange={async (e) => {
+                        if (!user) return;
+                        const next = e.target.checked;
+                        const { error } = await supabase
+                          .from("profiles")
+                          .update({ leaderboard_opt_out: next })
+                          .eq("id", user.id);
+                        if (error) {
+                          console.error("[perfil] opt-out do ranking:", error.message);
+                          return;
+                        }
+                        refetchProfile();
+                      }}
+                    />
+                    Não exibir meu nome no ranking
+                  </label>
+                  <p className="mt-2 text-xs text-white/40">
+                    Alteração aplicada na próxima leitura do ranking.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Achievements - Limited to 8 */}
             <div className="glass-card rounded-[24px] border-white/10 p-6">
               <div className="flex items-center justify-between mb-6">

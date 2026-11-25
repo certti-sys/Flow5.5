@@ -253,6 +253,32 @@
   </div>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">Estado em 25/11/2026 — F0, F1 e F2 executados</div>
+  <p>
+    Decisões registradas no <code>AGENTS.md</code> (24–26): URL MP4 de CDN permitida com HTTPS +
+    host em allowlist (embed segue como padrão); páginas legais gravadas em tabela própria, texto
+    puro, editor em <code>Admin → LGPD</code>; Getfy não é referência para legal/LGPD.
+  </p>
+  <p>
+    <strong>Feito:</strong> rotas <code>/termos</code>, <code>/privacidade</code> e <code>/lgpd</code>
+    com 5 links navegáveis e editor no admin; <code>payment_methods.default</code> por produto;
+    <code>bearer_token</code> em <code>webhook_endpoints</code> e no dispatcher; opt-out do ranking
+    (<code>leaderboard_opt_out</code> + filtro na RPC). Duas migrations aplicadas em produção e
+    verificadas por consulta somente-leitura.
+  </p>
+  <p>
+    <strong>MP4:</strong> o player já tocava arquivo direto; a mudança foi alinhar
+    <code>detectPlatform</code> (arquivo antes de Bunny), exigir HTTPS + host liberado no save,
+    adicionar a opção "URL MP4 (CDN)" e cobrir os hosts no <code>media-src</code> do CSP. URL
+    pública é possessória — não protege matrícula nem drip.
+  </p>
+  <p>
+    <strong>Resta:</strong> item 3 (RLS de <code>lesson_materials</code>), endpoint real de webhook,
+    4 eventos <code>subscription.*</code>, itens 7–11.
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">11</div><div class="l">Pendências abertas</div></div>
   <div class="stat"><div class="n">4</div><div class="l">Fases de execução</div></div>
@@ -357,8 +383,8 @@
 
       <div class="flow">
         <div class="step"><div class="k">F0</div><div class="t"><b>Decisões prévias (30 min, sem código)</b>Texto jurídico, modelo de acesso de assinatura e para onde vai o webhook de teste. Sem isso as fases 2 e 4 param</div></div>
-        <div class="step"><div class="k">F1</div><div class="t"><b>Itens 1, 2, 6 — conformidade, aula legada e checkout</b>Páginas legais, aula MP4 → embed, <code>payment_methods.default</code>. Nenhuma migration. Cabe em um dia</div></div>
-        <div class="step"><div class="k">F2</div><div class="t"><b>Itens 3, 4, 5 — migrations pequenas</b>RLS de <code>lesson_materials</code>, <code>bearer_token</code> + catálogo de webhook, opt-out do ranking. Uma janela de banco com confirmação</div></div>
+        <div class="step"><div class="k">F1</div><div class="t"><span class="sev ok">FEITO</span> <b>Itens 1, 2, 6 — conformidade, vídeo e checkout</b>Páginas legais + editor LGPD, URL MP4 com regras, <code>payment_methods.default</code>. 2 migrations aplicadas em produção</div></div>
+        <div class="step"><div class="k">F2</div><div class="t"><span class="sev p1">PARCIAL</span> <b>Itens 3, 4, 5 — migrations pequenas</b>RLS de <code>lesson_materials</code> (resta), <code>bearer_token</code> e opt-out feitos. Duas migrations aplicadas e verificadas</div></div>
         <div class="step"><div class="k">F3</div><div class="t"><b>Itens 7, 8, 9 — integrações e observabilidade</b>E-mail de drip, critérios de conquista + tela de admin, clique de campanha. Dependem só das tabelas já existentes</div></div>
         <div class="step"><div class="k">F4</div><div class="t"><b>Item 10 — assinaturas (projeto)</b>Edge de cobrança recorrente, cron de renovação/dunning, UI de plano, eventos <code>subscription.*</code> e régua de acesso. Único item grande</div></div>
         <div class="step"><div class="k">F5</div><div class="t"><b>Item 11 — higiene final</b>Push dos commits e marcar <code>docs/relatorio-portacao-getfy.dm</code> como histórico. Fazer no fim para empurrar tudo de uma vez</div></div>
@@ -367,8 +393,7 @@
       <div class="note info">
         <div class="h">Sequência curta recomendada</div>
         <p>
-          <strong>0 → 1 → 2</strong> em dois dias fecha conformidade, vídeo legado e privacidade de
-          material. <strong>3</strong> fecha operação. <strong>4</strong> é escolha de produto.
+          <strong>0 → 1 → 2</strong> executado: conformidade com editor LGPD, vídeo com regras de CDN e método inicial configurável. Resta a RLS de material na fase 2 <strong>4</strong> é escolha de produto.
           <strong>10</strong> só começa depois da decisão sobre prazo de acesso.
         </p>
       </div>

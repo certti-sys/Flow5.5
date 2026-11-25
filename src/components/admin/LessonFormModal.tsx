@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
-import { detectPlatform, getPlatformInfo, extractVideoUrl, normalizeVimeoUrl, normalizePandaVideoUrl, normalizeBunnyUrl, normalizeVTurbUrl, normalizeGoogleDriveUrl } from "@/lib/videoUtils";
+import { detectPlatform, getPlatformInfo, extractVideoUrl, validateVideoUrl, normalizeVimeoUrl, normalizePandaVideoUrl, normalizeBunnyUrl, normalizeVTurbUrl, normalizeGoogleDriveUrl } from "@/lib/videoUtils";
 import { VideoPreview } from "./VideoPreview";
 import { MaterialEditor, Material, MaterialType } from "./MaterialEditor";
 import {
@@ -279,10 +279,12 @@ export function LessonFormModal({
         dataToValidate.video_url = normalizedUrl;
         dataToValidate.duration = duration;
 
-        // Política de vídeo: sempre embed, nunca arquivo direto. Arquivo .mp4
-        // fora de plataforma não tem controle de acesso nem progresso.
-        if (normalizedUrl && detectPlatform(normalizedUrl) === "file") {
-          setErrors({ video_url: "Envie o vídeo para o YouTube, Panda, Bunny ou VTurb e cole o link de embed." });
+        // URL MP4 de CDN é permitida, mas só com HTTPS + host da allowlist.
+        // Embed continua sendo o padrão; arquivo direto não protege matrícula
+        // nem drip — a URL pública é possessória (decisão 24 do AGENTS.md).
+        const check = validateVideoUrl(normalizedUrl, selectedPlatform || undefined);
+        if (normalizedUrl && !check.valid) {
+          setErrors({ video_url: check.error ?? "URL de vídeo inválida" });
           throw new Error("Validacao falhou");
         }
       }
@@ -508,6 +510,7 @@ export function LessonFormModal({
                       <SelectItem value="bunny" className="focus:bg-white/10 focus:text-white">🐰 Bunny.net</SelectItem>
                       <SelectItem value="vturb" className="focus:bg-white/10 focus:text-white">▶️ VTurb</SelectItem>
                       <SelectItem value="google-drive" className="focus:bg-white/10 focus:text-white">📂 Google Drive</SelectItem>
+                      <SelectItem value="file" className="focus:bg-white/10 focus:text-white">🎥 URL MP4 (CDN)</SelectItem>
                     </SelectContent>
                   </Select>
                   {selectedPlatform && (
@@ -548,12 +551,13 @@ export function LessonFormModal({
                   </div>
                 )}
 
-                {['panda-video', 'vturb', 'bunny', 'google-drive'].includes(selectedPlatform) && (
+                {['panda-video', 'vturb', 'bunny', 'google-drive', 'file'].includes(selectedPlatform) && (
                   <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                     <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
                     <p className="text-xs text-amber-500">
-                      Esta plataforma não suporta rastreamento automático de progresso. 
-                      O aluno precisará marcar a aula como concluída manualmente.
+                      {selectedPlatform === 'file'
+                        ? 'URL MP4 de CDN: exige HTTPS e host liberado. A URL é pública — quem a tiver assiste fora da plataforma. Não protege matrícula nem drip.'
+                        : 'Esta plataforma não suporta rastreamento automático de progresso. O aluno precisará marcar a aula como concluída manualmente.'}
                     </p>
                   </div>
                 )}

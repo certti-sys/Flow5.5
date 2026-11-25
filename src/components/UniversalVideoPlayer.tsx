@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { extractVideoUrl, getVideoConfig, formatVideoTime, detectPlatform, extractYouTubeVideoId, extractGoogleDriveId, extractBunnyVideoId } from "@/lib/videoUtils";
+import { extractVideoUrl, getVideoConfig, formatVideoTime, detectPlatform, extractYouTubeVideoId, extractGoogleDriveId, extractBunnyVideoId, isAllowedDirectVideoUrl } from "@/lib/videoUtils";
 import YouTubePlayer from "./YouTubePlayer";
 import { useLessonProgress } from "@/hooks/useLessonProgress";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,7 +76,7 @@ export default function UniversalVideoPlayer({
     } else if (detectedPlatform === 'bunny') {
       // For Bunny.net videos
       setYoutubeVideoId(null);
-      const isDirectFile = cleanUrl.includes('.b-cdn.net') && cleanUrl.match(/\.(mp4|webm|m3u8)(\?|$)/i);
+      const isDirectFile = isAllowedDirectVideoUrl(cleanUrl);
       
       if (isDirectFile) {
         setProcessedUrl(cleanUrl);
@@ -225,7 +225,7 @@ export default function UniversalVideoPlayer({
   // Render Bunny.net with iframe (using /play/ URL to bypass domain restrictions)
   if (platform === 'bunny' && processedUrl) {
     // Check if it's a direct CDN file (mp4/m3u8) - fall through to ReactPlayer
-    const isDirectFile = processedUrl.includes('.b-cdn.net') && processedUrl.match(/\.(mp4|webm|m3u8)(\?|$)/i);
+    const isDirectFile = isAllowedDirectVideoUrl(processedUrl);
     
     if (!isDirectFile) {
       return (

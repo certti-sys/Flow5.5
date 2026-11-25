@@ -183,6 +183,20 @@ Não reabrir sem motivo novo:
     cartão, CVV e CPF nunca são logados — só `console.error` para falha real.
     O QR PIX é gerado localmente (`qrcode`) quando o gateway não devolve
     base64; o `copy_paste` nunca vai para serviço de terceiro.
+24. **Vídeo: embed é o padrão, mas URL MP4 de CDN é permitida com regras.**
+    O player já toca arquivo direto (`ReactPlayer`/`<video>`); o que mudou foi
+    liberar no formulário com HTTPS + host em allowlist. URL pública de CDN é
+    possessória: **não protege matrícula nem drip**. Nunca usar como controle
+    de acesso. `media-src` do CSP precisa cobrir os hosts liberados.
+25. **Páginas legais são conteúdo editável, não código.** Tabela própria
+    `legal_pages` (slug, título, texto puro, `updated_at`), leitura pública,
+    escrita só `has_role(uid,'admin')`. Rotas públicas `/termos`,
+    `/privacidade` e `/lgpd`, e editor em `Admin → LGPD`. **Texto puro,
+    nunca HTML** — mesma regra das páginas pós-compra (decisão 4).
+26. **Getfy não é referência para legal/LGPD:** não tem editor, rotas nem
+    opt-out de ranking; o que ele chama de WhatsApp é plugin AutoZap (zapi/
+    evolution/menuia), não Meta Cloud API. Não reabrir esses temas por
+    "paridade" — as melhorias do Flow são próprias.
 
 ---
 

@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { initMercadoPago } from "@mercadopago/sdk-react";
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     const parentOrderId = searchParams.get("parent");
     const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
     const [allowedMethods, setAllowedMethods] = useState<string[]>([]);
-    // Lifted state for payment method
+    // Método inicial vem de checkout_config.payment_methods.default (ver abaixo).
     const [selectedMethod, setSelectedMethod] = useState<string>('credit_card');
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
@@ -96,6 +96,19 @@ export default function CheckoutPage() {
         () => normalizeCheckoutConfig(product?.checkout_config),
         [product?.checkout_config]
     );
+
+    // 'card'/'pix'/'boleto' do config viram os valores do gateway.
+    const configDefaultMethod = config.payment_methods.default ?? 'card';
+    const defaultAppliedRef = useRef(false);
+    useEffect(() => {
+        if (!product || defaultAppliedRef.current) return;
+        defaultAppliedRef.current = true;
+        const mapped = configDefaultMethod === 'pix' ? 'pix'
+            : configDefaultMethod === 'boleto' ? 'bolbradesco' : 'credit_card';
+        if (allowedMethods.length === 0 || allowedMethods.includes(mapped)) {
+            setSelectedMethod(mapped);
+        }
+    }, [product, configDefaultMethod, allowedMethods]);
 
     const resolvedProductId = product?.id ?? productId;
 
@@ -362,7 +375,14 @@ export default function CheckoutPage() {
         // Sem mapa para o método, usa o gateway padrão. Nunca deixa o gateway
         // atual sem suportar o método selecionado.
         if (!slug && allowedMethods.length > 0 && !allowedMethods.includes(selectedMethod)) {
-            const next = allowedMethods[0] as CheckoutMethod;
+            // Se o default configurado estiver disponível, volta para ele;
+            // senão cai no primeiro método permitido.
+            const defaultGatewayMethod =
+                configDefaultMethod === 'pix' ? 'pix' :
+                configDefaultMethod === 'boleto' ? 'bolbradesco' : 'credit_card';
+            const next = (allowedMethods.includes(defaultGatewayMethod)
+                ? defaultGatewayMethod
+                : allowedMethods[0]) as CheckoutMethod;
             const nextSlug = methodGateways[next];
             setSelectedMethod(next);
             if (nextSlug) setSelectedGateway(nextSlug);
@@ -1186,7 +1206,10 @@ export default function CheckoutPage() {
                                     </Button>
 
                                     <p className="text-center text-xs text-muted-foreground">
-                                        Ao continuar, você concorda com os Termos de Uso.
+                                        Ao continuar, você concorda com os{" "}
+                                        <Link to="/termos" className="underline hover:text-foreground">Termos de Uso</Link>
+                                        {" "}e a{" "}
+                                        <Link to="/privacidade" className="underline hover:text-foreground">Política de Privacidade</Link>.
                                     </p>
 
                                     <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">

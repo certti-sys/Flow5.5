@@ -76,18 +76,33 @@ try {
   assert.deepEqual(normalizeCheckoutConfig(null).upsell, DEFAULT_CHECKOUT_CONFIG.upsell);
 
   // Métodos de pagamento: default ligado, só `false` desliga.
+  // `default` é o método inicial (novo), não entra na comparação dos booleanos.
+  const flags = (c) => {
+    const { card, pix, boleto } = c.payment_methods;
+    return { card, pix, boleto };
+  };
   const methods = normalizeCheckoutConfig({});
-  assert.deepEqual(methods.payment_methods, { card: true, pix: true, boleto: true });
+  assert.deepEqual(flags(methods), { card: true, pix: true, boleto: true });
+  assert.equal(methods.payment_methods.default, 'card');
   assert.deepEqual(
-    normalizeCheckoutConfig({ payment_methods: { boleto: false, pix: 'x' } }).payment_methods,
+    flags(normalizeCheckoutConfig({ payment_methods: { boleto: false, pix: 'x' } })),
     { card: true, pix: true, boleto: false },
+  );
+  // Default configurado e ligado é preservado; desligado cai no primeiro ativo.
+  assert.equal(
+    normalizeCheckoutConfig({ payment_methods: { default: 'pix' } }).payment_methods.default,
+    'pix',
+  );
+  assert.equal(
+    normalizeCheckoutConfig({ payment_methods: { pix: false, default: 'pix' } }).payment_methods.default,
+    'card',
   );
   // Todos desligados (ou JSON inválido) volta a ligar o cartão.
   assert.equal(
     normalizeCheckoutConfig({ payment_methods: { card: false, pix: false, boleto: false } }).payment_methods.card,
     true,
   );
-  assert.deepEqual(normalizeCheckoutConfig('x').payment_methods, { card: true, pix: true, boleto: true });
+  assert.deepEqual(flags(normalizeCheckoutConfig('x')), { card: true, pix: true, boleto: true });
 
   // Resolução de gateway respeita o método desligado.
   // (o módulo importa o cliente Supabase, que espera `document` no browser)

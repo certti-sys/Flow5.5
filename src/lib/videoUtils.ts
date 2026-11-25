@@ -1,3 +1,32 @@
+/** CDNs autorizadas para URL de arquivo de vídeo (decisão 24 do AGENTS.md). */
+export const DIRECT_VIDEO_HOST_SUFFIXES = [
+  '.b-cdn.net',
+  '.bunnycdn.com',
+  '.cloudfront.net',
+  '.cloudflare.com',
+  '.googlevideo.com',
+  '.vimeocdn.com',
+  '.supabase.co',
+] as const;
+
+/** Extensões de arquivo de vídeo aceitas como URL direta. */
+const DIRECT_VIDEO_EXTENSIONS = /\.(mp4|webm|ogg|mov|m3u8)(\?|$|#)/i;
+
+/** true quando a URL é HTTPS, de host liberado e termina em extensão de vídeo. */
+export function isAllowedDirectVideoUrl(url: string): boolean {
+  const clean = extractVideoUrl(url);
+  if (!clean.startsWith('https://')) return false;
+  if (!DIRECT_VIDEO_EXTENSIONS.test(clean)) return false;
+  try {
+    const host = new URL(clean).hostname.toLowerCase();
+    return DIRECT_VIDEO_HOST_SUFFIXES.some(
+      (suffix) => host === suffix.slice(1) || host.endsWith(suffix),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface VideoConfig {
   youtube?: any;
   vimeo?: any;
@@ -51,11 +80,13 @@ export function detectPlatform(url: string): string {
   if (cleanUrl.includes('vturb.com')) {
     return 'vturb';
   }
+  // Arquivo direto vem antes do Bunny: um .mp4 em b-cdn.net é arquivo,
+  // não embed. A ordem antiga deixava passar pela barreira do formulário.
+  if (DIRECT_VIDEO_EXTENSIONS.test(cleanUrl)) {
+    return 'file';
+  }
   if (cleanUrl.includes('bunnycdn.com') || cleanUrl.includes('b-cdn.net') || cleanUrl.includes('mediadelivery.net')) {
     return 'bunny';
-  }
-  if (cleanUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) {
-    return 'file';
   }
 
   return 'unknown';
@@ -280,7 +311,9 @@ export function validateVideoUrl(url: string, platform?: string): { valid: boole
         : { valid: false, error: 'ID do arquivo do Google Drive não encontrado' };
     
     case 'file':
-      return { valid: true };
+      return isAllowedDirectVideoUrl(cleanUrl)
+        ? { valid: true }
+        : { valid: false, error: 'Use HTTPS e um host de CDN liberado (Bunny, CloudFront, Cloudflare, Supabase)' };
     
     case 'unknown':
       return { valid: false, error: 'Plataforma de vídeo não reconhecida' };

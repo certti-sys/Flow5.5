@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { GraduationCap, Lock } from "lucide-react";
 
 export function CheckoutLayout() {
@@ -30,8 +30,9 @@ export function CheckoutLayout() {
             <footer className="bg-card border-t py-6 text-center text-sm text-muted-foreground">
                 <p>&copy; {new Date().getFullYear()} EduStream. Todos os direitos reservados.</p>
                 <div className="mt-2 flex justify-center gap-4">
-                    <span>Termos de Uso</span>
-                    <span>Política de Privacidade</span>
+                    <Link to="/termos" className="hover:text-foreground hover:underline">Termos de Uso</Link>
+                    <Link to="/privacidade" className="hover:text-foreground hover:underline">Política de Privacidade</Link>
+                    <Link to="/lgpd" className="hover:text-foreground hover:underline">LGPD</Link>
                 </div>
             </footer>
         </div>

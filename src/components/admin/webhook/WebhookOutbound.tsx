@@ -40,6 +40,7 @@ type Endpoint = {
   id: string;
   name: string;
   url: string;
+  bearer_token?: string | null;
   events: string[];
   is_active: boolean;
   created_at: string;
@@ -80,7 +81,7 @@ export function WebhookOutbound() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Endpoint | null>(null);
-  const [form, setForm] = useState({ name: "", url: "", events: [] as string[], is_active: true });
+  const [form, setForm] = useState({ name: "", url: "", bearer_token: "", events: [] as string[], is_active: true });
   const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
   const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
 
@@ -112,7 +113,7 @@ export function WebhookOutbound() {
   });
 
   const resetForm = () => {
-    setForm({ name: "", url: "", events: [], is_active: true });
+    setForm({ name: "", url: "", bearer_token: "", events: [], is_active: true });
     setEditing(null);
     setRevealedSecret(null);
   };
@@ -127,6 +128,7 @@ export function WebhookOutbound() {
     setForm({
       name: endpoint.name,
       url: endpoint.url,
+      bearer_token: endpoint.bearer_token ?? "",
       events: endpoint.events ?? [],
       is_active: endpoint.is_active,
     });
@@ -142,7 +144,7 @@ export function WebhookOutbound() {
       if (editing) {
         const { error } = await supabase
           .from("webhook_endpoints")
-          .update({ name: form.name, url: form.url, events: form.events, is_active: form.is_active })
+          .update({ name: form.name, url: form.url, bearer_token: form.bearer_token || null, events: form.events, is_active: form.is_active })
           .eq("id", editing.id);
         if (error) throw error;
         return null;
@@ -151,7 +153,7 @@ export function WebhookOutbound() {
       const secret = randomSecret();
       const { error } = await supabase
         .from("webhook_endpoints")
-        .insert({ name: form.name, url: form.url, events: form.events, is_active: form.is_active, secret });
+        .insert({ name: form.name, url: form.url, bearer_token: form.bearer_token || null, events: form.events, is_active: form.is_active, secret });
       if (error) throw error;
       return secret;
     },
@@ -438,6 +440,17 @@ export function WebhookOutbound() {
                 placeholder="https://seu-servidor.com/webhooks/flow"
                 className="font-mono text-[12px]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Token Bearer (opcional)</Label>
+              <Input
+                value={form.bearer_token}
+                onChange={(e) => setForm({ ...form, bearer_token: e.target.value })}
+                placeholder="Enviado como Authorization: Bearer …"
+                className="font-mono text-[12px]"
+              />
+              <p className="text-[11px] text-white/40">Além da assinatura HMAC. Deixe vazio para usar só a assinatura.</p>
             </div>
 
             <div className="space-y-2">

@@ -32,6 +32,7 @@ type Endpoint = {
     id: string;
     url: string;
     secret: string;
+    bearer_token: string | null;
     is_active: boolean;
 };
 
@@ -87,6 +88,9 @@ async function deliver(
             headers: {
                 "Content-Type": "application/json",
                 "User-Agent": "Flow-Webhooks/1",
+                ...(endpoint.bearer_token
+                    ? { Authorization: `Bearer ${endpoint.bearer_token}` }
+                    : {}),
                 "X-Flow-Signature": signature,
                 "X-Flow-Event": delivery.event,
                 "X-Flow-Delivery": delivery.id,
@@ -173,7 +177,7 @@ export async function dispatchPendingWebhooks(
         const endpointIds = [...new Set(rows.map((r: Delivery) => r.endpoint_id))];
         const { data: endpoints } = await supabase
             .from("webhook_endpoints")
-            .select("id, url, secret, is_active")
+            .select("id, url, secret, bearer_token, is_active")
             .in("id", endpointIds);
 
         const byId = new Map<string, Endpoint>((endpoints ?? []).map((e: Endpoint) => [e.id, e]));

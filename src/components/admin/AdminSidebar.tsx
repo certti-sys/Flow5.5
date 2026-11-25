@@ -25,7 +25,8 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
-  Plug
+  Plug,
+  ShieldCheck
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -91,6 +92,7 @@ const systemItems = [
   { title: "Gateways", url: "/admin/gateways", icon: CreditCard },
   { title: "Integrações", url: "/admin/integracoes", icon: Plug },
   { title: "Webhooks", url: "/admin/webhooks", icon: Webhook },
+  { title: "LGPD", url: "/admin/lgpd", icon: ShieldCheck },
   { title: "Monitoramento", url: "/admin/monitoring", icon: Activity },
 ];
 
