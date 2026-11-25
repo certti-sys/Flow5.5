@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ interface PublicOrder {
 
 export default function ThankYouPage() {
     const { orderId } = useParams();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const paymentMethod = searchParams.get("method") || "card";
     const ticketUrl = searchParams.get("ticket");
@@ -217,6 +218,26 @@ export default function ThankYouPage() {
             cancelled = true;
         };
     }, [isPaid, order, orderId]);
+
+    // Upsell: só quando o pedido acabou de ser pago e o produto oferece oferta.
+    // `claim_order_upsell` marca o pedido no servidor e devolve `true` uma única
+    // vez - recarregar o obrigado não reabre a oferta. Redirect externo
+    // (`redirect_after_purchase`) tem prioridade: quem configurou destino manda.
+    useEffect(() => {
+        if (!isPaid || !orderId || redirectAfterPurchase) return;
+
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            const { data, error } = await supabase.rpc("claim_order_upsell", { p_order_id: orderId });
+            if (cancelled || error || !data) return;
+            navigate(`/checkout/upsell/${orderId}`);
+        }, 1200);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [isPaid, orderId, redirectAfterPurchase, navigate]);
 
     // Redirecionamento pós-compra configurado no produto.
     useEffect(() => {

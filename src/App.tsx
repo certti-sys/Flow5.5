@@ -52,6 +52,7 @@ const AdminCouponsPage = lazy(() => import("./pages/admin/Coupons"));
 import { CheckoutLayout } from "./components/checkout/CheckoutLayout";
 const CheckoutPage = lazy(() => import("./pages/checkout/Checkout"));
 const ThankYouPage = lazy(() => import("./pages/checkout/ThankYou"));
+const CheckoutUpsellPage = lazy(() => import("./pages/checkout/Upsell"));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Carregando página">
@@ -103,6 +104,14 @@ const App = () => (
                   {/* Link público de venda por slug (ex.: /c/meu-curso) */}
                   <Route path="/c/:slug" element={<CheckoutPage />} />
                   <Route path="/checkout/obrigado/:orderId" element={<ThankYouPage />} />
+                  <Route
+                    path="/checkout/upsell/:orderId"
+                    element={<CheckoutUpsellPage mode="upsell" />}
+                  />
+                  <Route
+                    path="/checkout/downsell/:orderId"
+                    element={<CheckoutUpsellPage mode="downsell" />}
+                  />
                 </Route>
 
                 <Route

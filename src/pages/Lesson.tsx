@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import UniversalVideoPlayer from "@/components/UniversalVideoPlayer";
 import { LessonSidebar } from "@/components/LessonSidebar";
@@ -271,6 +271,13 @@ const Lesson = () => {
       toast.error("Erro ao atualizar progresso. Verifique sua conexão.");
     },
   });
+
+  // Chegar na última página de um PDF conta como aula lida. Só marca; nunca
+  // desmarca - o aluno pode ter concluído antes por outro caminho.
+  const handlePdfEnd = useCallback(() => {
+    if (progress?.completed || toggleCompleteMutation.isPending || lockLabel) return;
+    toggleCompleteMutation.mutate();
+  }, [progress?.completed, toggleCompleteMutation, lockLabel]);
 
   // Add comment mutation
   const addCommentMutation = useMutation({
@@ -752,7 +759,7 @@ const Lesson = () => {
 
             {/* Lesson Materials */}
             {lessonMaterials.length > 0 && (
-              <LessonMaterials materials={lessonMaterials} />
+              <LessonMaterials materials={lessonMaterials} onPdfEnd={handlePdfEnd} />
             )}
 
             {/* Comments Section */}

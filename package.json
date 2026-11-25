@@ -13,7 +13,8 @@
     "check:upsell": "node scripts/check-checkout-upsell.mjs",
     "check:cart": "node scripts/check-cart-recovery.mjs",
     "check:drip": "node scripts/check-drip-content.mjs",
-    "check:pdf": "node scripts/check-pdf-viewer.mjs"
+    "check:pdf": "node scripts/check-pdf-viewer.mjs",
+    "check:annotations": "node scripts/check-pdf-annotations.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

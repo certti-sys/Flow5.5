@@ -1526,10 +1526,16 @@ export default function CheckoutBuilder() {
                                         : "Exibida quando o cliente recusa o upsell e o downsell está ativo."
                             }
                         >
-                            {pageTab !== "thank_you" && (
-                                <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11.5px] text-amber-300">
-                                    As telas públicas de upsell e downsell ainda não existem — o
-                                    conteúdo fica salvo para quando forem publicadas.
+                            {pageTab === "upsell" && (
+                                <p className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11.5px] text-muted-foreground">
+                                    Exibida uma vez por pedido pago, logo após o obrigado. O cliente que
+                                    aceitar é levado ao checkout do produto da oferta.
+                                </p>
+                            )}
+                            {pageTab === "downsell" && (
+                                <p className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11.5px] text-muted-foreground">
+                                    Exibida quando o cliente recusa o upsell. Sem downsell ativo, ele vai
+                                    direto para a página de obrigado.
                                 </p>
                             )}
 

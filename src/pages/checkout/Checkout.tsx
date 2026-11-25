@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { initMercadoPago } from "@mercadopago/sdk-react";
@@ -50,6 +50,10 @@ type GatewaySlug = 'mercadopago' | 'stripe' | 'asaas' | 'pushinpay' | 'pagarme' 
 
 export default function CheckoutPage() {
     const { productId, slug } = useParams<{ productId?: string; slug?: string }>();
+    // Pedido pai quando esta compra nasceu de um upsell/downsell:
+    // `/checkout/:id?parent=<orderId>`. Vai junto no metadata do pedido novo.
+    const [searchParams] = useSearchParams();
+    const parentOrderId = searchParams.get("parent");
     const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
     const [allowedMethods, setAllowedMethods] = useState<string[]>([]);
     // Lifted state for payment method
@@ -686,6 +690,7 @@ export default function CheckoutPage() {
                     discountAmount: couponDiscountInCents,
                     tracking: getTracking(),
                     website: data.website,
+                    parentOrderId: parentOrderId || undefined,
                     address: selectedMethod === 'bolbradesco'
                         ? {
                             zip_code: (data.zipCode || '').replace(/\D/g, ''),

@@ -47,6 +47,9 @@ const PaymentOpsSchema = z.object({
     tracking: z.record(z.string()).optional(),
     // Campo armadilha: invisível para humanos. Preenchido ⇒ bot.
     website: z.string().optional(),
+    // Pedido que originou esta compra (upsell/downsell). Validado como pago
+    // antes de virar `metadata.parent_order_id`.
+    parentOrderId: z.string().uuid().optional(),
     // Usado apenas em test_connection para escolher o ambiente.
     env: z.enum(['test', 'live']).optional(),
   })
@@ -2783,6 +2786,19 @@ Deno.serve(async (req) => {
                 ? { id: user.id, email: user.email || checkoutEmail, metadata: (user.user_metadata || {}) as Record<string, any> }
                 : await resolveCheckoutUser(supabaseAdmin, checkoutEmail, checkoutName, payload.phone, payload.cpf);
 
+            // Pedido que originou um upsell/downsell. Só entra depois de
+            // confirmado que existe e está pago - é atribuição, não permissão:
+            // nenhum acesso é concedido por causa dele.
+            let parentOrderId: string | null = null;
+            if (payload.parentOrderId) {
+                const { data: parent } = await supabaseAdmin
+                    .from('orders')
+                    .select('id, status')
+                    .eq('id', payload.parentOrderId)
+                    .maybeSingle();
+                if (parent?.status === 'paid') parentOrderId = parent.id;
+            }
+
             const { data: order } = await supabaseAdmin.from('orders').insert({
                 user_id: checkoutUser.id,
                 status: 'pending',
@@ -2795,6 +2811,9 @@ Deno.serve(async (req) => {
                 metadata: {
                     idempotency_key: payload.idempotencyKey ?? null,
                     guest_checkout: !user,
+                    // Upsell/downsell: pedido nasceu de outro pedido pago.
+                    kind: parentOrderId ? 'upsell' : null,
+                    parent_order_id: parentOrderId,
                     // Vem do navegador; o valor é só para atribuição e não
                     // entra em nenhuma decisão de cobrança.
                     tracking: payload.tracking ?? {},

@@ -31,6 +31,8 @@ interface Material {
 
 interface LessonMaterialsProps {
   materials: Material[];
+  /** Chamado quando o aluno chega na última página de algum PDF da aula. */
+  onPdfEnd?: () => void;
 }
 
 const materialIcons = {
@@ -60,7 +62,7 @@ const formatSize = (bytes?: number) => {
  * gerar para todos de uma vez gastaria assinaturas e estouraria o rate limit
  * da edge em aulas com vários arquivos.
  */
-function PdfMaterialCard({ material }: { material: Material }) {
+function PdfMaterialCard({ material, onEnd }: { material: Material; onEnd?: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const Icon = materialIcons.pdf;
@@ -116,14 +118,20 @@ function PdfMaterialCard({ material }: { material: Material }) {
           <p className="text-xs text-muted-foreground">{material.description}</p>
         )}
         {url && (
-          <PdfViewer url={url} title={material.title} fileName={material.file_meta?.name} />
+          <PdfViewer
+            url={url}
+            title={material.title}
+            fileName={material.file_meta?.name}
+            materialId={material.id}
+            onReachEnd={onEnd}
+          />
         )}
       </CardContent>
     </Card>
   );
 }
 
-export function LessonMaterials({ materials }: LessonMaterialsProps) {
+export function LessonMaterials({ materials, onPdfEnd }: LessonMaterialsProps) {
   const [expandedTexts, setExpandedTexts] = useState<Set<string>>(new Set());
 
   if (!materials || materials.length === 0) return null;
@@ -306,7 +314,7 @@ export function LessonMaterials({ materials }: LessonMaterialsProps) {
         );
 
       case "pdf":
-        return <PdfMaterialCard key={material.id} material={material} />;
+        return <PdfMaterialCard key={material.id} material={material} onEnd={onPdfEnd} />;
 
       default:
         return null;

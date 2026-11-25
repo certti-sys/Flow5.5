@@ -1185,6 +1185,35 @@ export type Database = {
           },
         ]
       }
+      lesson_pdf_annotations: {
+        Row: {
+          material_id: string
+          payload: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          material_id: string
+          payload?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          material_id?: string
+          payload?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_pdf_annotations_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           completed: boolean | null
@@ -3390,6 +3419,7 @@ export type Database = {
       }
       get_order_pix: { Args: { p_order_id: string }; Returns: Json }
       get_order_public: { Args: { p_order_id: string }; Returns: Json }
+      claim_order_upsell: { Args: { p_order_id: string }; Returns: boolean }
       get_public_integrations: {
         Args: { p_product_id?: string }
         Returns: {

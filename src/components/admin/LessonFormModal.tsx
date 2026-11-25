@@ -278,6 +278,13 @@ export function LessonFormModal({
       if (hasVideo) {
         dataToValidate.video_url = normalizedUrl;
         dataToValidate.duration = duration;
+
+        // Política de vídeo: sempre embed, nunca arquivo direto. Arquivo .mp4
+        // fora de plataforma não tem controle de acesso nem progresso.
+        if (normalizedUrl && detectPlatform(normalizedUrl) === "file") {
+          setErrors({ video_url: "Envie o vídeo para o YouTube, Panda, Bunny ou VTurb e cole o link de embed." });
+          throw new Error("Validacao falhou");
+        }
       }
 
       const validation = lessonSchema.safeParse(dataToValidate);
@@ -500,7 +507,6 @@ export function LessonFormModal({
                       <SelectItem value="panda-video" className="focus:bg-white/10 focus:text-white">🐼 Panda Video</SelectItem>
                       <SelectItem value="bunny" className="focus:bg-white/10 focus:text-white">🐰 Bunny.net</SelectItem>
                       <SelectItem value="vturb" className="focus:bg-white/10 focus:text-white">▶️ VTurb</SelectItem>
-                      <SelectItem value="file" className="focus:bg-white/10 focus:text-white">🎥 Arquivo MP4</SelectItem>
                       <SelectItem value="google-drive" className="focus:bg-white/10 focus:text-white">📂 Google Drive</SelectItem>
                     </SelectContent>
                   </Select>
