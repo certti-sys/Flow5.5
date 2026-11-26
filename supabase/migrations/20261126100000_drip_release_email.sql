@@ -61,6 +61,9 @@ as $function$
       join public.profiles p on p.id = a.user_id
       cross join bounds b
       where not public.has_role(a.user_id, 'admin'::public.app_role)
+        -- Assinatura bloqueada não recebe aviso de "conteúdo liberado":
+        -- conteúdo novo fica travado até a renovação (modelo híbrido).
+        and public.subscription_content_unlocked(a.user_id, a.course_id)
         and not exists (
           select 1 from public.email_opt_outs eo
           where eo.email = lower(p.email)

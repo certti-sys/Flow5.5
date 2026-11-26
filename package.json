@@ -19,6 +19,7 @@
     "check:drip-email": "node scripts/check-drip-email.mjs",
     "check:campaign-click": "node scripts/check-campaign-click.mjs",
     "check:webhook-outbound": "node scripts/check-webhook-outbound.mjs",
+    "check:subscription-access": "node scripts/check-subscription-access.mjs",
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {

@@ -253,6 +253,37 @@
   </div>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">F1 e F3 entregues em 26/11/2026</div>
+  <p>
+    <strong>F1:</strong> <code>subscriptions.status</code> ampliado com <code>expired</code> e
+    <code>revoked</code> + 3 índices; <code>user_course_access</code> ganhou
+    <code>expires_at</code>, <code>subscription_id</code>, <code>access_status</code>
+    (<code>active|blocked|revoked</code>) e <code>blocked_at</code>; tabela
+    <code>subscription_notifications</code> para dedupe; funções
+    <code>subscription_access_active</code> (histórico — <code>blocked</code> passa) e
+    <code>subscription_content_unlocked</code> (conteúdo novo — <code>blocked</code> não passa).
+  </p>
+  <p>
+    <strong>F3:</strong> <code>get_course_release_map</code> e <code>_for</code> devolvem
+    <em>todos</em> os módulos/aulas como travados quando a assinatura está bloqueada — inclusive
+    os que não têm data de liberação. As edges <code>lesson-file-url</code> e
+    <code>lesson-progress</code> já usavam a variante <code>_for</code>, então o bloqueio
+    propagou sem mudar código delas. O e-mail de drip também não anuncia liberação para
+    aluno bloqueado.
+  </p>
+  <p>
+    <strong>Homologado em produção:</strong> bloqueio do aluno de teste no curso Design UI/UX →
+    histórico legível <code>true</code>, conteúdo novo <code>false</code>, linha preservada,
+    drip devolveu 9 itens travados; restauração → <code>granted_at</code> original intacto,
+    drip voltou a 0 itens. <code>npm run check:subscription-access</code> trava o contrato.
+  </p>
+  <p>
+    <strong>Restam:</strong> F2 (cobrança recorrente, piloto CajuPay — depende de adesão do
+    lojista), F4 (notificações) e F5 (painel/portal).
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">8</div><div class="l">Gateways instalados</div></div>
   <div class="stat"><div class="n">1</div><div class="l">Com recorrência pronta</div></div>
@@ -414,9 +445,9 @@
     <section id="s4">
       <h2><span class="idx">04</span>Plano em 5 fases</h2>
       <div class="flow">
-        <div class="step"><div class="k">F1</div><div class="t"><b>Schema (sem quebrar drip)</b> <code>checkout_config.billing</code> (modo, intervalo, price_id, carência, dias de aviso); ampliar CHECK de <code>subscriptions.status</code>; <code>expires_at</code>, <code>subscription_id</code> e <code>status</code> em <code>user_course_access</code>; tabela de dedupe de avisos. <strong>granted_at intacto na renovação.</strong></div></div>
+        <div class="step"><div class="k">✓</div><div class="t"><b>Schema (sem quebrar drip)</b> <code>checkout_config.billing</code> (modo, intervalo, price_id, carência, dias de aviso); ampliar CHECK de <code>subscriptions.status</code>; <code>expires_at</code>, <code>subscription_id</code> e <code>status</code> em <code>user_course_access</code>; tabela de dedupe de avisos. <strong>granted_at intacto na renovação.</strong></div></div>
         <div class="step"><div class="k">F2</div><div class="t"><b>Cobrança recorrente (piloto CajuPay)</b> Nova action <code>create_subscription</code> no payment-ops e método no provider; webhook trata eventos de assinatura; flag <code>supports_recurrence</code> por gateway para o front esconder a opção. Idempotência por chave.</div></div>
-        <div class="step"><div class="k">F3</div><div class="t"><b>Acesso e drip</b> Função <code>subscription_access_active(user, course)</code> usada em RLS, <code>auth_has_course_access</code>, <code>lesson-file-url</code>, <code>lesson-progress</code> e nas RPCs de release. Com assinatura vencida, a RPC devolve <em>todos</em> os itens como travados — sem apagar nada.</div></div>
+        <div class="step"><div class="k">✓</div><div class="t"><b>Acesso e drip</b> Função <code>subscription_access_active(user, course)</code> usada em RLS, <code>auth_has_course_access</code>, <code>lesson-file-url</code>, <code>lesson-progress</code> e nas RPCs de release. Com assinatura vencida, a RPC devolve <em>todos</em> os itens como travados — sem apagar nada.</div></div>
         <div class="step"><div class="k">F4</div><div class="t"><b>Notificações</b> Edge <code>subscription-reminders</code> com 3 kinds (expiry_warning, renewal, renewal_confirmed), e-mail pela fila, WhatsApp por template e cron diário 13:00 UTC. <code>dryRun</code> para homologar sem enviar.</div></div>
         <div class="step"><div class="k">F5</div><div class="t"><b>Painel, portal e webhooks</b> Periodicidade no produto, badge de recorrência por gateway, rota <code>/renovar/{token}</code> e ativação dos 4 eventos <code>subscription.*</code> no catálogo (já presentes desde o item 4).</div></div>
       </div>
