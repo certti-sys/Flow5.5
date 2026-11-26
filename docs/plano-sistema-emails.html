@@ -281,9 +281,18 @@
     "Salvar edição". O iframe isola o CSS do e-mail da admin e mantém doctype/head/style/table.
     Ao salvar, serializa-se <code>documentElement.outerHTML</code> e remove-se apenas o que o envio
     adiciona (rodapé/pixel via <code>data-flow-tracking</code> e links rastreados, revertidos pelo
-    parâmetro <code>u</code>). Campanha nova abre com modelo inicial simples, sem troca de editor.
-    Modo Código usa CodeMirror com highlight; há botão "Importar HTML" para arquivos
-    <code>.html/.htm</code> gerados por IA.
+    parâmetro <code>u</code>). Barra de formatação ao clicar no texto: negrito, itálico,
+    inserir/remover link (allowlist http/https), fonte e tamanho — aplicados como estilos inline
+    no nó selecionado, sem reescrever o documento. A seleção é restaurada antes de cada comando
+    porque o foco sai do iframe ao usar input/select da barra. Campanha nova abre com modelo
+    inicial simples, sem troca de editor. Modo Código usa CodeMirror com highlight; há botão
+    "Importar HTML" para arquivos <code>.html/.htm</code> gerados por IA.
+  </p>
+  <p>
+    <strong>Homologação da formatação:</strong> link aplicado ao botão "50% OFF"
+    (<code>href="https://v5.flowmembers.app/checkout"</code>), negrito <code>font-weight:700</code>,
+    itálico <code>font-style:italic</code> e tamanho <code>28px</code> presentes no HTML salvo, com
+    <code>&lt;style&gt;</code> e <code>&lt;table&gt;</code> intactos e nenhum tracking no corpo.
   </p>
   <p>
     <strong>Base Getfy e prompts do ChatGPT:</strong> o Getfy não tem WYSIWYG — é

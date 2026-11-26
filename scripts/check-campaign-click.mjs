@@ -27,6 +27,13 @@ assert.ok(editor.includes('documentElement.outerHTML'), 'editor nao preserva o d
 assert.ok(helpers.includes('data-flow-tracking') && helpers.includes('remove()'), 'editor nao protege rodape/pixel');
 assert.ok(helpers.includes('decodeURIComponent'), 'editor nao desfaz a reescrita de links');
 assert.ok(editor.includes('Salvar edição'), 'editor sem botao de salvar');
+assert.ok(editor.includes('title="Negrito"'), 'editor sem negrito');
+assert.ok(editor.includes('title="Itálico"'), 'editor sem itálico');
+assert.ok(editor.includes('title="Inserir ou editar link"'), 'editor sem inserir link');
+assert.ok(editor.includes('restaurarSelecao'), 'editor nao restaura selecao ao formatar');
+assert.ok(editor.includes("execCommand(\"createLink\""), 'editor nao cria link');
+assert.ok(editor.includes('aria-label="Fonte"') && editor.includes('aria-label="Tamanho"'), 'editor sem fonte/tamanho');
+assert.ok(editor.includes('/^(https?:\\/\\/|\\/)/'), 'editor sem allowlist de URL no link');
 assert.ok(admin.includes('duplicateAsDraft'), 'campanha enviada sem opção de duplicar');
 assert.ok(admin.includes('.select().single()'), 'save não confirma a gravação');
 assert.ok(admin.includes('clicked_at') && admin.includes('Cliques'), 'tela admin sem coluna Cliques');
