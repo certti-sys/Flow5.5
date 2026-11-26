@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withCampaignTracking } from "../_shared/campaign-tracking.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { deliverEmail, loadEmailSettings } from "../_shared/email.ts";
@@ -56,33 +57,6 @@ async function isAdmin(supabase: any, auth: string): Promise<boolean> {
     .eq("role", "admin")
     .maybeSingle();
   return !!role;
-}
-
-/** Rodapé obrigatório: sem link de descadastro a campanha vira spam. */
-function withTracking(html: string, token: string): string {
-  // A edge responde em `*.supabase.co`, não no domínio da plataforma.
-  const base = Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "");
-  const link = `${base}/functions/v1/campaign-track?t=${token}`;
-
-  // Só no envio: reescreve links absolutos para passar pelo tracker. O HTML
-  // salvo no editor continua intacto — links relativos nunca são tocados.
-  // O destino é codificado na URL e validado pela edge (allowlist http/https).
-  html = html.replace(
-    /href=(["'])(\s*https?:\/\/[^"']+)\1/gi,
-    (_m, quote: string, target: string) => {
-      const trimmed = target.trim();
-      const tracked = `${link}&a=click&u=${encodeURIComponent(trimmed)}`;
-      return `href=${quote}${tracked}${quote}`;
-    },
-  );
-
-  const pixel = `<img src="${link}&a=open" width="1" height="1" alt="" style="display:block;border:0;outline:none;" />`;
-  const footer = `
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e4e4e7;font-size:12px;color:#a1a1aa;text-align:center;font-family:Arial,sans-serif;">
-  Você recebeu este e-mail porque tem conta ou já comprou na plataforma.<br>
-  <a href="${link}&a=unsubscribe" style="color:#a1a1aa;">Não quero mais receber estes e-mails</a>
-</div>`;
-  return `${html}${footer}${pixel}`;
 }
 
 /** Uma campanha por rodada: o lote inteiro pertence a ela. */
@@ -152,7 +126,7 @@ async function drain(supabase: any): Promise<{ sent: number; failed: number; ski
         to: row.recipient_email,
         toName: row.recipient_name ?? undefined,
         subject: campaign.subject,
-        html: withTracking(campaign.body_html, row.token),
+        html: withCampaignTracking(campaign.body_html, row.token, Deno.env.get("SUPABASE_URL")!),
       });
 
       if (result.success) {

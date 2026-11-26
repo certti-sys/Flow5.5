@@ -257,6 +257,28 @@
   </div>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">F1 entregue em 26/11/2026</div>
+  <p>
+    <strong>Campanhas:</strong> botão "Duplicar como rascunho" para campanhas enviadas (editar
+    <code>sent</code> mudaria o que o destinatário vê no link); save com
+    <code>.update().select().single()</code> para confirmar a gravação; segmento normalizado no
+    save; contagem de audiência dependente dos campos do segmento, não do objeto inteiro.
+  </p>
+  <p>
+    <strong>Preview fiel:</strong> extraímos <code>withCampaignTracking</code> para
+    <code>_shared/campaign-tracking.ts</code> — a edge <code>preview-campaign</code> (admin-only)
+    e o envio <code>send-campaign</code> usam a <em>mesma</em> função. O editor mostra o preview ao
+    vivo num <code>iframe sandbox</code> com corpo, rodapé de descadastro, pixel e links
+    rastreados. Homologado em produção via DOM: HTML digitado aparece no preview junto com rodapé
+    e pixel.
+  </p>
+  <p>
+    <strong>Resposta sobre cores:</strong> ficam as cores sóbrias atuais (preto/branco/cinza).
+    F2 vai adicionar edição de HTML e textos por tipo de e-mail mantendo esse padrão como inicial.
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">9</div><div class="l">Tipos editáveis no admin</div></div>
   <div class="stat"><div class="n">4</div><div class="l">Que nunca são enviados</div></div>
@@ -455,10 +477,10 @@
     <section id="s7">
       <h2><span class="idx">07</span>Plano em 4 fases</h2>
       <div class="flow">
-        <div class="step"><div class="k">F1</div><div class="t"><b>Campanhas: editar, salvar e previewar de verdade</b> Editar em qualquer status (oferecer "Duplicar como rascunho" para <code>sent</code>), <code>.update().select().single()</code>, normalizar <code>filter_config</code>, preview dentro do editor usando a <em>mesma</em> função <code>withTracking</code> do envio (extrair para <code>_shared</code>). Dependência de contagem passa a ser os campos do segmento.</div></div>
+        <div class="step"><div class="k">✓</div><div class="t"><b>Campanhas: editar, salvar e previewar de verdade</b> Editar em qualquer status (oferecer "Duplicar como rascunho" para <code>sent</code>), <code>.update().select().single()</code>, normalizar <code>filter_config</code>, preview dentro do editor usando a <em>mesma</em> função <code>withTracking</code> do envio (extrair para <code>_shared</code>). Dependência de contagem passa a ser os campos do segmento.</div></div>
         <div class="step"><div class="k">F2</div><div class="t"><b>Templates com HTML e preview real</b> Campo <code>html</code> por tipo em <code>email_templates</code> + modo texto/HTML; <code>renderEmail</code> usa HTML com <code>replaceVariables</code>; alinhar os 7 tipos reais do back (remover 4 fantasmas, adicionar <code>notification</code>/<code>custom</code>); corrigir variáveis; expor ou eliminar <code>welcome_template</code>; edge <code>preview-email</code> admin-only gerando o HTML exacto com dados de exemplo.</div></div>
         <div class="step"><div class="k">F3</div><div class="t"><b>Carrinho com HTML e preview</b> Aceitar <code>is_html</code> por estágio (sem migration, JSONB já existe); edge usa o HTML com variáveis quando marcado; preview no diálogo com as variáveis já listadas. Manter tipo <code>custom</code>, opt-out e teto de 6 estágios.</div></div>
-        <div class="step"><div class="k">F4</div><div class="t"><b>Padronização do envio e das cores</b> Fazer <code>getBrandedWrapper</code> ler <code>template_colors</code> (ou remover as cores para acabar com a ilusão); <code>renderEmail</code> sempre aplicar <code>replaceVariables</code>, inclusive em <code>input.html</code>; centralizar opt-out/tracking entre fila/carrinho/campanha sem perder o token por destinatário das campanhas.</div></div>
+        <div class="step"><div class="k">—</div><div class="t"><b>Padronização do envio e das cores</b> Fazer <code>getBrandedWrapper</code> ler <code>template_colors</code> (ou remover as cores para acabar com a ilusão); <code>renderEmail</code> sempre aplicar <code>replaceVariables</code>, inclusive em <code>input.html</code>; centralizar opt-out/tracking entre fila/carrinho/campanha sem perder o token por destinatário das campanhas.</div></div>
       </div>
       <div class="note info">
         <div class="h">Ordem recomendada</div>

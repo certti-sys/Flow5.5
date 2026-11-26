@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
-  Mail, Plus, Send, Pause, Play, XCircle, Trash2, Users, Loader2, Eye, RefreshCw, AlertTriangle,
+  Mail, Plus, Send, Pause, Play, XCircle, Trash2, Users, Loader2, Eye, RefreshCw, AlertTriangle, Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -60,6 +60,7 @@ export default function EmailCampaigns() {
   const queryClient = useQueryClient();
   const [editor, setEditor] = useState<typeof EMPTY | null>(null);
   const [preview, setPreview] = useState<Campaign | null>(null);
+  const [livePreview, setLivePreview] = useState<string>("");
   const [testEmail, setTestEmail] = useState("");
   const [audience, setAudience] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -137,7 +138,20 @@ export default function EmailCampaigns() {
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [editor?.id, filterConfig]);
+  }, [editor?.id, editor?.all, editor?.productIds, editor?.courseIds, filterConfig]);
+
+  // Preview fiel: chama a edge que usa a mesma funcao withCampaignTracking do envio.
+  useEffect(() => {
+    if (!editor) { setLivePreview(""); return; }
+    let alive = true;
+    const timer = window.setTimeout(async () => {
+      const { data } = await supabase.functions.invoke("preview-campaign", {
+        body: { html: editor.body_html },
+      });
+      if (alive && typeof data?.html === "string") setLivePreview(data.html);
+    }, 350);
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [editor?.body_html]);
 
   const openNew = () => {
     setEditor({ ...EMPTY });
@@ -155,6 +169,26 @@ export default function EmailCampaigns() {
       courseIds: c.filter_config?.course_ids ?? [],
     });
     setTestEmail("");
+  };
+
+  const duplicateAsDraft = async (c: Campaign) => {
+    setBusy("duplicate");
+    try {
+      const { error } = await supabase.from("email_campaigns").insert({
+        name: `${c.name} (cópia)`,
+        subject: c.subject,
+        body_html: c.body_html,
+        filter_config: c.filter_config,
+        status: "draft",
+      });
+      if (error) throw error;
+      toast.success("Cópia criada como rascunho. Você pode editar livremente.");
+      queryClient.invalidateQueries({ queryKey: ["email-campaigns"] });
+    } catch (error: any) {
+      toast.error(error?.message || "Falha ao duplicar.");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const save = async () => {
@@ -178,8 +212,8 @@ export default function EmailCampaigns() {
     setBusy("save");
     try {
       const { error } = editor.id
-        ? await supabase.from("email_campaigns").update(payload).eq("id", editor.id)
-        : await supabase.from("email_campaigns").insert({ ...payload, status: "draft" });
+        ? await supabase.from("email_campaigns").update(payload).eq("id", editor.id).select().single()
+        : await supabase.from("email_campaigns").insert({ ...payload, status: "draft" }).select().single();
       if (error) throw error;
       toast.success(editor.id ? "Campanha atualizada." : "Campanha criada.");
       setEditor(null);
@@ -407,6 +441,15 @@ export default function EmailCampaigns() {
                               </button>
                             </>
                           )}
+                          {(c.status === "sent" || c.status === "sending" || c.status === "cancelled") && (
+                            <button
+                              title="Duplicar como rascunho para editar"
+                              onClick={() => duplicateAsDraft(c)}
+                              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             title="Apagar"
                             onClick={() => remove(c)}
@@ -478,6 +521,24 @@ export default function EmailCampaigns() {
                   placeholder="<h1>Olá!</h1><p>...</p>"
                   className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[180px] text-[13px] font-mono"
                 />
+              </div>
+
+              {/* Preview ao vivo: mesma funcao de tracking do envio */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">
+                    Prévia ao vivo
+                  </Label>
+                  <span className="text-[11px] text-white/40">inclui rodapé, pixel e links rastreados</span>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-white/10 bg-white">
+                  <iframe
+                    title="Prévia ao vivo da campanha"
+                    srcDoc={livePreview}
+                    className="w-full h-[260px] bg-white"
+                    sandbox=""
+                  />
+                </div>
               </div>
 
               <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
