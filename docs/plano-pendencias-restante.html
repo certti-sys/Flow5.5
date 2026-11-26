@@ -292,6 +292,24 @@
   </p>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">Atualização — item 7 (e-mail do drip) entregue</div>
+  <p>
+    RPC <code>get_drip_releases_for_date(date)</code> (SECURITY DEFINER, só
+    <code>service_role</code>) replica a regra de liberação em SQL e devolve o que
+    foi liberado no dia. Edge <code>drip-release-email</code> agrupa por aluno —
+    1 e-mail/dia — com <code>type:'notification'</code> (respeita opt-out) e
+    tabela <code>drip_release_notifications</code> para dedupe. Cron diário
+    <code>0 12 * * *</code> (09:00 em Brasília). Template <code>notification</code>
+    registrado no admin. <code>npm run check:drip-email</code> travou o contrato.
+  </p>
+  <p>
+    Homologado em produção com <code>dryRun</code>: hoje 0 itens (nenhum envio),
+    e em <code>2026-12-09</code> encontrou 1 aluno e 2 itens agrupados. Banco
+    confirmou job, grant, tabela e <strong>0 e-mails enviados</strong>.
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">11</div><div class="l">Pendências abertas</div></div>
   <div class="stat"><div class="n">4</div><div class="l">Fases de execução</div></div>

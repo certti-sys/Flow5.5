@@ -42,6 +42,7 @@ const notificationTypes = [
   { id: "level_up", title: "Subida de Nível", description: "Enviada quando o aluno sobe de nível", icon: TrendingUp, category: "Gamificação", defaultSubject: "Parabéns! Você alcançou o nível {{level}}! 🚀", defaultGreeting: "Incrível, {{nome}}!", defaultMessage: "Você acaba de subir de nível!\n\nSeu novo nível: {{level}}\nXP Total: {{xp}}\n\nContinue assim e alcance novas conquistas!" },
   { id: "achievement_unlocked", title: "Conquista Desbloqueada", description: "Enviada quando o aluno desbloqueia uma medalha", icon: Trophy, category: "Gamificação", defaultSubject: "Nova conquista desbloqueada: {{medalha}}! 🏆", defaultGreeting: "Parabéns, {{nome}}!", defaultMessage: "Você acaba de desbloquear uma nova conquista!\n\nMedalha: {{medalha}}\nDescrição: {{descricao_medalha}}\nXP Ganhos: {{xp_medalha}}\n\nSua galeria está ficando impressionante!" },
   { id: "streak_at_risk", title: "Ofensiva em Risco", description: "Alerta quando o aluno está prestes a perder a ofensiva", icon: Flame, category: "Gamificação", defaultSubject: "Não perca seu fogo! Sua ofensiva de {{dias_ofensiva}} dias está em risco! 🔥", defaultGreeting: "Atenção, {{nome}}!", defaultMessage: "Falta pouco para você perder sua sequência de {{dias_ofensiva}} dias!\n\nAcesse agora, assista a uma aula e mantenha seu ritmo de aprendizado." },
+  { id: "notification", title: "Conteúdo Liberado (drip)", description: "Um e-mail por aluno/dia com tudo que foi liberado no dia", icon: Send, category: "Notificações", defaultSubject: "Novo conteúdo liberado para você! 📚", defaultGreeting: "Olá {{user_name}},", defaultMessage: "Novo conteúdo foi liberado em {{cursos}}:\n\n{{itens}}\n\nAcesse sua plataforma para continuar." },
 ];
 
 export default function EmailSettings() {
@@ -66,6 +67,7 @@ export default function EmailSettings() {
   const [notificationToggles, setNotificationToggles] = useState<Record<string, boolean>>({
     new_sale_admin: true, course_access: true, lesson_reminder: true, payment_approved: true,
     welcome: true, level_up: true, achievement_unlocked: true, streak_at_risk: true,
+    notification: true,
   });
 
   const [selectedTemplate, setSelectedTemplate] = useState("new_sale_admin");

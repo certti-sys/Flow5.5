@@ -31,8 +31,10 @@ npm run check:theme    # presets de tema
 npm run check:upsell   # upsell/downsell + métodos de pagamento
 npm run check:cart     # recuperação de carrinho
 npm run check:drip     # drip content
+npm run check:drip-email # e-mail de conteúdo liberado
 npm run check:pdf      # escada de zoom do leitor
 npm run check:annotations # normalização das marcações do PDF
+npm run check:achievements # 5 critérios do motor de conquistas
 
 npx supabase db query --remote --read-only --file q.sql   # leitura em prod
 npx supabase db push --remote --include-all --yes         # migration em prod
@@ -213,6 +215,18 @@ Não reabrir sem motivo novo:
     admite `criteria_type` livre, `npm run check:achievements` garante que
     todo critério do Select existe no switch da edge. Nunca gravar
     `user_progress` direto: streak, XP e conquistas passam por `lesson-progress`.
+30. **Assinaturas: prazo é definido no produto.** Mensal, trimestral,
+    semestral ou anual — o período é configuração do produto, não fixo no
+    código. Enquanto o modelo de acesso com vigência não for decidido e
+    implementado, `user_course_access` continua sem prazo (acesso por pedido
+    pago). Item 10 do plano segue bloqueado por essa decisão.
+31. **E-mail de drip: 1 por aluno/dia, nunca 1 por aula.** A RPC
+    `get_drip_releases_for_date(date)` é `SECURITY DEFINER` e só service_role,
+    replica a regra do `get_course_release_map` (inclusive `greatest`) e
+    devolve o que foi liberado **naquele dia**. A edge `drip-release-email`
+    agrupa por aluno, usa `type: 'notification'` (respeita opt-out) e marca
+    `drip_release_notifications` para dedupe. Cron diário 12:00 UTC (09:00
+    Brasília). `dryRun` homologa sem enviar. Nunca usar `auth.uid()` na edge.
 
 ---
 
