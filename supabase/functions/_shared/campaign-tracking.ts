@@ -24,5 +24,7 @@ export function withCampaignTracking(html: string, token: string, baseUrl: strin
   Você recebeu este e-mail porque tem conta ou já comprou na plataforma.<br>
   <a href="${link}&a=unsubscribe" style="color:#a1a1aa;">Não quero mais receber estes e-mails</a>
 </div>`;
-  return `${tracked}${footer}${pixel}`;
+  // Wrapper identifica o que e gerado pelo envio: o editor inline nunca
+  // deve salvar rodape/pixel de volta em body_html.
+  return `${tracked}<div data-flow-tracking="1">${footer}${pixel}</div>`;
 }

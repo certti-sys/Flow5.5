@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { HtmlEditor } from "@/components/HtmlEditor";
+import { InlineEmailEditor } from "@/components/InlineEmailEditor";
 import { motion } from "framer-motion";
 import {
   Mail, Plus, Send, Pause, Play, XCircle, Trash2, Users, Loader2, Eye, RefreshCw, AlertTriangle, Copy,
@@ -168,7 +169,7 @@ export default function EmailCampaigns() {
     /<table|<style|style=|class=/i.test(html || "");
 
   const openEdit = (c: Campaign) => {
-    setModoEditor(htmlRico(c.body_html) ? "codigo" : "visual");
+    setModoEditor("visual");
     setEditor({
       id: c.id,
       name: c.name,
@@ -531,7 +532,7 @@ export default function EmailCampaigns() {
                   <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">Corpo do e-mail</Label>
                   <div className="flex gap-1 rounded-lg bg-white/5 border border-white/10 p-0.5">
                     {(["visual", "codigo"] as const).map((m) => {
-                      const bloqueado = m === "visual" && editor && htmlRico(editor.body_html);
+                      const bloqueado = false;
                       return (
                         <button
                           key={m}
@@ -555,42 +556,50 @@ export default function EmailCampaigns() {
                   <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
                     <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
                     <p className="text-[11px] text-amber-500">
-                      Este e-mail usa tabelas, estilos inline ou classes. O modo Visual foi desligado porque o editor simplificaria o HTML e perderia o layout — edite diretamente em Código e confira na Prévia ao vivo.
+                      Este e-mail usa tabelas ou estilos inline. A edição Visual agora acontece direto no preview e preserva o HTML original — clique em qualquer texto para alterá-lo.
                     </p>
                   </div>
                 )}
                 {modoEditor === "visual" ? (
-                  <HtmlEditor
-                    value={editor.body_html}
-                    onChange={(html) => setEditor({ ...editor, body_html: html })}
-                    placeholder="Escreva o corpo do e-mail… negrito, títulos, listas e links."
-                  />
+                  livePreview ? (
+                    <InlineEmailEditor
+                      html={livePreview}
+                      onChange={(html) => setEditor({ ...editor, body_html: html })}
+                    />
+                  ) : (
+                    <HtmlEditor
+                      value={editor.body_html}
+                      onChange={(html) => setEditor({ ...editor, body_html: html })}
+                      placeholder="Escreva o corpo do e-mail… negrito, títulos, listas e links."
+                    />
+                  )
                 ) : (
-                  <Textarea
-                    value={editor.body_html}
-                    onChange={(e) => setEditor({ ...editor, body_html: e.target.value })}
-                    placeholder="<h1>Olá!</h1><p>...</p>"
-                    className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[240px] text-[13px] font-mono"
-                  />
+                  <>
+                    <Textarea
+                      value={editor.body_html}
+                      onChange={(e) => setEditor({ ...editor, body_html: e.target.value })}
+                      placeholder="<h1>Olá!</h1><p>...</p>"
+                      className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[240px] text-[13px] font-mono"
+                    />
+                    {/* Preview ao vivo: mesma funcao de tracking do envio */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">
+                          Prévia ao vivo
+                        </Label>
+                        <span className="text-[11px] text-white/40">inclui rodapé, pixel e links rastreados</span>
+                      </div>
+                      <div className="rounded-xl overflow-hidden border border-white/10 bg-white">
+                        <iframe
+                          title="Prévia ao vivo da campanha"
+                          srcDoc={livePreview}
+                          className="w-full h-[260px] bg-white"
+                          sandbox=""
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
-              </div>
-
-              {/* Preview ao vivo: mesma funcao de tracking do envio */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">
-                    Prévia ao vivo
-                  </Label>
-                  <span className="text-[11px] text-white/40">inclui rodapé, pixel e links rastreados</span>
-                </div>
-                <div className="rounded-xl overflow-hidden border border-white/10 bg-white">
-                  <iframe
-                    title="Prévia ao vivo da campanha"
-                    srcDoc={livePreview}
-                    className="w-full h-[260px] bg-white"
-                    sandbox=""
-                  />
-                </div>
               </div>
 
               <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">

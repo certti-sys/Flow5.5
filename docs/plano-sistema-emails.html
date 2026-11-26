@@ -274,10 +274,12 @@
     e pixel.
   </p>
   <p>
-    <strong>Editor WYSIWYG:</strong> campanhas ganharam abas Visual/Código. O modo Visual usa
-    Tiptap (negrito, itálico, títulos, listas e links) e gera HTML limpo que alimenta o preview
-    ao vivo; o modo Código mantém a edição crua. Homologado no Chrome: digitar no modo Visual
-    gerou <code>&lt;p&gt;…&lt;/p&gt;</code> e atualizou a prévia.
+    <strong>Editor WYSIWYG → edição inline no preview:</strong> o Tiptap simplificava HTML rico
+    (7.999 bytes com <code>&lt;table&gt;</code> viravam 1.324 bytes sem estilos). Corrigido: o modo
+    Visual passou a editar <em>diretamente no preview</em> — clique no texto, altere, botão
+    "Salvar edição". O HTML original é preservado porque o browser edita o nó de texto, não
+    reinterpreta a estrutura. Rodapé e pixel são marcados com <code>data-flow-tracking</code> e
+    removidos antes de salvar. O modo Código continua com textarea para edição crua.
   </p>
   <p>
     <strong>Resposta sobre cores:</strong> ficam as cores sóbrias atuais (preto/branco/cinza).

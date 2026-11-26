@@ -6,6 +6,8 @@ const track = fs.readFileSync('supabase/functions/campaign-track/index.ts','utf8
 const send = fs.readFileSync('supabase/functions/send-campaign/index.ts','utf8');
 const shared = fs.readFileSync('supabase/functions/_shared/campaign-tracking.ts','utf8');
 const preview = fs.readFileSync('supabase/functions/preview-campaign/index.ts','utf8');
+const tracking = fs.readFileSync('supabase/functions/_shared/campaign-tracking.ts','utf8');
+const inline = fs.readFileSync('src/components/InlineEmailEditor.tsx','utf8');
 const admin = fs.readFileSync('src/pages/admin/EmailCampaigns.tsx','utf8');
 
 assert.ok(track.includes('action === "click"'), 'edge não trata a=click');
@@ -19,6 +21,9 @@ assert.ok(send.includes('withCampaignTracking(campaign.body_html'), 'envio não 
 assert.ok(preview.includes('withCampaignTracking(html'), 'preview não usa o mesmo helper');
 assert.ok(shared.includes('encodeURIComponent'), 'destino precisa ser codificado');
 assert.ok(admin.includes('livePreview'), 'editor sem preview ao vivo');
+assert.ok(tracking.includes('data-flow-tracking'), 'tracking sem marcador para o editor inline');
+assert.ok(inline.includes('data-flow-tracking') && inline.includes('remove()'), 'editor inline nao protege rodape/pixel');
+assert.ok(inline.includes('Salvar edição'), 'editor inline sem botao de salvar');
 assert.ok(admin.includes('duplicateAsDraft'), 'campanha enviada sem opção de duplicar');
 assert.ok(admin.includes('.select().single()'), 'save não confirma a gravação');
 assert.ok(admin.includes('clicked_at') && admin.includes('Cliques'), 'tela admin sem coluna Cliques');
