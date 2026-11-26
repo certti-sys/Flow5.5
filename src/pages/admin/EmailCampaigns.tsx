@@ -63,7 +63,7 @@ export default function EmailCampaigns() {
   const [preview, setPreview] = useState<Campaign | null>(null);
   const [livePreview, setLivePreview] = useState<string>("");
   const [testEmail, setTestEmail] = useState("");
-  const [modoEditor, setModoEditor] = useState<"visual" | "codigo">("visual");
+  const [modoEditor, setModoEditor] = useState<"visual" | "codigo">("codigo");
   const [audience, setAudience] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -157,10 +157,18 @@ export default function EmailCampaigns() {
 
   const openNew = () => {
     setEditor({ ...EMPTY });
+    setModoEditor("visual");
     setTestEmail("");
   };
 
+  // HTML rico (tabelas, estilos inline, classes) nao sobrevive ao Tiptap:
+  // o setContent interpreta e descarta. Nesses casos o editor abre em Codigo
+  // e o modo Visual fica bloqueado para nao corromper o template.
+  const htmlRico = (html: string) =>
+    /<table|<style|style=|class=/i.test(html || "");
+
   const openEdit = (c: Campaign) => {
+    setModoEditor(htmlRico(c.body_html) ? "codigo" : "visual");
     setEditor({
       id: c.id,
       name: c.name,
@@ -522,21 +530,35 @@ export default function EmailCampaigns() {
                 <div className="flex items-center justify-between">
                   <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">Corpo do e-mail</Label>
                   <div className="flex gap-1 rounded-lg bg-white/5 border border-white/10 p-0.5">
-                    {(["visual", "codigo"] as const).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setModoEditor(m)}
-                        className={cn(
-                          "px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider",
-                          modoEditor === m ? "bg-primary/15 text-primary" : "text-white/50 hover:text-white",
-                        )}
-                      >
-                        {m === "visual" ? "Visual" : "Código"}
-                      </button>
-                    ))}
+                    {(["visual", "codigo"] as const).map((m) => {
+                      const bloqueado = m === "visual" && editor && htmlRico(editor.body_html);
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          disabled={!!bloqueado}
+                          title={bloqueado ? "Este HTML usa tabelas/estilos inline. O modo Visual perderia a formatação — edite em Código." : undefined}
+                          onClick={() => setModoEditor(m)}
+                          className={cn(
+                            "px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider",
+                            bloqueado ? "opacity-30 cursor-not-allowed" : "",
+                            modoEditor === m ? "bg-primary/15 text-primary" : "text-white/50 hover:text-white",
+                          )}
+                        >
+                          {m === "visual" ? "Visual" : "Código"}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+                {editor && htmlRico(editor.body_html) && (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+                    <p className="text-[11px] text-amber-500">
+                      Este e-mail usa tabelas, estilos inline ou classes. O modo Visual foi desligado porque o editor simplificaria o HTML e perderia o layout — edite diretamente em Código e confira na Prévia ao vivo.
+                    </p>
+                  </div>
+                )}
                 {modoEditor === "visual" ? (
                   <HtmlEditor
                     value={editor.body_html}
