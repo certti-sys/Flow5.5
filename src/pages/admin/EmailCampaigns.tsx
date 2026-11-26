@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { HtmlEditor } from "@/components/HtmlEditor";
 import { InlineEmailEditor } from "@/components/InlineEmailEditor";
+import { extrairCorpoEmail } from "@/lib/inline-email";
 import { motion } from "framer-motion";
 import {
   Mail, Plus, Send, Pause, Play, XCircle, Trash2, Users, Loader2, Eye, RefreshCw, AlertTriangle, Copy,
@@ -561,11 +562,17 @@ export default function EmailCampaigns() {
                   </div>
                 )}
                 {modoEditor === "visual" ? (
-                  livePreview ? (
-                    <InlineEmailEditor
-                      html={livePreview}
-                      onChange={(html) => setEditor({ ...editor, body_html: html })}
-                    />
+                  editor.body_html.trim() ? (
+                    livePreview ? (
+                      <InlineEmailEditor
+                        html={extrairCorpoEmail(livePreview)}
+                        onChange={(html) => setEditor({ ...editor, body_html: html })}
+                      />
+                    ) : (
+                      <div className="min-h-[160px] rounded-xl border border-white/10 bg-black/40 flex items-center justify-center gap-2 text-white/40 text-[13px]">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Preparando prévia editável…
+                      </div>
+                    )
                   ) : (
                     <HtmlEditor
                       value={editor.body_html}
