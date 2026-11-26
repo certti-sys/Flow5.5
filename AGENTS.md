@@ -217,11 +217,16 @@ Não reabrir sem motivo novo:
     admite `criteria_type` livre, `npm run check:achievements` garante que
     todo critério do Select existe no switch da edge. Nunca gravar
     `user_progress` direto: streak, XP e conquistas passam por `lesson-progress`.
-30. **Assinaturas: prazo é definido no produto.** Mensal, trimestral,
-    semestral ou anual — o período é configuração do produto, não fixo no
-    código. Enquanto o modelo de acesso com vigência não for decidido e
-    implementado, `user_course_access` continua sem prazo (acesso por pedido
-    pago). Item 10 do plano segue bloqueado por essa decisão.
+30. **Assinaturas: modelo HÍBRIDO, decidido pelo usuário.**
+    Periodicidade é configuração do produto: mensal, trimestral, semestral ou
+    anual. Nem todo gateway faz cobrança recorrente — o produto só pode
+    marcar recorrência quando o gateway escolhido suportar. Regras fechadas:
+    (a) vencimento **bloqueia**, nunca remove conta nem remove acesso;
+    (b) `user_course_access` permanece, ganha estado de suspensão;
+    (c) drip bloqueia conteúdo novo enquanto não renovar;
+    (d) notificações obrigatórias: lembrete de vencimento, lembrete de
+    renovação e confirmação da renovação. Acesso já concedido continua
+    legível — o bloqueio é de novidades, não de histórico.
 31. **E-mail de drip: 1 por aluno/dia, nunca 1 por aula.** A RPC
     `get_drip_releases_for_date(date)` é `SECURITY DEFINER` e só service_role,
     replica a regra do `get_course_release_map` (inclusive `greatest`) e

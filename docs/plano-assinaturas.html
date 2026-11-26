@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow5.5 — Plano de assinaturas (modelo híbrido)</title>
+<style>
+  :root{
+    --bg:#0b0d0c;
+    --bg-soft:#111412;
+    --panel:#141816;
+    --panel-2:#181d1a;
+    --line:#232a26;
+    --line-soft:#1b211e;
+    --ink:#e8ece6;
+    --ink-2:#a8b3a6;
+    --ink-3:#6f7a70;
+    --accent:#74d909;
+    --accent-dim:#5aa807;
+    --accent-soft:rgba(116,217,9,.10);
+    --blue:#4aa8ff;
+    --amber:#f5b942;
+    --violet:#a78bfa;
+    --rose:#fb7185;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --maxw:1320px;
+  }
+  html[data-theme="light"]{
+    --bg:#f7f8f6;
+    --bg-soft:#eef0ec;
+    --panel:#ffffff;
+    --panel-2:#f4f6f2;
+    --line:#dfe4dc;
+    --line-soft:#eaeee6;
+    --ink:#161a17;
+    --ink-2:#4a544b;
+    --ink-3:#7b867c;
+    --accent-soft:rgba(116,217,9,.14);
+    --accent-dim:#4f8f06;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+
+  .hero{
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(900px 380px at 12% -10%, rgba(116,217,9,.10), transparent 60%),
+      radial-gradient(700px 300px at 88% 0%, rgba(74,168,255,.07), transparent 62%),
+      var(--bg);
+    padding:64px 32px 52px;
+  }
+  .hero-inner{max-width:var(--maxw);margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:34px;height:1px;background:var(--accent);opacity:.7}
+  h1{
+    margin:0 0 18px;font-size:clamp(34px,5.4vw,64px);line-height:1.02;
+    font-weight:600;letter-spacing:-.035em;max-width:20ch;
+  }
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{max-width:74ch;color:var(--ink-2);font-size:17px;margin:0 0 30px}
+  .metaline{
+    display:flex;flex-wrap:wrap;gap:10px 26px;font-family:var(--mono);font-size:12px;
+    color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px;
+  }
+  .metaline b{color:var(--ink-2);font-weight:500}
+
+  .stats{
+    max-width:var(--maxw);margin:0 auto;padding:0 32px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+    gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-top:none;border-radius:0 0 14px 14px;overflow:hidden;
+  }
+  .stat{background:var(--bg-soft);padding:20px 18px}
+  .stat .n{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+  .stat .n small{font-size:14px;color:var(--accent)}
+  .stat .l{font-size:11.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;margin-top:5px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;display:grid;grid-template-columns:236px 1fr;gap:56px}
+  nav{
+    position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;
+    padding:44px 0 40px;
+  }
+  nav .navtitle{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:14px;
+  }
+  nav ol{list-style:none;margin:0;padding:0;counter-reset:n}
+  nav li{counter-increment:n}
+  nav a{
+    display:flex;gap:9px;align-items:baseline;
+    padding:6px 10px;margin-left:-10px;border-radius:6px;
+    font-size:13px;color:var(--ink-3);transition:.15s;
+  }
+  nav a::before{
+    content:counter(n,decimal-leading-zero);font-family:var(--mono);font-size:10.5px;
+    color:var(--ink-3);opacity:.55;flex:none;
+  }
+  nav a:hover{color:var(--ink);background:var(--panel)}
+  nav a.active{color:var(--accent);background:var(--accent-soft)}
+  nav a.active::before{color:var(--accent);opacity:1}
+  main{padding:44px 0 100px;min-width:0}
+
+  section{padding-bottom:54px;margin-bottom:44px;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:none}
+  h2{
+    margin:0 0 8px;font-size:27px;font-weight:600;letter-spacing:-.025em;
+    display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .idx{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--accent-soft);background:var(--accent-soft);
+    padding:3px 8px;border-radius:5px;flex:none;letter-spacing:.05em;
+  }
+  .sec-sub{color:var(--ink-2);margin:0 0 26px;max-width:82ch;font-size:15px}
+  h3{
+    margin:30px 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:500;
+    padding-bottom:8px;border-bottom:1px solid var(--line-soft);
+  }
+  p{margin:0 0 14px;max-width:88ch}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;max-width:90ch}
+  li{position:relative;padding-left:20px;margin-bottom:7px;color:var(--ink-2)}
+  li::before{
+    content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);opacity:.55;
+  }
+  li strong{color:var(--ink);font-weight:600}
+  code{
+    font-family:var(--mono);font-size:.87em;background:var(--panel-2);
+    border:1px solid var(--line-soft);padding:1.5px 6px;border-radius:5px;color:var(--ink);
+  }
+  .tag{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    padding:2px 7px;border-radius:4px;background:var(--accent-soft);
+    color:var(--accent);border:1px solid var(--accent-soft);margin-right:6px;
+  }
+  .tag.b{background:rgba(74,168,255,.10);color:var(--blue);border-color:rgba(74,168,255,.18)}
+  .tag.a{background:rgba(245,185,66,.10);color:var(--amber);border-color:rgba(245,185,66,.18)}
+  .tag.v{background:rgba(167,139,250,.10);color:var(--violet);border-color:rgba(167,139,250,.18)}
+  .tag.r{background:rgba(251,113,133,.10);color:var(--rose);border-color:rgba(251,113,133,.18)}
+
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 20px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+  th{
+    text-align:left;padding:11px 16px;background:var(--panel-2);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2)}
+  tr:last-child td{border-bottom:none}
+  td strong{color:var(--ink);font-weight:600}
+  tbody tr:hover td{background:rgba(116,217,9,.03)}
+
+  .flow{
+    display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;margin:0 0 20px;
+  }
+  .step{background:var(--panel);padding:14px 18px;display:flex;gap:14px;align-items:flex-start}
+  .step .k{
+    font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;padding-top:2px;
+    min-width:22px;
+  }
+  .step .t{font-size:13.5px;color:var(--ink-2)}
+  .step .t b{color:var(--ink);display:block;font-weight:600;margin-bottom:2px;font-size:14px}
+
+  .note{
+    border:1px solid var(--line);border-left:3px solid var(--accent);
+    background:var(--panel);border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 20px;
+  }
+  .note.warn{border-left-color:var(--amber)}
+  .note.info{border-left-color:var(--blue)}
+  .note.risk{border-left-color:var(--rose)}
+  .note .h{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:7px;
+  }
+  .note p{margin:0;font-size:14px}
+  .note p + p{margin-top:9px}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:0 0 20px}
+  .card{
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:18px 20px;
+  }
+  .card .ch{
+    font-size:14px;font-weight:600;color:var(--ink);margin-bottom:9px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .card .ch::before{content:"";width:4px;height:14px;background:var(--accent);border-radius:2px;flex:none}
+  .card p{font-size:13.5px;color:var(--ink-2);margin:0}
+  .card ul{margin:0;font-size:13.5px}
+
+  footer{
+    border-top:1px solid var(--line);padding:28px 32px 60px;color:var(--ink-3);font-size:12.5px;
+  }
+  footer .fi{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 30px;justify-content:space-between}
+  footer code{background:transparent;border:none;padding:0;color:var(--ink-3)}
+
+  .totop{
+    position:fixed;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;
+    display:none;place-items:center;font-size:15px;backdrop-filter:blur(6px);
+  }
+  .totop:hover{color:var(--accent);border-color:var(--accent-soft)}
+  .totop.on{display:grid}
+  .themebtn{
+    position:fixed;top:18px;right:22px;z-index:50;background:var(--panel);
+    border:1px solid var(--line);color:var(--ink-2);border-radius:8px;
+    padding:7px 11px;font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.05em;
+  }
+  .themebtn:hover{color:var(--accent);border-color:var(--accent-soft)}
+
+  @media(max-width:960px){
+    .wrap{grid-template-columns:1fr;gap:0}
+    nav{position:static;max-height:none;padding:28px 0 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+    nav ol{display:flex;flex-wrap:wrap;gap:4px}
+    nav a{font-size:12px}
+    main{padding-top:30px}
+    .hero{padding:48px 20px 40px}
+    .stats{padding:0 20px;grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+    .wrap{padding:0 20px}
+  }
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themeBtn" title="Alternar tema">◐ TEMA</button>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">PLANO DE IMPLEMENTAÇÃO · ITEM 10</div>
+    <h1>Assinaturas no modelo híbrido</h1>
+    <p class="lede">
+      Cobrança recorrente, bloqueio sem apagar acesso, drip travado até renovar e três
+      notificações obrigatórias. Antes de escrever código, o levantamento mostrou um fato que
+      muda o escopo: <strong>dos 8 gateways instalados, só o CajuPay tem contrato de assinatura
+      pronto</strong> — e mesmo assim depende de adesão do lojista e mandato do pagador.
+    </p>
+    <div class="metaline">
+      <span><b>Data</b> 26/11/2026</span>
+      <span><b>Base</b> commit <code>b5c76ce</code></span>
+      <span><b>Decisão</b> <code>AGENTS.md</code> §4.30</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="n">8</div><div class="l">Gateways instalados</div></div>
+  <div class="stat"><div class="n">1</div><div class="l">Com recorrência pronta</div></div>
+  <div class="stat"><div class="n">3</div><div class="l">Notificações exigidas</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">Fases do plano</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">Linhas em subscriptions</div></div>
+</div>
+
+<div class="wrap">
+  <nav>
+    <div class="navtitle">Sumário</div>
+    <ol>
+      <li><a href="#s1">O que você decidiu</a></li>
+      <li><a href="#s2">O que já existe (e o que não existe)</a></li>
+      <li><a href="#s3">O limite dos gateways</a></li>
+      <li><a href="#s4">Plano em 5 fases</a></li>
+      <li><a href="#s5">Regras de acesso e drip</a></li>
+      <li><a href="#s6">Notificações</a></li>
+      <li><a href="#s7">Riscos e decisões que ficam com você</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="s1">
+      <h2><span class="idx">01</span>O que você decidiu</h2>
+      <p class="sec-sub">Regras fechadas e registradas em <code>AGENTS.md</code> §4.30.</p>
+      <ul>
+        <li><strong>Periodicidade configurável no produto:</strong> mensal, trimestral, semestral ou anual</li>
+        <li><strong>Nem todo gateway faz recorrência.</strong> O produto só pode marcar assinatura quando o gateway escolhido suportar</li>
+        <li><strong>Híbrido:</strong> acesso já concedido continua legível; o bloqueio é de <em>novidades</em>, não de histórico</li>
+        <li><strong>Bloquear, nunca apagar:</strong> não remover conta, não remover <code>user_course_access</code></li>
+        <li><strong>Drip travado</strong> enquanto não renovar / não pagar</li>
+        <li><strong>Três notificações:</strong> lembrete de vencimento, lembrete de renovação e confirmação da renovação</li>
+      </ul>
+      <div class="note">
+        <div class="h">Como isso difere do Getfy</div>
+        <p>
+          O Getfy <strong>remove</strong> o acesso na expiração (<code>SubscriptionAccessService::revokeAccessForSubscription</code>
+          faz <code>detach</code>). Você escolheu o contrário: manter a linha e bloquear. É uma
+          decisão do Flow, não paridade — e é a correta para não apagar histórico nem âncora do drip.
+        </p>
+      </div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="idx">02</span>O que já existe (e o que não existe)</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Recurso</th><th>Estado real</th><th>Implicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>subscriptions</code></td>
+              <td>15 colunas, CHECK de status com 8 valores, <strong>0 linhas</strong>, só admin por RLS, sem índices úteis</td>
+              <td>Estrutura existe, mas nunca foi usada. Precisa ampliar status e índices</td>
+            </tr>
+            <tr>
+              <td><code>prices</code></td>
+              <td>Já tem <code>type</code>, <code>interval</code>, <code>interval_count</code>, <code>trial_period_days</code> — <strong>0 linhas</strong> e nunca lida pelo checkout</td>
+              <td>A periodicidade pode reaproveitar esse modelo, sem tabela nova</td>
+            </tr>
+            <tr>
+              <td><code>products.type</code></td>
+              <td>CHECK <code>one_time|subscription</code>; produção só tem <code>one_time</code></td>
+              <td>O tipo já existe, falta ligar à cobrança</td>
+            </tr>
+            <tr>
+              <td><code>payment-ops</code></td>
+              <td>4 actions, nenhuma com <code>recurring</code>/<code>subscription</code>/<code>interval</code></td>
+              <td>Precisa de action nova e método <code>createSubscription</code> no provider</td>
+            </tr>
+            <tr>
+              <td><code>user_course_access</code></td>
+              <td><code>granted_at</code> é âncora do drip; unique <code>(user_id, course_id)</code>; concessão por trigger de pedido pago</td>
+              <td><strong>Nunca reancorar na renovação.</strong> Bloqueio素描 ser UPDATE de status, não DELETE</td>
+            </tr>
+            <tr>
+              <td>Notificações</td>
+              <td>Fila de e-mail, WhatsApp, push, templates e cron diário prontos; nenhum template de assinatura</td>
+              <td>Só falta o edge de lembretes + 3 templates</td>
+            </tr>
+            <tr>
+              <td>Cron</td>
+              <td>9 jobs ativos; padrão vault + pg_net consolidado</td>
+              <td>Novo job às 13:00 UTC para não colidir com drip (12h) e retenção (21h)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="idx">03</span>O limite dos gateways</h2>
+      <p class="sec-sub">
+        Cada gateway tem uma API de assinatura diferente. Nenhuma está implementada no Flow hoje.
+        O quadro abaixo é o que o código do Getfy e dos providers do Flow permite afirmar.
+      </p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Gateway</th><th>API de recorrência</th><th>Status no Flow</th><th>Status no Getfy</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>CajuPay</strong></td>
+              <td><code>POST /api/subscriptions</code> (PIX automático, boleto, cartão)</td>
+              <td>Provider de pagamento único existe; assinatura <strong>não</strong></td>
+              <td><span class="tag v">Completo</span> driver + serviço + renovação</td>
+            </tr>
+            <tr>
+              <td><strong>PushinPay</strong></td>
+              <td><code>POST /pix/cashIn/subscription</code></td>
+              <td>Só PIX avulso</td>
+              <td>Serviço pronto</td>
+            </tr>
+            <tr>
+              <td><strong>Efí</strong></td>
+              <td>PIX automático <code>/v2/locrec</code> + assinatura cartão/boleto</td>
+              <td>Só cobrança avulsa</td>
+              <td>Serviço pronto</td>
+            </tr>
+            <tr>
+              <td>Stripe</td>
+              <td>products + prices + subscriptions</td>
+              <td>Só <code>payment_intents</code></td>
+              <td>Não implementado</td>
+            </tr>
+            <tr>
+              <td>Asaas</td>
+              <td><code>POST /v3/subscriptions</code></td>
+              <td>Só customers/checkouts/payments</td>
+              <td>Não implementado</td>
+            </tr>
+            <tr>
+              <td>Mercado Pago</td>
+              <td><code>/preapproval</code></td>
+              <td>Só <code>/payments</code></td>
+              <td>Não implementado</td>
+            </tr>
+            <tr>
+              <td>Pagar.me / PayPal</td>
+              <td>subscriptions / billing plans</td>
+              <td>Só cobrança única</td>
+              <td>Não implementado</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note warn">
+        <div class="h">Consequência prática</div>
+        <p>
+          O seletor de periodicidade no produto deve aparecer <strong>só quando o gateway
+          suportar</strong> — exatamente como você pediu. O primeiro piloto é CajuPay, por ser o
+          único com contrato validado na referência. Os demais entram como "em breve" até
+          implementação específica. Mesmo no CajuPay, PIX automático exige adesão do lojista e
+          mandato do pagador — é dependência externa, não só código.
+        </p>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="idx">04</span>Plano em 5 fases</h2>
+      <div class="flow">
+        <div class="step"><div class="k">F1</div><div class="t"><b>Schema (sem quebrar drip)</b> <code>checkout_config.billing</code> (modo, intervalo, price_id, carência, dias de aviso); ampliar CHECK de <code>subscriptions.status</code>; <code>expires_at</code>, <code>subscription_id</code> e <code>status</code> em <code>user_course_access</code>; tabela de dedupe de avisos. <strong>granted_at intacto na renovação.</strong></div></div>
+        <div class="step"><div class="k">F2</div><div class="t"><b>Cobrança recorrente (piloto CajuPay)</b> Nova action <code>create_subscription</code> no payment-ops e método no provider; webhook trata eventos de assinatura; flag <code>supports_recurrence</code> por gateway para o front esconder a opção. Idempotência por chave.</div></div>
+        <div class="step"><div class="k">F3</div><div class="t"><b>Acesso e drip</b> Função <code>subscription_access_active(user, course)</code> usada em RLS, <code>auth_has_course_access</code>, <code>lesson-file-url</code>, <code>lesson-progress</code> e nas RPCs de release. Com assinatura vencida, a RPC devolve <em>todos</em> os itens como travados — sem apagar nada.</div></div>
+        <div class="step"><div class="k">F4</div><div class="t"><b>Notificações</b> Edge <code>subscription-reminders</code> com 3 kinds (expiry_warning, renewal, renewal_confirmed), e-mail pela fila, WhatsApp por template e cron diário 13:00 UTC. <code>dryRun</code> para homologar sem enviar.</div></div>
+        <div class="step"><div class="k">F5</div><div class="t"><b>Painel, portal e webhooks</b> Periodicidade no produto, badge de recorrência por gateway, rota <code>/renovar/{token}</code> e ativação dos 4 eventos <code>subscription.*</code> no catálogo (já presentes desde o item 4).</div></div>
+      </div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="idx">05</span>Regras de acesso e drip</h2>
+      <p>
+        Hoje a RLS de <code>user_course_access</code> e o helper <code>auth_has_course_access</code>
+        só verificam <em>existência da linha</em>. Para bloquear sem remover, todos os pontos
+        precisam passar a exigir <code>status = 'active'</code> e <code>expires_at &gt; now()</code>
+        quando a linha vier de assinatura:
+      </p>
+      <ul>
+        <li>Policy <code>Users read own access</code></li>
+        <li><code>auth_has_course_access(uuid)</code> (RLS de <code>lesson_materials</code>)</li>
+        <li>Edge <code>lesson-file-url</code> (PDF) e <code>lesson-progress</code></li>
+        <li><code>get_course_release_map</code> e <code>_for</code></li>
+      </ul>
+      <div class="note risk">
+        <div class="h">Ponto crítico: não reancorar</div>
+        <p>
+          A renovação atualiza <strong>só</strong> <code>expires_at</code>. Se atualizar
+          <code>granted_at</code>, o drip reposiciona a âncora e aulas já liberadas voltam a
+          travar por <code>release_after_days</code>. É por isso que <code>expires_at</code> precisa
+          ser coluna separada.
+        </p>
+      </div>
+      <p>
+        Com assinatura vencida, o aluno <strong>continua lendo o que já viu</strong> (material,
+        PDF, progresso, comentários). O que trava é conteúdo novo: as RPCs de release devem
+        devolver módulos e aulas futuros como bloqueados, inclusive os que não têm
+        <code>release_after_days</code>.
+      </p>
+    </section>
+
+    <section id="s6">
+      <h2><span class="idx">06</span>Notificações</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Aviso</th><th>Quando</th><th>Canal</th><th>Dedupe</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Lembrete de vencimento</strong></td>
+              <td>D-<code>notify_days_before</code> (default 3) antes de <code>current_period_end</code></td>
+              <td>E-mail (<code>type: notification</code>) + WhatsApp</td>
+              <td><code>(subscription_id, kind, sent_on)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Lembrete de renovação</strong></td>
+              <td>D0 — com link de renovação via <code>renewal_token</code></td>
+              <td>E-mail + WhatsApp</td>
+              <td>mesma tabela</td>
+            </tr>
+            <tr>
+              <td><strong>Confirmação da renovação</strong></td>
+              <td>D+1, após pagamento confirmado</td>
+              <td>E-mail + WhatsApp + notificação in-app (<code>event_key</code>)</td>
+              <td><code>event_key</code> já dedupe webhook</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Os três templates de WhatsApp entram em <code>message_templates</code> seguindo o padrão
+        dos 8 atuais. O e-mail usa a fila durável existente — se o provedor cair, a linha fica
+        <code>queued</code> e o cron reenvia com backoff, igual ao drip.
+      </p>
+    </section>
+
+    <section id="s7">
+      <h2><span class="idx">07</span>Riscos e decisões que ficam com você</h2>
+      <ul>
+        <li><strong>Adesão do gateway:</strong> PIX automático (CajuPay, Efí, PushinPay) exige convenio e mandato do pagador. Sem isso, a recorrência não funciona — não é problema de código</li>
+        <li><strong>Cartão recorrente:</strong> exige tokenização no gateway. O Flow hoje evita tocar dados de cartão (token é criado no SDK do Mercado Pago) — para CajuPay seria preciso aceitar o SDK dele</li>
+        <li><strong>Estorno de parcela:</strong> cancela só o período ou a assinatura inteira? Hoje <code>revoke_access_on_refund</code> apaga acesso; no modelo híbrido deve virar bloqueio</li>
+        <li><strong>Carência:</strong> quantos dias após o vencimento o conteúdo novo bloqueia? O Getfy usa <code>grace_period_days = 0</code> por padrão</li>
+        <li><strong>Outros gateways:</strong> Stripe/Asaas/MP/Pagar.me/PayPal ficam marcados como "sem recorrência" até implementação — você decide a ordem</li>
+      </ul>
+      <div class="note info">
+        <div class="h">Minha recomendação</div>
+        <p>
+          Começar pela <strong>F1 (schema)</strong>, que é reversível e não mexe em cobrança,
+          depois homologar a <strong>F3 (acesso/drip)</strong> com assinaturas simuladas em banco —
+          antes de depender de qualquer gateway real. A F2 fica para depois da adesão do CajuPay.
+          Assim você valida o modelo híbrido sem risco financeiro.
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="fi">
+    <div>Plano baseado em leitura de código, migrations e consultas somente-leitura em produção</div>
+    <div><code>flow5</code> · <code>pbrdmjcpipuatbnkvekz</code> · 26/11/2026</div>
+  </div>
+</footer>
+
+<button class="totop" id="toTop" title="Voltar ao topo">↑</button>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  var saved=null; try{saved=localStorage.getItem('flow-doc-theme')}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  btn.addEventListener('click',function(){
+    var next = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('flow-doc-theme',next)}catch(e){}
+  });
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var map={};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)]=a; });
+  var secs=[].slice.call(document.querySelectorAll('main section'));
+  var top=document.getElementById('toTop');
+  function onScroll(){
+    var y=window.scrollY+120, current=secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].offsetTop<=y) current=secs[i]; }
+    links.forEach(function(a){a.classList.remove('active')});
+    if(map[current.id]) map[current.id].classList.add('active');
+    top.classList.toggle('on', window.scrollY>600);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
