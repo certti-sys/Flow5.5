@@ -5,8 +5,14 @@ front, Supabase (Postgres + Auth + Storage + Edge Functions) no back, deploy
 para `https://v5.flowmembers.app`.
 
 Este arquivo é o resumo operacional: o que existe, onde fica, como se verifica e
-quais decisões já estão fechadas. Detalhe por fase em
-`docs/plano-paridade-getfy.dm`; pendências em `docs/relatorio-pendencias-paridade.html`.
+quais decisões já estão fechadas. Detalhe das 11 pendências em
+`docs/relatorio-pendencias-paridade.html`; ordem de execução em
+`docs/plano-pendencias-restante.html`; assinaturas em
+`docs/plano-assinaturas.html`; fases antigas em `docs/plano-paridade-getfy.dm`.
+
+**Estado em 26/11/2026:** as 11 pendências de paridade estão fechadas, exceto
+a cobrança recorrente (F2 de assinaturas), que ficou como pendência futura por
+decisão do usuário. `main` sincronizado com `origin/main` em `706e336`.
 
 ---
 
@@ -59,8 +65,8 @@ primeiro.
 
 ## 2. Banco
 
-76 migrations em `supabase/migrations/` (nomes por data, `2026MMDDhhmmss`).
-29 edge functions em `supabase/functions/`.
+90 migrations em `supabase/migrations/` (nomes por data, `2026MMDDhhmmss`).
+33 edge functions em `supabase/functions/`.
 
 Tabelas centrais:
 
@@ -75,19 +81,32 @@ Tabelas centrais:
 | Aparência | `theme_settings`, `platform_settings`, `carousels` |
 
 Config de checkout mora em `products.checkout_config` (JSONB): aparência,
-blocos de conteúdo, gateways por método, `payment_methods`, resumo, timer,
+blocos de conteúdo, gateways por método, `payment_methods` (com `default`),
+`billing` (modo + periodicidade + carência + aviso), resumo, timer,
 `thank_you`, `upsell`/`downsell`, `redirect_after_purchase`, SEO.
 
-Cron (`cron.job`, 8 jobs): `cart-recovery` (*/5), `dispatch-webhooks`,
+Cron (`cron.job`, 10 jobs): `cart-recovery` (*/5), `dispatch-webhooks`,
 `dispatch-notifications`, `dispatch-integrations`, `dispatch-campaigns` (todos
-1 min), `purge-cart-leads` (03:15), `purge-system-logs` (03:25),
-`retention-cron` (21:00 UTC).
+1 min), `drip-release-email` (12:00 UTC), `subscription-reminders` (13:00 UTC),
+`purge-cart-leads` (03:15), `purge-system-logs` (03:25), `retention-cron`
+(21:00 UTC).
+
+Tabelas novas desde 25/11: `legal_pages` (3 linhas), `drip_release_notifications`,
+`webhook_test_receipts`, `webhook_receiver_events`, `subscription_notifications`.
+`user_course_access` tem `expires_at`, `subscription_id`, `access_status`
+(`active|blocked|revoked`) e `blocked_at` — vencimento **bloqueia**, nunca apaga.
+`subscriptions` segue com 0 linhas (F2 não implementada).
 
 ### Funções de segurança
 
 - `has_role(user_id, role)` — toda policy de admin usa esta; nunca `user_roles` direto no front.
 - `get_order_public(order_id)` — RPC pública (`SECURITY DEFINER`) que devolve o pedido para as páginas pós-compra sem login. Rota pública só existe por causa dela.
-- `get_course_release_map(user)` / `get_course_release_map_for(user, course)` — agenda do drip; a variante `_for` recebe o user explícito e só a service role executa (edge usa service role, `auth.uid()` seria null).
+- `auth_has_course_access(uuid)` — SECURITY DEFINER, acesso direto + categoria (`user_course_categories` é admin-only; exists direto não veria a linha do aluno). Base da RLS de `lesson_materials`.
+- `subscription_access_active(user, course)` — histórico legível; `blocked` passa.
+  `subscription_content_unlocked(user, course)` — conteúdo novo; `blocked` não passa.
+- `get_course_release_map(course)` / `get_course_release_map_for(user, course)` — agenda do drip; a variante `_for` recebe o user explícito e só a service role executa (edge usa service role, `auth.uid()` seria null). Com assinatura bloqueada, devolve **todos** os itens como travados.
+- `get_drip_releases_for_date(date)` / `get_subscription_reminders(date)` — só service role; base dos e-mails agrupados.
+- `get_renewal_info(token)` — RPC pública do portal `/renovar/:token`; expõe só produto/status/vigência.
 - `claim_order_upsell(order_id)` — marca `metadata.upsell_shown` e devolve `true` uma vez por pedido pago.
 - `build_order_webhook_payload`, `enqueue_webhook_deliveries`, `enqueue_refund_deliveries` — emissão de webhook nunca desfaz pagamento: tudo dentro de `exception when others → raise warning`.
 
@@ -111,11 +130,18 @@ já manda em todas). Origem fora de `_shared/cors.ts` → 403.
 | `lesson-file-url` | Valida acesso + drip e assina PDF do bucket privado por 10 min |
 | `lesson-progress` | Marca aula concluída com guarda dura de drip no servidor |
 | `cart-recovery` | Funil de abandono (e-mail, WhatsApp, SMS via IntegraX) |
-| `send-email`, `send-whatsapp`, `send-campaign`, `campaign-track` | Mensageria |
+| `send-email`, `send-whatsapp`, `send-campaign`, `campaign-track` | Mensageria; `campaign-track` também grava clique e descadastro |
+| `drip-release-email` | 1 e-mail/aluno/dia com conteúdo liberado; `dryRun` homologa sem enviar |
+| `subscription-reminders` | 3 avisos de assinatura (vencimento, renovação, confirmação); `dryRun` |
+| `webhook-test-receiver` | Destinatário interno de homologação: valida HMAC/bearer e grava receipt |
 | `dispatch-*`, `retention-cron`, `check-achievements`, `check-course-access`, `sys-health` | Jobs |
 
 `payment-ops` é a **única** implementação de cobrança. Qualquer fluxo novo
-(upsell, bump, recompra) reusa ela em vez de falar com gateway.
+(upsell, bump, recompra) reusa ela em vez de falar com gateway. Ainda **não**
+tem action de assinatura — F2 pendente.
+
+Edge functions adicionadas desde 25/11: `drip-release-email`, `subscription-reminders`,
+`webhook-test-receiver` (33 no total).
 
 ---
 
@@ -258,7 +284,39 @@ Não reabrir sem motivo novo:
 
 ---
 
-## 5. Verificação
+## 5. Pendências e estado das entregas
+
+**Concluídas em 26/11/2026** (commit `706e336`, pushado):
+
+1. Páginas legais editáveis (`legal_pages`, rotas `/termos`, `/privacidade`, `/lgpd`, admin).
+2. URL MP4 de CDN com regras (HTTPS + allowlist); embed segue como padrão.
+3. RLS de `lesson_materials` por acesso ao curso; homologada com 3 perfis.
+4. Webhooks: 14 eventos, `bearer_token` + HMAC, receptor de teste interno.
+5. Opt-out do ranking (`leaderboard_opt_out` + filtro na RPC).
+6. `payment_methods.default` por produto; corrigida a race que escondia o formulário de cartão até F5.
+7. E-mail de drip agrupado (1/aluno/dia) + cron 12:00 UTC.
+8. Conquistas: 5 critérios + `/admin/conquistas`.
+9. Clique em campanha com allowlist + coluna Cliques.
+10. Assinaturas: F1 (schema), F3 (bloqueio sem apagar + drip), F4 (3 avisos), F5 (portal).
+11. Higiene: `docs/relatorio-portacao-getfy.dm` marcado como histórico; push feito.
+
+**Pendente futura (decisão do usuário, não focar agora):**
+
+- **F2 — cobrança recorrente.** `payment-ops` não tem action `create_subscription`.
+  O único gateway com contrato pronto na referência é CajuPay (PIX automático /
+  cartão), e depende de adesão do lojista + mandato do pagador. Stripe/Asaas/MP/
+  Pagar.me/PayPal/Efí/PushinPay não têm driver de assinatura no Flow. Tudo ao
+  redor já está pronto: periodicidade no produto, bloqueio, drip e notificações.
+  Detalhes em `docs/plano-assinaturas.html`.
+
+**Fora de escopo (não reabrir sem motivo novo):** API pública v1, plugins,
+Meta Cloud API WhatsApp, carrinho multi-produto, CAPTCHA/Turnstile, multi-tenant,
+afiliados, financeiro, conquista por faturamento, Fases 14/15 do plano antigo e
+desconto PIX. O Getfy remove acesso na expiração; o Flow bloqueia (decisão 30).
+
+---
+
+## 6. Verificação
 
 Nunca validar por imagem. Sempre por DOM/toast/console/rede.
 
@@ -269,7 +327,18 @@ com `--no-save`, some no próximo `npm install`); Chrome em
 
 Login de teste no banco: `POST /auth/v1/admin/generate_link`
 (`type: 'magiclink'`) → `POST /auth/v1/verify` com `{type:'magiclink',
-token_hash}`. **GET** em `/auth/v1/verify` cai no SPA e devolve HTML.
+token_hash}`. A resposta do `generate_link` usa **`hashed_token`**, não
+`token_hash` (a chave antiga não existe mais). **GET** em `/auth/v1/verify` cai
+no SPA e devolve HTML.
+
+Edges com service role: comparar o header `Authorization` com a env var
+`SUPABASE_SERVICE_ROLE_KEY` **falha** — o valor deployado tem tamanho diferente
+da JWT do vault. Validar pelo claim `role === 'service_role'` no payload do JWT.
+O cron não envia `Origin`, mas chamadas de teste precisam de
+`X-Requested-With: XMLHttpRequest` (CSRF).
+
+Depois de editar `package.json`/deps, limpar `node_modules/.vite` e reiniciar o
+Vite, senão os imports dinâmicos falham com `504 Outdated Optimize Dep`.
 
 Auth do front fica em **cookie** `sb-<ref>-auth-token` (`CookieStorage` em
 `src/integrations/supabase/client.ts`), não localStorage.
@@ -284,7 +353,7 @@ aula liberada `5f0d23a2-6c8c-443b-83dc-d182b32bb59b`; aula travável
 
 ---
 
-## 6. Higiene do repositório
+## 7. Higiene do repositório
 
 - Scripts locais (`tmp-*`, probes, PNGs, logs) **nunca** commitados — já estão
   no `.gitignore` (`tmp-*`, `audit-*.mjs`, `verify-*.mjs`, `*-out.txt`).
