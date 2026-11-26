@@ -423,23 +423,21 @@ export default function EmailCampaigns() {
                               <Play className="w-4 h-4" />
                             </button>
                           )}
+                          <button
+                            title={c.status === "sent" ? "Editar conteúdo e segmento" : "Editar"}
+                            onClick={() => openEdit(c)}
+                            className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
                           {(c.status === "draft" || c.status === "paused") && (
-                            <>
-                              <button
-                                title="Editar"
-                                onClick={() => openEdit(c)}
-                                className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                              >
-                                <Mail className="w-4 h-4" />
-                              </button>
-                              <button
-                                title="Cancelar"
-                                onClick={() => setStatus(c, "cancelled", "cancel")}
-                                className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            </>
+                            <button
+                              title="Cancelar"
+                              onClick={() => setStatus(c, "cancelled", "cancel")}
+                              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
                           )}
                           {(c.status === "sent" || c.status === "sending" || c.status === "cancelled") && (
                             <button
@@ -487,6 +485,11 @@ export default function EmailCampaigns() {
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-[13px]">
               O corpo aceita HTML. O rodapé de descadastro é adicionado no envio.
+              {editor?.id && campaigns?.find((c) => c.id === editor.id)?.status === "sent" && (
+                <span className="block text-amber-400 mt-1">
+                  Campanha já enviada: editar o conteúdo muda o que aparece na prévia, mas não reenvia nem altera os e-mails já entregues.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
