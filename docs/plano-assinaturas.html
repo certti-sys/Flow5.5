@@ -284,6 +284,28 @@
   </p>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">F4 entregue em 26/11/2026</div>
+  <p>
+    Edge <code>subscription-reminders</code> + RPC <code>get_subscription_reminders(date)</code>
+    (só service_role) com os 3 avisos: <code>expiry_warning</code> (D-3),
+    <code>renewal</code> (D0) e <code>renewal_confirmed</code> (renovação real detectada por
+    <code>updated_at &gt; created_at</code>). E-mail pela fila com
+    <code>type:'notification'</code> (respeita opt-out), WhatsApp por 3 novos templates e
+    cron diário 13:00 UTC. <code>dryRun</code> homologa sem enviar.
+  </p>
+  <p>
+    <strong>Homologado em produção:</strong> com assinatura de teste — expiry em 26/11,
+    renewal em 29/11 e renewal_confirmed após simular renovação. Dois bugs reais corrigidos
+    pelo caminho: renewal_confirmed disparava na criação e, depois, comparava updated_at com
+    o período já substituído. Estado limpo: 0 assinaturas, 0 avisos, 3 templates, cron ativo.
+  </p>
+  <p>
+    <strong>Resta:</strong> F2 (cobrança recorrente — piloto CajuPay, depende de adesão do
+    lojista) e F5 (painel/portal).
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">8</div><div class="l">Gateways instalados</div></div>
   <div class="stat"><div class="n">1</div><div class="l">Com recorrência pronta</div></div>
@@ -448,7 +470,7 @@
         <div class="step"><div class="k">✓</div><div class="t"><b>Schema (sem quebrar drip)</b> <code>checkout_config.billing</code> (modo, intervalo, price_id, carência, dias de aviso); ampliar CHECK de <code>subscriptions.status</code>; <code>expires_at</code>, <code>subscription_id</code> e <code>status</code> em <code>user_course_access</code>; tabela de dedupe de avisos. <strong>granted_at intacto na renovação.</strong></div></div>
         <div class="step"><div class="k">F2</div><div class="t"><b>Cobrança recorrente (piloto CajuPay)</b> Nova action <code>create_subscription</code> no payment-ops e método no provider; webhook trata eventos de assinatura; flag <code>supports_recurrence</code> por gateway para o front esconder a opção. Idempotência por chave.</div></div>
         <div class="step"><div class="k">✓</div><div class="t"><b>Acesso e drip</b> Função <code>subscription_access_active(user, course)</code> usada em RLS, <code>auth_has_course_access</code>, <code>lesson-file-url</code>, <code>lesson-progress</code> e nas RPCs de release. Com assinatura vencida, a RPC devolve <em>todos</em> os itens como travados — sem apagar nada.</div></div>
-        <div class="step"><div class="k">F4</div><div class="t"><b>Notificações</b> Edge <code>subscription-reminders</code> com 3 kinds (expiry_warning, renewal, renewal_confirmed), e-mail pela fila, WhatsApp por template e cron diário 13:00 UTC. <code>dryRun</code> para homologar sem enviar.</div></div>
+        <div class="step"><div class="k">✓</div><div class="t"><b>Notificações</b> Edge <code>subscription-reminders</code> com 3 kinds (expiry_warning, renewal, renewal_confirmed), e-mail pela fila, WhatsApp por template e cron diário 13:00 UTC. <code>dryRun</code> para homologar sem enviar.</div></div>
         <div class="step"><div class="k">F5</div><div class="t"><b>Painel, portal e webhooks</b> Periodicidade no produto, badge de recorrência por gateway, rota <code>/renovar/{token}</code> e ativação dos 4 eventos <code>subscription.*</code> no catálogo (já presentes desde o item 4).</div></div>
       </div>
     </section>
