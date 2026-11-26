@@ -1,5 +1,15 @@
 # Relatório: funcionalidades portadas do Getfy → Flow5.5
 
+> **DOCUMENTO HISTÓRICO — 25/11/2026.** Retrata o estado em 18/11/2026.
+> Vários itens marcados abaixo como "não portados" ou "pela metade" foram
+> entregues depois: upsell/downsell público, drip content com liberação
+> programada **e e-mail de conteúdo liberado**, leitor de PDF com marcações,
+> recuperação de carrinho com SMS, conquistas com 5 critérios e tela de admin,
+> webhooks de saída com 14 eventos e receptor de teste, páginas legais
+> editáveis, opt-out do ranking, e ainda correções de RLS e design system.
+> Estado atual e pendências: `docs/relatorio-pendencias-paridade.html` e
+> `docs/plano-pendencias-restante.html`.
+
 **Data:** 18/11/2026
 **Status:** validação concluída (nenhuma alteração em produção)
 **Metodologia:** inventário duplo em paralelo (um levantamento lendo apenas a pasta de referência `Getfy/`, outro lendo apenas o produto atual `src/`, `supabase/`, `docs/`), cruzamento das duas listas e **validação prática** com Puppeteer no localhost + consultas somente-leitura ao banco de produção (`npx supabase db query --remote --read-only`).
