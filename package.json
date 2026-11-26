@@ -15,6 +15,7 @@
     "check:drip": "node scripts/check-drip-content.mjs",
     "check:pdf": "node scripts/check-pdf-viewer.mjs",
     "check:annotations": "node scripts/check-pdf-annotations.mjs",
+    "check:achievements": "node scripts/check-achievements.mjs",
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {

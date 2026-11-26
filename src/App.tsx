@@ -52,6 +52,7 @@ const AdminDesignSandbox = lazy(() => import("./pages/admin/DesignSandbox"));
 const CheckoutBuilderPage = lazy(() => import("./pages/admin/CheckoutBuilder"));
 const OrderBumpsPage = lazy(() => import("./pages/admin/OrderBumps"));
 const AdminCouponsPage = lazy(() => import("./pages/admin/Coupons"));
+const AdminAchievementsPage = lazy(() => import("./pages/admin/Achievements"));
 import { CheckoutLayout } from "./components/checkout/CheckoutLayout";
 const CheckoutPage = lazy(() => import("./pages/checkout/Checkout"));
 const ThankYouPage = lazy(() => import("./pages/checkout/ThankYou"));
@@ -323,6 +324,16 @@ const App = () => (
                     <AdminProtectedRoute>
                       <AdminLayout>
                         <AdminCouponsPage />
+                      </AdminLayout>
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/conquistas"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout>
+                        <AdminAchievementsPage />
                       </AdminLayout>
                     </AdminProtectedRoute>
                   }

@@ -63,6 +63,7 @@ const academicItems = [
   { title: "Alunos", url: "/admin/alunos", icon: Users },
   { title: "Comentários", url: "/admin/comentarios", icon: MessageSquare },
   { title: "Certificados", url: "/admin/certificados", icon: Award },
+  { title: "Conquistas", url: "/admin/conquistas", icon: Award },
 ];
 
 // 3. Comercial

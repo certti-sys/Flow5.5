@@ -279,6 +279,19 @@
   </p>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">Atualização — item 8 (conquistas) entregue</div>
+  <p>
+    <code>check-achievements</code> agora trata os 5 critérios: os 3 originais mais
+    <code>course_completed</code> (via <code>course_completion_percent</code>) e
+    <code>comments_count</code>. Rota <code>/admin/conquistas</code> com CRUD sem
+    migration, e <code>npm run check:achievements</code> garante que todo critério
+    oferecido no Select existe no switch da edge — o banco aceita texto livre.
+    Edge deployada e testada em produção (200). Estado do banco restaurado ao
+    seed original de 10 conquistas após teste de UI.
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">11</div><div class="l">Pendências abertas</div></div>
   <div class="stat"><div class="n">4</div><div class="l">Fases de execução</div></div>

@@ -68,6 +68,26 @@ Deno.serve(async (req) => {
     // Fetch progress data
     const { count: lessonsCompleted } = await supabaseClient.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('completed', true);
 
+    // Critérios adicionais (item 8 das pendências), ambos com service role:
+    //   course_completed  -> cursos com 100% de progresso via RPC existente
+    //   comments_count    -> total de comentários do aluno
+    const { data: enrolledCourses } = await supabaseClient
+      .from('user_course_access')
+      .select('course_id')
+      .eq('user_id', user.id);
+    let coursesCompleted = 0;
+    for (const row of enrolledCourses ?? []) {
+      const { data: percent } = await supabaseClient.rpc('course_completion_percent', {
+        p_user_id: user.id,
+        p_course_id: row.course_id,
+      });
+      if ((percent ?? 0) >= 100) coursesCompleted++;
+    }
+    const { count: commentsCount } = await supabaseClient
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
     const newlyUnlocked: Achievement[] = [];
     let xpToAdd = 0;
 
@@ -81,6 +101,8 @@ Deno.serve(async (req) => {
         case 'lessons_completed': shouldUnlock = (lessonsCompleted || 0) >= criteriaValue; break;
         case 'streak_days': shouldUnlock = (userStats?.current_streak || 0) >= criteriaValue; break;
         case 'daily_lessons': shouldUnlock = (userStats?.lessons_today || 0) >= criteriaValue; break;
+        case 'course_completed': shouldUnlock = coursesCompleted >= criteriaValue; break;
+        case 'comments_count': shouldUnlock = (commentsCount || 0) >= criteriaValue; break;
       }
 
       if (shouldUnlock) {
