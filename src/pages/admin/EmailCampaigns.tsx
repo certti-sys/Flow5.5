@@ -94,18 +94,21 @@ export default function EmailCampaigns() {
     },
   });
 
-  // Aberturas por campanha. Sem isto a coluna mostraria só o enviado.
-  const { data: opens } = useQuery({
-    queryKey: ["campaign-opens"],
+  // Aberturas e cliques por campanha. Sem isto a tabela mostraria só o enviado.
+  const { data: engagement } = useQuery({
+    queryKey: ["campaign-engagement"],
     queryFn: async () => {
       const { data } = await supabase
         .from("email_campaign_sends")
-        .select("campaign_id, opened_at")
-        .not("opened_at", "is", null)
+        .select("campaign_id, opened_at, clicked_at")
+        .or("opened_at.not.is.null,clicked_at.not.is.null")
         .limit(20000);
-      const map: Record<string, number> = {};
-      for (const row of (data ?? []) as Array<{ campaign_id: string }>) {
-        map[row.campaign_id] = (map[row.campaign_id] ?? 0) + 1;
+      const map: Record<string, { opens: number; clicks: number }> = {};
+      for (const row of (data ?? []) as Array<{ campaign_id: string; opened_at: string | null; clicked_at: string | null }>) {
+        const item = map[row.campaign_id] ?? { opens: 0, clicks: 0 };
+        if (row.opened_at) item.opens++;
+        if (row.clicked_at) item.clicks++;
+        map[row.campaign_id] = item;
       }
       return map;
     },
@@ -282,6 +285,7 @@ export default function EmailCampaigns() {
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-center">Progresso</th>
                 <th className="px-6 py-4 text-center">Aberturas</th>
+                <th className="px-6 py-4 text-center">Cliques</th>
                 <th className="px-6 py-4 text-right">Ações</th>
               </tr>
             </thead>
@@ -289,7 +293,7 @@ export default function EmailCampaigns() {
               {isLoading ? (
                 Array(3).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-6 py-8"><div className="h-4 bg-white/5 rounded w-full" /></td>
+                    <td colSpan={6} className="px-6 py-8"><div className="h-4 bg-white/5 rounded w-full" /></td>
                   </tr>
                 ))
               ) : campaigns && campaigns.length > 0 ? (
@@ -330,11 +334,21 @@ export default function EmailCampaigns() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <p className="text-[13px] text-white/80 font-semibold">
-                          {opens?.[c.id] ?? 0}
+                          {engagement?.[c.id]?.opens ?? 0}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
                           {c.sent_count > 0
-                            ? `${Math.round(((opens?.[c.id] ?? 0) / c.sent_count) * 100)}%`
+                            ? `${Math.round(((engagement?.[c.id]?.opens ?? 0) / c.sent_count) * 100)}%`
+                            : "—"}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <p className="text-[13px] text-white/80 font-semibold">
+                          {engagement?.[c.id]?.clicks ?? 0}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {c.sent_count > 0
+                            ? `${Math.round(((engagement?.[c.id]?.clicks ?? 0) / c.sent_count) * 100)}%`
                             : "—"}
                         </p>
                       </td>
@@ -407,7 +421,7 @@ export default function EmailCampaigns() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
+                  <td colSpan={6} className="px-6 py-16 text-center">
                     <Mail className="w-8 h-8 text-white/15 mx-auto mb-3" />
                     <p className="text-white/70 font-bold text-sm">Nenhuma campanha ainda</p>
                     <p className="text-muted-foreground text-[13px] mt-1 max-w-[380px] mx-auto">

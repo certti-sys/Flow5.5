@@ -32,6 +32,7 @@ npm run check:upsell   # upsell/downsell + métodos de pagamento
 npm run check:cart     # recuperação de carrinho
 npm run check:drip     # drip content
 npm run check:drip-email # e-mail de conteúdo liberado
+npm run check:campaign-click # allowlist e clique de campanha
 npm run check:pdf      # escada de zoom do leitor
 npm run check:annotations # normalização das marcações do PDF
 npm run check:achievements # 5 critérios do motor de conquistas
@@ -227,6 +228,12 @@ Não reabrir sem motivo novo:
     agrupa por aluno, usa `type: 'notification'` (respeita opt-out) e marca
     `drip_release_notifications` para dedupe. Cron diário 12:00 UTC (09:00
     Brasília). `dryRun` homologa sem enviar. Nunca usar `auth.uid()` na edge.
+32. **Clique de campanha: redirecionamento com allowlist.** `campaign-track`
+    trata `a=click&u=<url>`, grava `clicked_at` uma vez (`.is(null)`) e
+    redireciona 302 só para `http://` ou `https://` — nunca `javascript:`
+    ou `data:`. `send-campaign` reescreve `href` absolutos **no envio**,
+    nunca no editor; links relativos não são tocados. A tela mostra Cliques
+    ao lado de Aberturas. `npm run check:campaign-click` trava o contrato.
 
 ---
 

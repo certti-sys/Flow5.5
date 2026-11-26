@@ -63,6 +63,19 @@ function withTracking(html: string, token: string): string {
   // A edge responde em `*.supabase.co`, não no domínio da plataforma.
   const base = Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "");
   const link = `${base}/functions/v1/campaign-track?t=${token}`;
+
+  // Só no envio: reescreve links absolutos para passar pelo tracker. O HTML
+  // salvo no editor continua intacto — links relativos nunca são tocados.
+  // O destino é codificado na URL e validado pela edge (allowlist http/https).
+  html = html.replace(
+    /href=(["'])(\s*https?:\/\/[^"']+)\1/gi,
+    (_m, quote: string, target: string) => {
+      const trimmed = target.trim();
+      const tracked = `${link}&a=click&u=${encodeURIComponent(trimmed)}`;
+      return `href=${quote}${tracked}${quote}`;
+    },
+  );
+
   const pixel = `<img src="${link}&a=open" width="1" height="1" alt="" style="display:block;border:0;outline:none;" />`;
   const footer = `
 <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e4e4e7;font-size:12px;color:#a1a1aa;text-align:center;font-family:Arial,sans-serif;">

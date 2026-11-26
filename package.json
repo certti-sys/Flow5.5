@@ -17,6 +17,7 @@
     "check:annotations": "node scripts/check-pdf-annotations.mjs",
     "check:achievements": "node scripts/check-achievements.mjs",
     "check:drip-email": "node scripts/check-drip-email.mjs",
+    "check:campaign-click": "node scripts/check-campaign-click.mjs",
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {

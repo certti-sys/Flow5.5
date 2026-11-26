@@ -10,6 +10,8 @@ import { logger } from "../_shared/logger.ts";
  *
  * `a=open` devolve um GIF transparente 1×1 sempre, mesmo com token inválido:
  * pixel quebrado no cliente de e-mail é pior que pixel ignorado.
+ * `a=click` grava clicked_at e redireciona para `u`, com allowlist http/https
+ * para não virar open redirect.
  * `a=unsubscribe` grava o opt-out e devolve uma página mínima de confirmação.
  */
 
@@ -62,6 +64,39 @@ Deno.serve(async (req) => {
       }
     }
     return new Response(GIF, { headers: noStore });
+  }
+
+  // Clique em link da campanha: grava clicked_at uma vez e redireciona.
+  // Allowlist de esquema impede open redirect — sem isto qualquer pessoa
+  // usava o domínio da plataforma para redirecionar para javascript:/data:.
+  if (action === "click") {
+    const raw = url.searchParams.get("u") ?? "";
+    let dest: URL | null = null;
+    try {
+      const candidate = new URL(raw);
+      if (candidate.protocol === "http:" || candidate.protocol === "https:") {
+        dest = candidate;
+      }
+    } catch { /* URL inválida */ }
+    if (!token || !dest) return page("Link inválido", "Este link não existe ou expirou.");
+
+    try {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      await supabase
+        .from("email_campaign_sends")
+        .update({ clicked_at: new Date().toISOString() })
+        .eq("token", token)
+        .is("clicked_at", null);
+    } catch (error) {
+      logger.warn("[campaign-track] clique não registrado", error);
+    }
+    return new Response(null, {
+      status: 302,
+      headers: { Location: dest.toString(), "Cache-Control": "no-store" },
+    });
   }
 
   if (action !== "unsubscribe") {
