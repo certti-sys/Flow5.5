@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow5.5 — Auditoria e plano do sistema de e-mails</title>
+<style>
+  :root{
+    --bg:#0b0d0c;
+    --bg-soft:#111412;
+    --panel:#141816;
+    --panel-2:#181d1a;
+    --line:#232a26;
+    --line-soft:#1b211e;
+    --ink:#e8ece6;
+    --ink-2:#a8b3a6;
+    --ink-3:#6f7a70;
+    --accent:#74d909;
+    --accent-dim:#5aa807;
+    --accent-soft:rgba(116,217,9,.10);
+    --blue:#4aa8ff;
+    --amber:#f5b942;
+    --violet:#a78bfa;
+    --rose:#fb7185;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --maxw:1320px;
+  }
+  html[data-theme="light"]{
+    --bg:#f7f8f6;
+    --bg-soft:#eef0ec;
+    --panel:#ffffff;
+    --panel-2:#f4f6f2;
+    --line:#dfe4dc;
+    --line-soft:#eaeee6;
+    --ink:#161a17;
+    --ink-2:#4a544b;
+    --ink-3:#7b867c;
+    --accent-soft:rgba(116,217,9,.14);
+    --accent-dim:#4f8f06;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+
+  .hero{
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(900px 380px at 12% -10%, rgba(116,217,9,.10), transparent 60%),
+      radial-gradient(700px 300px at 88% 0%, rgba(74,168,255,.07), transparent 62%),
+      var(--bg);
+    padding:64px 32px 52px;
+  }
+  .hero-inner{max-width:var(--maxw);margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:34px;height:1px;background:var(--accent);opacity:.7}
+  h1{
+    margin:0 0 18px;font-size:clamp(34px,5.4vw,64px);line-height:1.02;
+    font-weight:600;letter-spacing:-.035em;max-width:20ch;
+  }
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{max-width:74ch;color:var(--ink-2);font-size:17px;margin:0 0 30px}
+  .metaline{
+    display:flex;flex-wrap:wrap;gap:10px 26px;font-family:var(--mono);font-size:12px;
+    color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px;
+  }
+  .metaline b{color:var(--ink-2);font-weight:500}
+
+  .stats{
+    max-width:var(--maxw);margin:0 auto;padding:0 32px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+    gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-top:none;border-radius:0 0 14px 14px;overflow:hidden;
+  }
+  .stat{background:var(--bg-soft);padding:20px 18px}
+  .stat .n{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+  .stat .n small{font-size:14px;color:var(--accent)}
+  .stat .l{font-size:11.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;margin-top:5px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;display:grid;grid-template-columns:236px 1fr;gap:56px}
+  nav{
+    position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;
+    padding:44px 0 40px;
+  }
+  nav .navtitle{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:14px;
+  }
+  nav ol{list-style:none;margin:0;padding:0;counter-reset:n}
+  nav li{counter-increment:n}
+  nav a{
+    display:flex;gap:9px;align-items:baseline;
+    padding:6px 10px;margin-left:-10px;border-radius:6px;
+    font-size:13px;color:var(--ink-3);transition:.15s;
+  }
+  nav a::before{
+    content:counter(n,decimal-leading-zero);font-family:var(--mono);font-size:10.5px;
+    color:var(--ink-3);opacity:.55;flex:none;
+  }
+  nav a:hover{color:var(--ink);background:var(--panel)}
+  nav a.active{color:var(--accent);background:var(--accent-soft)}
+  nav a.active::before{color:var(--accent);opacity:1}
+  main{padding:44px 0 100px;min-width:0}
+
+  section{padding-bottom:54px;margin-bottom:44px;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:none}
+  h2{
+    margin:0 0 8px;font-size:27px;font-weight:600;letter-spacing:-.025em;
+    display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .idx{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--accent-soft);background:var(--accent-soft);
+    padding:3px 8px;border-radius:5px;flex:none;letter-spacing:.05em;
+  }
+  .sec-sub{color:var(--ink-2);margin:0 0 26px;max-width:82ch;font-size:15px}
+  h3{
+    margin:30px 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:500;
+    padding-bottom:8px;border-bottom:1px solid var(--line-soft);
+  }
+  p{margin:0 0 14px;max-width:88ch}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;max-width:90ch}
+  li{position:relative;padding-left:20px;margin-bottom:7px;color:var(--ink-2)}
+  li::before{
+    content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);opacity:.55;
+  }
+  li strong{color:var(--ink);font-weight:600}
+  code{
+    font-family:var(--mono);font-size:.87em;background:var(--panel-2);
+    border:1px solid var(--line-soft);padding:1.5px 6px;border-radius:5px;color:var(--ink);
+  }
+  .tag{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    padding:2px 7px;border-radius:4px;background:var(--accent-soft);
+    color:var(--accent);border:1px solid var(--accent-soft);margin-right:6px;
+  }
+  .tag.b{background:rgba(74,168,255,.10);color:var(--blue);border-color:rgba(74,168,255,.18)}
+  .tag.a{background:rgba(245,185,66,.10);color:var(--amber);border-color:rgba(245,185,66,.18)}
+  .tag.v{background:rgba(167,139,250,.10);color:var(--violet);border-color:rgba(167,139,250,.18)}
+  .tag.r{background:rgba(251,113,133,.10);color:var(--rose);border-color:rgba(251,113,133,.18)}
+
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 20px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+  th{
+    text-align:left;padding:11px 16px;background:var(--panel-2);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2)}
+  tr:last-child td{border-bottom:none}
+  td strong{color:var(--ink);font-weight:600}
+  tbody tr:hover td{background:rgba(116,217,9,.03)}
+
+  .flow{
+    display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;margin:0 0 20px;
+  }
+  .step{background:var(--panel);padding:14px 18px;display:flex;gap:14px;align-items:flex-start}
+  .step .k{
+    font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;padding-top:2px;
+    min-width:22px;
+  }
+  .step .t{font-size:13.5px;color:var(--ink-2)}
+  .step .t b{color:var(--ink);display:block;font-weight:600;margin-bottom:2px;font-size:14px}
+
+  .note{
+    border:1px solid var(--line);border-left:3px solid var(--accent);
+    background:var(--panel);border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 20px;
+  }
+  .note.warn{border-left-color:var(--amber)}
+  .note.info{border-left-color:var(--blue)}
+  .note.risk{border-left-color:var(--rose)}
+  .note .h{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:7px;
+  }
+  .note p{margin:0;font-size:14px}
+  .note p + p{margin-top:9px}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:0 0 20px}
+  .card{
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:18px 20px;
+  }
+  .card .ch{
+    font-size:14px;font-weight:600;color:var(--ink);margin-bottom:9px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .card .ch::before{content:"";width:4px;height:14px;background:var(--accent);border-radius:2px;flex:none}
+  .card p{font-size:13.5px;color:var(--ink-2);margin:0}
+  .card ul{margin:0;font-size:13.5px}
+
+  footer{
+    border-top:1px solid var(--line);padding:28px 32px 60px;color:var(--ink-3);font-size:12.5px;
+  }
+  footer .fi{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 30px;justify-content:space-between}
+  footer code{background:transparent;border:none;padding:0;color:var(--ink-3)}
+
+  .totop{
+    position:fixed;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;
+    display:none;place-items:center;font-size:15px;backdrop-filter:blur(6px);
+  }
+  .totop:hover{color:var(--accent);border-color:var(--accent-soft)}
+  .totop.on{display:grid}
+  .themebtn{
+    position:fixed;top:18px;right:22px;z-index:50;background:var(--panel);
+    border:1px solid var(--line);color:var(--ink-2);border-radius:8px;
+    padding:7px 11px;font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.05em;
+  }
+  .themebtn:hover{color:var(--accent);border-color:var(--accent-soft)}
+
+  @media(max-width:960px){
+    .wrap{grid-template-columns:1fr;gap:0}
+    nav{position:static;max-height:none;padding:28px 0 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+    nav ol{display:flex;flex-wrap:wrap;gap:4px}
+    nav a{font-size:12px}
+    main{padding-top:30px}
+    .hero{padding:48px 20px 40px}
+    .stats{padding:0 20px;grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+    .wrap{padding:0 20px}
+  }
+</style>
+<style>
+  .dup{background:rgba(251,113,133,.10);color:var(--rose);border:1px solid rgba(251,113,133,.20);padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
+  .ok2{background:rgba(74,222,128,.10);color:var(--ok);border:1px solid rgba(74,222,128,.20);padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themeBtn" title="Alternar tema">◐ TEMA</button>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">AUDITORIA + PLANO · SISTEMA DE E-MAILS</div>
+    <h1>Customização de e-mails:<br>o que existe, o que é falso e o plano</h1>
+    <p class="lede">
+      As quatro reclamações são <strong>reais</strong> — e a auditoria encontrou problemas mais
+      fundos: 4 dos 9 templates que o admin edita <strong>nunca são enviados</strong>, o template
+      que realmente vale para drip e assinaturas <strong>não aparece na tela</strong>, e as 6 cores
+      salvas no banco são <strong>descartadas no primeiro save</strong>.
+    </p>
+    <div class="metaline">
+      <span><b>Data</b> 26/11/2026</span>
+      <span><b>Base</b> commit <code>7b48e3f</code></span>
+      <span><b>Fonte</b> código + consulta somente-leitura em produção</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="n">9</div><div class="l">Tipos editáveis no admin</div></div>
+  <div class="stat"><div class="n">4</div><div class="l">Que nunca são enviados</div></div>
+  <div class="stat"><div class="n">7</div><div class="l">Tipos reais no back</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">Campos de HTML cru</div></div>
+  <div class="stat"><div class="n">4</div><div class="l">Fases do plano</div></div>
+</div>
+
+<div class="wrap">
+  <nav>
+    <div class="navtitle">Sumário</div>
+    <ol>
+      <li><a href="#s1">Diagnóstico das 4 reclamações</a></li>
+      <li><a href="#s2">O que o admin edita hoje</a></li>
+      <li><a href="#s3">Templates transacionais</a></li>
+      <li><a href="#s4">Recuperação de carrinho</a></li>
+      <li><a href="#s5">Campanhas</a></li>
+      <li><a href="#s6">Mapa completo de disparos</a></li>
+      <li><a href="#s7">Plano em 4 fases</a></li>
+      <li><a href="#s8">Riscos e decisões</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="s1">
+      <h2><span class="idx">01</span>Diagnóstico das 4 reclamações</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Reclamação</th><th>Veredito</th><th>Causa real</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Não consigo editar corpo, cores ou layout dos e-mails padrão</td>
+              <td><span class="dup">REAL</span></td>
+              <td>Só existem 3 campos de <em>texto puro</em> por tipo (<code>subject</code>, <code>greeting</code>, <code>message</code>). O layout é CSS literal em <code>getBrandedWrapper</code> (<code>email.ts:117-168</code>). As 6 cores gravadas em <code>template_colors</code> nunca são lidas</td>
+            </tr>
+            <tr>
+              <td>E-mails de carrinho não são customizáveis</td>
+              <td><span class="dup">REAL</span></td>
+              <td><code>cart_recovery_settings.templates</code> é JSONB de texto puro; a edge faz <code>&lt;p&gt;${body.replace(/\n/g,'&lt;br&gt;')}&lt;/p&gt;</code> (<code>cart-recovery/index.ts:209-224</code>). Não existe campo <code>html</code> nem preview no diálogo</td>
+            </tr>
+            <tr>
+              <td>Campanha não tem preview durante edição</td>
+              <td><span class="dup">REAL</span></td>
+              <td>O preview é um diálogo separado, só para campanha já salva (<code>EmailCampaigns.tsx:357-363</code> → <code>:563-613</code>). E ele não reproduz o envio: a edge injeta rodapé, pixel e reescreve links em <code>withTracking</code> (<code>send-campaign/index.ts:62-86</code>)</td>
+            </tr>
+            <tr>
+              <td>Campanha editada não salva; só tenho deletar e visualizar</td>
+              <td><span class="dup">PARCIAL</span></td>
+              <td>O código de save está correto, mas o botão Editar só aparece em <code>draft|paused</code> (<code>:392-409</code>) — a sua campanha está <code>sent</code>. Além disso a validação de segmento pode abortar o save em silêncio (<code>:166-169</code>) e o toast é otimista, sem <code>.select()</code> para confirmar a gravação</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note risk">
+        <div class="h">Achado que você não pediu, mas é o mais grave</div>
+        <p>
+          Em produção, <code>template_colors.email_templates</code> tem 9 chaves. Destas,
+          <strong>4 nunca são enviadas</strong> (<code>new_sale_admin</code>, <code>course_access</code>,
+          <code>lesson_reminder</code>, <code>payment_approved</code> — não existem no <code>EmailType</code>
+          do back). E o tipo <code>notification</code>, usado pelo e-mail de drip e pelos 3 avisos
+          de assinatura, <strong>não está na tela</strong>. Você está editando templates que não
+          disparam e não vendo os que disparam.
+        </p>
+      </div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="idx">02</span>O que o admin edita hoje</h2>
+      <p><code>Admin → E-mails</code> (<code>src/pages/admin/EmailSettings.tsx</code>) oferece 9 "tipos", cada um com 3 campos de texto:</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Tipo no painel</th><th>Tipo no back</th><th>Quem dispara</th><th>Edita de verdade?</th></tr></thead>
+          <tbody>
+            <tr><td>Boas-vindas</td><td><code>welcome</code></td><td>create-user, payment-ops, webhook-payment</td><td><span class="dup">PARCIAL</span> <code>welcome_template</code> tem prioridade e não aparece na tela</td></tr>
+            <tr><td>Nova Venda - Admin</td><td>—</td><td><em>ninguém</em></td><td><span class="dup">NÃO</span> tipo fantasma</td></tr>
+            <tr><td>Acesso ao Curso</td><td>—</td><td><em>ninguém</em></td><td><span class="dup">NÃO</span> tipo fantasma</td></tr>
+            <tr><td>Lembrete de Aula</td><td>—</td><td><em>ninguém</em></td><td><span class="dup">NÃO</span> tipo fantasma</td></tr>
+            <tr><td>Pagamento Confirmado</td><td>—</td><td><em>ninguém</em></td><td><span class="dup">NÃO</span> tipo fantasma</td></tr>
+            <tr><td>Subida de Nível</td><td><code>level_up</code></td><td>check-achievements</td><td><span class="ok2">SIM</span></td></tr>
+            <tr><td>Conquista</td><td><code>achievement_unlocked</code></td><td>check-achievements</td><td><span class="ok2">SIM</span></td></tr>
+            <tr><td>Ofensiva em Risco</td><td><code>streak_at_risk</code></td><td>retention-cron</td><td><span class="ok2">SIM</span></td></tr>
+            <tr><td>(ausente)</td><td><code>notification</code></td><td>drip + 3 avisos de assinatura</td><td><span class="dup">NÃO APARECE</span></td></tr>
+            <tr><td>(ausente)</td><td><code>custom</code></td><td>carrinho + e-mail de teste</td><td><span class="dup">NÃO APARECE</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Os switches "Boas-vindas" e "Nova Venda" também não desligam nada:
+        <code>isTypeEnabled</code> (<code>email.ts:42-46</code>) devolve <code>true</code> fixo para
+        <code>welcome</code>, <code>password_reset</code> e <code>custom</code>.
+      </p>
+    </section>
+
+    <section id="s3">
+      <h2><span class="idx">03</span>Templates transacionais</h2>
+      <p>
+        O conteúdo do admin entra em <code>template_colors.email_templates</code> como
+        <code>{ subject, greeting, message }</code>. No envio, <code>renderEmail</code>
+        (<code>email.ts:173-236</code>) faz:
+      </p>
+      <ul>
+        <li><code>welcome_template</code> preenchido → HTML cru, ignora tudo que o admin editou na tela</li>
+        <li>Senão, <code>templates[type]</code> → subject/greeting/message interpolados e <strong>embrulhados</strong> no <code>getBrandedWrapper</code></li>
+        <li>Sem template → <code>input.html</code> cru, sem wrapper e <strong>sem substituir variáveis</strong></li>
+      </ul>
+      <p>
+        O wrapper tem CSS literal: fundo <code>#f4f4f5</code>, card <code>#ffffff</code>, cabeçalho
+        <code>#18181b</code>, corpo <code>#52525b</code>, rodapé <code>#fafafa</code>, raio 16px.
+        A única cor dinâmica é o botão, e vem de <code>platform_settings.gradient_end_color</code> —
+        não de <code>template_colors.primary</code>. Ou seja: <strong>não existe caminho para trocar
+        cor, logo, CTA ou estrutura</strong>.
+      </p>
+      <div class="note warn">
+        <div class="h">Preview falso</div>
+        <p>
+          O preview em <code>EmailSettings.tsx:478-481</code> é um <code>&lt;div&gt;</code> React com
+          <code>bg-zinc-900</code> no botão — cores diferentes do envio real. Não usa
+          <code>getBrandedWrapper</code>, não usa logo, não mostra o link real. É uma maquete, não
+          uma prévia.
+        </p>
+      </div>
+      <p>
+        <strong>Vocabulário divergente:</strong> os defaults do painel usam <code>{{nome}}</code>,
+        <code>{{total}}</code>, <code>{{curso}}</code>, <code>{{aula}}</code>, <code>{{pagamento}}</code>,
+        mas os chamadores enviam <code>user_name</code>, <code>product_name</code>, <code>cursos</code>,
+        <code>itens</code>, <code>renewal_date</code>… <code>replaceVariables</code> substitui chave
+        exata; o que não casa fica literal no e-mail.
+      </p>
+    </section>
+
+    <section id="s4">
+      <h2><span class="idx">04</span>Recuperação de carrinho</h2>
+      <p>
+        A coluna <code>cart_recovery_settings.templates</code> já é JSONB
+        (<code>20261123120000_cart_recovery_templates.sql:17-22</code>) com estrutura
+        <code>{ email: [{subject, body}], whatsapp: [{body}], sms: [{body}] }</code> —
+        <strong>não precisa de migration para virar HTML</strong>.
+      </p>
+      <p>
+        Hoje o admin edita assunto + corpo por estágio em <code>AbandonedCarts.tsx:664-677</code>,
+        mas como texto. A edge transforma o corpo em <code>&lt;p&gt;…&lt;br&gt;…&lt;/p&gt;</code>
+        (<code>cart-recovery/index.ts:209-224</code>), então qualquer tag digitada aparece como texto.
+        Não há preview no diálogo de edição, e o tipo enviado é sempre <code>custom</code> — que
+        não está na lista do painel de E-mails.
+      </p>
+      <p>
+        Fixo no código: número máximo de 6 estágios, o link <code>{link}</code> (sempre
+        <code>SITE_URL/c/&lt;slug&gt;</code>), o limite de 160 caracteres do SMS e o texto de fallback
+        após o 3º contato.
+      </p>
+    </section>
+
+    <section id="s5">
+      <h2><span class="idx">05</span>Campanhas</h2>
+      <p>
+        O editor é inline em <code>EmailCampaigns.tsx:438-561</code>: Nome, Assunto, <code>Textarea</code>
+        de HTML e segmento. <strong>Não há preview dentro do editor</strong>. O preview existe só
+        depois de salvar, no ícone de olho da tabela, com <code>&lt;iframe srcDoc&gt;</code> — e ele
+        mostra o HTML cru, sem o rodapé de descadastro, sem o pixel e sem a reescrita de links que
+        <code>withTracking</code> aplica no envio.
+      </p>
+      <p>
+        Sobre "não salva": o código de save ( <code>:160-192</code> ) usa <code>body_html</code>
+        de forma consistente em todo o caminho — banco, tipo gerado e edge. <strong>Não há bug de
+        escrita</strong>. As causas prováveis são:
+      </p>
+      <ul>
+        <li>A campanha da sua conta está <code>sent</code>, e o botão Editar só aparece em <code>draft|paused</code> ( <code>:392-409</code> ) — por isso só olho e lixeira</li>
+        <li>A validação de segmento aborta com "Escolha o segmento" se o <code>filter_config</code> herdado vier sem <code>all_customers</code> ( <code>:166-169</code> )</li>
+        <li>O toast de sucesso é otimista: <code>.update()</code> não usa <code>.select()</code>, então não confirma se a linha persistiu</li>
+        <li>O efeito de contagem depende do objeto <code>editor</code> inteiro ( <code>:117-124</code> ), dispara RPC a cada tecla e dá instabilidade</li>
+      </ul>
+    </section>
+
+    <section id="s6">
+      <h2><span class="idx">06</span>Mapa completo de disparos</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Disparo</th><th>Tipo</th><th>Editável hoje?</th></tr></thead>
+          <tbody>
+            <tr><td>Boas-vindas (admin / checkout / webhook)</td><td><code>welcome</code></td><td>Parcial — <code>welcome_template</code> invisível tem prioridade</td></tr>
+            <tr><td>Conquista e subida de nível</td><td><code>achievement_unlocked</code>, <code>level_up</code></td><td>Sim</td></tr>
+            <tr><td>Ofensiva em risco</td><td><code>streak_at_risk</code></td><td>Sim</td></tr>
+            <tr><td>Conteúdo liberado (drip)</td><td><code>notification</code></td><td><span class="dup">Não aparece na tela</span></td></tr>
+            <tr><td>3 avisos de assinatura</td><td><code>notification</code></td><td><span class="dup">Compartilha o mesmo template do drip</span></td></tr>
+            <tr><td>Carrinho abandonado</td><td><code>custom</code></td><td>Só texto em AbandonedCarts</td></tr>
+            <tr><td>E-mail de teste do painel</td><td><code>custom</code></td><td>HTML literal no hook</td></tr>
+            <tr><td>Campanhas</td><td>bypassa templates</td><td>HTML cru, mas preview divergente</td></tr>
+            <tr><td>Pedido pago / nova venda</td><td>—</td><td><span class="dup">Não existe e-mail</span> — os templates do painel são fantasmas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="idx">07</span>Plano em 4 fases</h2>
+      <div class="flow">
+        <div class="step"><div class="k">F1</div><div class="t"><b>Campanhas: editar, salvar e previewar de verdade</b> Editar em qualquer status (oferecer "Duplicar como rascunho" para <code>sent</code>), <code>.update().select().single()</code>, normalizar <code>filter_config</code>, preview dentro do editor usando a <em>mesma</em> função <code>withTracking</code> do envio (extrair para <code>_shared</code>). Dependência de contagem passa a ser os campos do segmento.</div></div>
+        <div class="step"><div class="k">F2</div><div class="t"><b>Templates com HTML e preview real</b> Campo <code>html</code> por tipo em <code>email_templates</code> + modo texto/HTML; <code>renderEmail</code> usa HTML com <code>replaceVariables</code>; alinhar os 7 tipos reais do back (remover 4 fantasmas, adicionar <code>notification</code>/<code>custom</code>); corrigir variáveis; expor ou eliminar <code>welcome_template</code>; edge <code>preview-email</code> admin-only gerando o HTML exacto com dados de exemplo.</div></div>
+        <div class="step"><div class="k">F3</div><div class="t"><b>Carrinho com HTML e preview</b> Aceitar <code>is_html</code> por estágio (sem migration, JSONB já existe); edge usa o HTML com variáveis quando marcado; preview no diálogo com as variáveis já listadas. Manter tipo <code>custom</code>, opt-out e teto de 6 estágios.</div></div>
+        <div class="step"><div class="k">F4</div><div class="t"><b>Padronização do envio e das cores</b> Fazer <code>getBrandedWrapper</code> ler <code>template_colors</code> (ou remover as cores para acabar com a ilusão); <code>renderEmail</code> sempre aplicar <code>replaceVariables</code>, inclusive em <code>input.html</code>; centralizar opt-out/tracking entre fila/carrinho/campanha sem perder o token por destinatário das campanhas.</div></div>
+      </div>
+      <div class="note info">
+        <div class="h">Ordem recomendada</div>
+        <p>
+          <strong>F1 → F2 → F3.</strong> F1 resolve a dor imediata (campanha) com risco baixo.
+          F2 resolve a reclamação principal (editar HTML/cores com preview fiel). F3 cobre o
+          carrinho. F4 é estrutural e pode vir depois — mexe no caminho de envio de todos os e-mails.
+        </p>
+      </div>
+    </section>
+
+    <section id="s8">
+      <h2><span class="idx">08</span>Riscos e decisões</h2>
+      <ul>
+        <li><strong>XSS:</strong> HTML do admin é conteúdo de confiança, mas variáveis como nome do aluno entram cruas (<code>replaceVariables</code> em <code>email.ts:109-115</code>). Escape obrigatório para valores de perfil</li>
+        <li><strong>Senha temporária e <code>login_url</code>:</strong> viajam no corpo — nunca logar; já é o comportamento atual</li>
+        <li><strong>Opt-out:</strong> <code>custom</code>, <code>notification</code> e <code>streak_at_risk</code> respeitam descadastro; alterar isso pode transformar aviso transacional em spam</li>
+        <li><strong>Campanha enviada:</strong> editar o HTML depois do envio mudaria o que o destinatário vê no link de abertura — "duplicar como rascunho" é mais seguro que editar <code>sent</code></li>
+        <li><strong>Blindar preview:</strong> manter <code>sandbox=""</code> no <code>iframe srcDoc</code></li>
+        <li><strong>Decisão sua:</strong> quer que as 6 cores de <code>template_colors</code> passem a valer no wrapper, ou prefere remover o campo para não dar ilusão de edição?</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="fi">
+    <div>Auditoria por leitura de código e consulta somente-leitura em produção — nenhuma alteração aplicada</div>
+    <div><code>flow5</code> · <code>pbrdmjcpipuatbnkvekz</code> · 26/11/2026</div>
+  </div>
+</footer>
+
+<button class="totop" id="toTop" title="Voltar ao topo">↑</button>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  var saved=null; try{saved=localStorage.getItem('flow-doc-theme')}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  btn.addEventListener('click',function(){
+    var next = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('flow-doc-theme',next)}catch(e){}
+  });
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var map={};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)]=a; });
+  var secs=[].slice.call(document.querySelectorAll('main section'));
+  var top=document.getElementById('toTop');
+  function onScroll(){
+    var y=window.scrollY+120, current=secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].offsetTop<=y) current=secs[i]; }
+    links.forEach(function(a){a.classList.remove('active')});
+    if(map[current.id]) map[current.id].classList.add('active');
+    top.classList.toggle('on', window.scrollY>600);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
