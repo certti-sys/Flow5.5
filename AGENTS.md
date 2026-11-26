@@ -33,6 +33,7 @@ npm run check:cart     # recuperação de carrinho
 npm run check:drip     # drip content
 npm run check:drip-email # e-mail de conteúdo liberado
 npm run check:campaign-click # allowlist e clique de campanha
+npm run check:webhook-outbound # 14 eventos, HMAC, bearer e receptor de teste
 npm run check:pdf      # escada de zoom do leitor
 npm run check:annotations # normalização das marcações do PDF
 npm run check:achievements # 5 critérios do motor de conquistas
@@ -234,6 +235,13 @@ Não reabrir sem motivo novo:
     ou `data:`. `send-campaign` reescreve `href` absolutos **no envio**,
     nunca no editor; links relativos não são tocados. A tela mostra Cliques
     ao lado de Aberturas. `npm run check:campaign-click` trava o contrato.
+33. **Webhooks de saída: 14 eventos e receptor de teste interno.** Catálogo
+    completo (os 4 `subscription.*` só emitem quando assinaturas existir).
+    `bearer_token` por endpoint vai no header Authorization além do HMAC.
+    `webhook-test-receiver` é o destinatário de homologação: valida assinatura
+    e bearer lendo secret/token do próprio endpoint via service role e grava
+    `webhook_test_receipts` (RLS admin-only). Nunca usar webhook de saída para
+    desfazer pagamento ou acesso.
 
 ---
 

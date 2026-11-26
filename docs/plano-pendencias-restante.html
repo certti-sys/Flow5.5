@@ -310,6 +310,23 @@
   </p>
 </div>
 
+<div class="note" style="margin:18px 0">
+  <div class="h">Atualização — item 4 (webhooks) entregue</div>
+  <p>
+    Catálogo ampliado para 14 eventos (os 4 <code>subscription.*</code> só emitem quando
+    assinaturas existir). <code>bearer_token</code> por endpoint enviado como
+    <code>Authorization: Bearer</code> além do HMAC. Edge <code>webhook-test-receiver</code>
+    valida assinatura e bearer lendo secret/token do próprio endpoint e grava
+    <code>webhook_test_receipts</code> (RLS admin-only).
+  </p>
+  <p>
+    Homologado em produção: endpoint real criado (1), <code>test.ping</code> enfileirado,
+    <code>dispatch-webhooks</code> entregou e o receipt registrou HMAC válido + bearer válido.
+    O primeiro teste revelou que o dispatcher deployado ainda era a versão sem bearer;
+    redeploy corrigiu. Receipts duplicados do teste antigo limpos.
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">11</div><div class="l">Pendências abertas</div></div>
   <div class="stat"><div class="n">4</div><div class="l">Fases de execução</div></div>

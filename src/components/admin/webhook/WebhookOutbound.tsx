@@ -34,6 +34,11 @@ export const OUTBOUND_EVENTS = [
   { value: "payment.boleto_generated", label: "Boleto gerado", group: "Pagamento", description: "Boleto emitido com linha digitável e vencimento." },
   { value: "cart.abandoned", label: "Carrinho abandonado", group: "Funil", description: "Formulário preenchido sem pagamento após o período de graça." },
   { value: "access.ready", label: "Acesso liberado", group: "Área de membros", description: "Aluno recebeu acesso a um curso (um por curso)." },
+  // Os 4 eventos abaixo só passam a ser emitidos quando assinaturas existir.
+  { value: "subscription.created", label: "Assinatura criada", group: "Assinaturas", description: "Requer assinaturas recorrentes implementadas." },
+  { value: "subscription.renewed", label: "Assinatura renovada", group: "Assinaturas", description: "Requer assinaturas recorrentes implementadas." },
+  { value: "subscription.canceled", label: "Assinatura cancelada", group: "Assinaturas", description: "Requer assinaturas recorrentes implementadas." },
+  { value: "subscription.past_due", label: "Assinatura em atraso", group: "Assinaturas", description: "Requer assinaturas recorrentes implementadas." },
 ] as const;
 
 type Endpoint = {
