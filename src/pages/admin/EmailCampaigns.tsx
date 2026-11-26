@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { HtmlEditor } from "@/components/HtmlEditor";
 import { motion } from "framer-motion";
 import {
   Mail, Plus, Send, Pause, Play, XCircle, Trash2, Users, Loader2, Eye, RefreshCw, AlertTriangle, Copy,
@@ -62,6 +63,7 @@ export default function EmailCampaigns() {
   const [preview, setPreview] = useState<Campaign | null>(null);
   const [livePreview, setLivePreview] = useState<string>("");
   const [testEmail, setTestEmail] = useState("");
+  const [modoEditor, setModoEditor] = useState<"visual" | "codigo">("visual");
   const [audience, setAudience] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -517,13 +519,38 @@ export default function EmailCampaigns() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">Corpo (HTML)</Label>
-                <Textarea
-                  value={editor.body_html}
-                  onChange={(e) => setEditor({ ...editor, body_html: e.target.value })}
-                  placeholder="<h1>Olá!</h1><p>...</p>"
-                  className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[180px] text-[13px] font-mono"
-                />
+                <div className="flex items-center justify-between">
+                  <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">Corpo do e-mail</Label>
+                  <div className="flex gap-1 rounded-lg bg-white/5 border border-white/10 p-0.5">
+                    {(["visual", "codigo"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setModoEditor(m)}
+                        className={cn(
+                          "px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider",
+                          modoEditor === m ? "bg-primary/15 text-primary" : "text-white/50 hover:text-white",
+                        )}
+                      >
+                        {m === "visual" ? "Visual" : "Código"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {modoEditor === "visual" ? (
+                  <HtmlEditor
+                    value={editor.body_html}
+                    onChange={(html) => setEditor({ ...editor, body_html: html })}
+                    placeholder="Escreva o corpo do e-mail… negrito, títulos, listas e links."
+                  />
+                ) : (
+                  <Textarea
+                    value={editor.body_html}
+                    onChange={(e) => setEditor({ ...editor, body_html: e.target.value })}
+                    placeholder="<h1>Olá!</h1><p>...</p>"
+                    className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[240px] text-[13px] font-mono"
+                  />
+                )}
               </div>
 
               {/* Preview ao vivo: mesma funcao de tracking do envio */}

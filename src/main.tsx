@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import "./components/html-editor.css";
 import { captureTracking } from "./lib/tracking";
 
 // A origem do tráfego vem na URL de entrada e some quando o visitante navega
