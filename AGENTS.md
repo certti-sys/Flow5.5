@@ -34,6 +34,9 @@ npm run check:drip     # drip content
 npm run check:drip-email # e-mail de conteúdo liberado
 npm run check:campaign-click # allowlist e clique de campanha
 npm run check:webhook-outbound # 14 eventos, HMAC, bearer e receptor de teste
+npm run check:subscription-access # bloqueio sem apagar e drip travado
+npm run check:subscription-reminders # 3 avisos de assinatura
+npm run check:subscription-portal # periodicidade e portal de renovação
 npm run check:pdf      # escada de zoom do leitor
 npm run check:annotations # normalização das marcações do PDF
 npm run check:achievements # 5 critérios do motor de conquistas
@@ -227,6 +230,11 @@ Não reabrir sem motivo novo:
     (d) notificações obrigatórias: lembrete de vencimento, lembrete de
     renovação e confirmação da renovação. Acesso já concedido continua
     legível — o bloqueio é de novidades, não de histórico.
+    F1, F3, F4 e F5 entregues e homologados: schema com expires_at e bloqueio,
+    drip travado, 3 notificações e portal /renovar/:token. **F2 (cobrança
+    recorrente) fica como pendência futura, por decisão do usuário** — exige
+    adesão do lojista ao gateway (piloto CajuPay) e action create_subscription
+    no payment-ops. Nenhuma cobrança recorrente está ativa hoje.
 31. **E-mail de drip: 1 por aluno/dia, nunca 1 por aula.** A RPC
     `get_drip_releases_for_date(date)` é `SECURITY DEFINER` e só service_role,
     replica a regra do `get_course_release_map` (inclusive `greatest`) e

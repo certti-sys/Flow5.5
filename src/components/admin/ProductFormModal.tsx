@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Palette, Package, BookOpen, DollarSign, FolderOpen } from "lucide-react";
+import { Loader2, Palette, Package, BookOpen, DollarSign, FolderOpen, AlertTriangle } from "lucide-react";
 
 interface ProductFormModalProps {
     product: Product | null;
@@ -27,6 +27,8 @@ const formSchema = z.object({
     name: z.string().min(3, "Nome muito curto"),
     description: z.string().optional(),
     type: z.enum(["one_time", "subscription"]),
+    billing_interval: z.enum(["monthly", "quarterly", "semiannual", "annual"]).default("monthly"),
+    notify_days_before: z.number().min(1).max(30).default(3),
     active: z.boolean().default(true),
     price: z.number().min(0, "Preço inválido"),
     grant_type: z.enum(["course", "category", "none"]),
@@ -63,6 +65,8 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
             name: "",
             description: "",
             type: "one_time",
+            billing_interval: "monthly",
+            notify_days_before: 3,
             active: true,
             price: 0,
             grant_type: "none",
@@ -91,6 +95,8 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                 name: product.name,
                 description: product.description || "",
                 type: product.type,
+                billing_interval: normalizeCheckoutConfig(product.checkout_config).billing.interval,
+                notify_days_before: normalizeCheckoutConfig(product.checkout_config).billing.notify_days_before,
                 active: product.active,
                 price: priceInCents,
                 grant_type,
@@ -106,6 +112,8 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                 name: "",
                 description: "",
                 type: "one_time",
+                billing_interval: "monthly",
+                notify_days_before: 3,
                 active: true,
                 price: 0,
                 grant_type: "none",
@@ -137,6 +145,12 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                 banner_url: values.banner_url || null,
                 logo_url: values.logo_url || null,
                 price: values.price,
+                billing: {
+                    ...current.billing,
+                    mode: values.type,
+                    interval: values.billing_interval,
+                    notify_days_before: values.notify_days_before,
+                },
                 appearance: {
                     ...current.appearance,
                     primary_color: values.primary_color || current.appearance.primary_color,
@@ -288,6 +302,55 @@ export function ProductFormModal({ product, open, onOpenChange }: ProductFormMod
                                                 </FormItem>
                                             )}
                                         />
+
+                                        {form.watch("type") === "subscription" && (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <Controller
+                                                        control={form.control}
+                                                        name="billing_interval"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-white/80 font-medium">Periodicidade</FormLabel>
+                                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                                    <FormControl>
+                                                                        <SelectTrigger className="bg-transparent border-white/10 h-[44px] text-white">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                    </FormControl>
+                                                                    <SelectContent className="bg-[#0f0f11] border-white/10">
+                                                                        <SelectItem value="monthly">Mensal</SelectItem>
+                                                                        <SelectItem value="quarterly">Trimestral</SelectItem>
+                                                                        <SelectItem value="semiannual">Semestral</SelectItem>
+                                                                        <SelectItem value="annual">Anual</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <Controller
+                                                        control={form.control}
+                                                        name="notify_days_before"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-white/80 font-medium">Aviso antes do vencimento (dias)</FormLabel>
+                                                                <FormControl>
+                                                                    <Input type="number" min={1} max={30} value={field.value}
+                                                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                                                        className="bg-transparent border-white/10 h-[44px] text-white" />
+                                                                </FormControl>
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                                    <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+                                                    <p className="text-xs text-amber-500">
+                                                        Configuração salva no produto, mas a cobrança recorrente (F2) ainda não está ativa. Portal e avisos já funcionam.
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
                                         <FormItem>
                                             <FormLabel className="text-white/80 font-medium">Preço (R$)</FormLabel>
                                             <div className="relative">

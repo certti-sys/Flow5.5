@@ -306,6 +306,23 @@
   </p>
 </div>
 
+<div class="note warn" style="margin:18px 0">
+  <div class="h">Estado final em 26/11/2026</div>
+  <p>
+    <strong>F1, F3, F4 e F5 entregues e homologados.</strong> F5 adicionou
+    <code>checkout_config.billing</code> (4 periodicidades, carência e dias de aviso), seletor no
+    formulário de produto, portal público <code>/renovar/:token</code> via RPC
+    <code>get_renewal_info</code> (expõe só produto/status/vigência) e aviso no painel de que a
+    cobrança recorrente não está ativa.
+  </p>
+  <p>
+    <strong>F2 fica como pendência futura, por decisão do usuário.</strong> Não focar agora.
+    Depende de adesão do lojista ao gateway (piloto CajuPay) e de implementação de
+    <code>create_subscription</code> no <code>payment-ops</code>. Tudo o resto — schema, bloqueio
+    sem apagar, drip travado e notificações — já está pronto e homologado em produção.
+  </p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="n">8</div><div class="l">Gateways instalados</div></div>
   <div class="stat"><div class="n">1</div><div class="l">Com recorrência pronta</div></div>
@@ -471,7 +488,7 @@
         <div class="step"><div class="k">F2</div><div class="t"><b>Cobrança recorrente (piloto CajuPay)</b> Nova action <code>create_subscription</code> no payment-ops e método no provider; webhook trata eventos de assinatura; flag <code>supports_recurrence</code> por gateway para o front esconder a opção. Idempotência por chave.</div></div>
         <div class="step"><div class="k">✓</div><div class="t"><b>Acesso e drip</b> Função <code>subscription_access_active(user, course)</code> usada em RLS, <code>auth_has_course_access</code>, <code>lesson-file-url</code>, <code>lesson-progress</code> e nas RPCs de release. Com assinatura vencida, a RPC devolve <em>todos</em> os itens como travados — sem apagar nada.</div></div>
         <div class="step"><div class="k">✓</div><div class="t"><b>Notificações</b> Edge <code>subscription-reminders</code> com 3 kinds (expiry_warning, renewal, renewal_confirmed), e-mail pela fila, WhatsApp por template e cron diário 13:00 UTC. <code>dryRun</code> para homologar sem enviar.</div></div>
-        <div class="step"><div class="k">F5</div><div class="t"><b>Painel, portal e webhooks</b> Periodicidade no produto, badge de recorrência por gateway, rota <code>/renovar/{token}</code> e ativação dos 4 eventos <code>subscription.*</code> no catálogo (já presentes desde o item 4).</div></div>
+        <div class="step"><div class="k">✓</div><div class="t"><b>Painel, portal e webhooks</b> Periodicidade no produto, badge de recorrência por gateway, rota <code>/renovar/{token}</code> e ativação dos 4 eventos <code>subscription.*</code> no catálogo (já presentes desde o item 4).</div></div>
       </div>
     </section>
 

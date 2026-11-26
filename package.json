@@ -21,6 +21,7 @@
     "check:webhook-outbound": "node scripts/check-webhook-outbound.mjs",
     "check:subscription-access": "node scripts/check-subscription-access.mjs",
     "check:subscription-reminders": "node scripts/check-subscription-reminders.mjs",
+    "check:subscription-portal": "node scripts/check-subscription-portal.mjs",
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {

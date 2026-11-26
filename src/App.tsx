@@ -12,6 +12,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import Login from "./pages/Login";
 import { LegalPage } from "./pages/LegalPage";
+import RenewalPage from "./pages/RenewalPage";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { ClientLayout } from "./components/ClientLayout";
@@ -107,6 +108,7 @@ const App = () => (
                 <Route path="/termos" element={<LegalPage kind="terms" />} />
                 <Route path="/privacidade" element={<LegalPage kind="privacy" />} />
                 <Route path="/lgpd" element={<LegalPage kind="lgpd" />} />
+                <Route path="/renovar/:token" element={<RenewalPage />} />
 
                 {/* Checkout Routes */}
                 <Route element={<CheckoutLayout />}>

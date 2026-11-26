@@ -79,6 +79,21 @@ export interface CheckoutPaymentGateways {
     boleto: string;
 }
 
+/** Periodicidade de uma assinatura. O período é configuração do produto (decisão 30). */
+export type CheckoutBillingInterval = 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+
+/**
+ * Cobrança recorrente do produto. O modo `one_time` mantém o comportamento
+ * atual. F2 (criação da cobrança recorrente) ainda não está implementada:
+ * o bloco existe para configurar o produto e basear portal/renovação (F5).
+ */
+export interface CheckoutBilling {
+    mode: 'one_time' | 'subscription';
+    interval: CheckoutBillingInterval;
+    grace_days: number;
+    notify_days_before: number;
+}
+
 /** Liga/desliga cada método no checkout do produto, mesmo que o gateway o ofereça. */
 export interface CheckoutPaymentMethods {
     card: boolean;
@@ -144,6 +159,9 @@ export interface CheckoutConfig {
 
     /** Métodos exibidos no checkout do produto. Desligado = não aparece nem processa. */
     payment_methods: CheckoutPaymentMethods;
+
+    /** Periodicidade/cobrança recorrente do produto. */
+    billing: CheckoutBilling;
 
     timer: {
         enabled: boolean;
@@ -243,6 +261,12 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
         pix: true,
         boleto: true,
         default: 'card',
+    },
+    billing: {
+        mode: 'one_time',
+        interval: 'monthly',
+        grace_days: 0,
+        notify_days_before: 3,
     },
     timer: {
         enabled: false,
@@ -470,6 +494,16 @@ export function normalizeCheckoutConfig(raw: unknown): CheckoutConfig {
     if (!config.payment_methods.card && !config.payment_methods.pix && !config.payment_methods.boleto) {
         config.payment_methods.card = true;
     }
+    // Billing: aceita apenas valores conhecidos; legado sem bloco cai em one_time.
+    const billing = config.billing ?? DEFAULT_CHECKOUT_CONFIG.billing;
+    const intervals: CheckoutBillingInterval[] = ['monthly', 'quarterly', 'semiannual', 'annual'];
+    config.billing = {
+        mode: billing.mode === 'subscription' ? 'subscription' : 'one_time',
+        interval: intervals.includes(billing.interval) ? billing.interval : 'monthly',
+        grace_days: Math.max(0, Math.min(365, Number(billing.grace_days) || 0)),
+        notify_days_before: Math.max(1, Math.min(30, Number(billing.notify_days_before) || 3)),
+    };
+
     // Default só pode ser um método ligado; fora disso cai no primeiro ativo.
     const wanted = config.payment_methods.default;
     config.payment_methods.default =
