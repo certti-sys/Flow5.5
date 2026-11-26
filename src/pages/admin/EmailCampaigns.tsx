@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -12,9 +12,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { HtmlEditor } from "@/components/HtmlEditor";
-import { InlineEmailEditor } from "@/components/InlineEmailEditor";
-import { extrairCorpoEmail } from "@/lib/inline-email";
+import { IframeEmailEditor } from "@/components/IframeEmailEditor";
+import CodeMirror from "@uiw/react-codemirror";
+import { html as htmlLang } from "@codemirror/lang-html";
+import { oneDark } from "@codemirror/theme-one-dark";
 import { motion } from "framer-motion";
 import {
   Mail, Plus, Send, Pause, Play, XCircle, Trash2, Users, Loader2, Eye, RefreshCw, AlertTriangle, Copy,
@@ -49,11 +50,28 @@ const STATUS = {
   cancelled: { label: "Cancelada", cls: "bg-white/5 text-white/40 border-white/10" },
 } as const;
 
+const MODELO_INICIAL = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { margin: 0; padding: 24px; background: #f4f4f5; font-family: Arial, sans-serif; color: #18181b; }
+    .card { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 32px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Olá!</h1>
+    <p>Clique neste texto para começar a escrever sua campanha.</p>
+  </div>
+</body>
+</html>`;
+
 const EMPTY = {
   id: "",
   name: "",
   subject: "",
-  body_html: "",
+  body_html: MODELO_INICIAL,
   all: false,
   productIds: [] as string[],
   courseIds: [] as string[],
@@ -61,6 +79,7 @@ const EMPTY = {
 
 export default function EmailCampaigns() {
   const queryClient = useQueryClient();
+  const arquivoHtml = useRef<HTMLInputElement>(null);
   const [editor, setEditor] = useState<typeof EMPTY | null>(null);
   const [preview, setPreview] = useState<Campaign | null>(null);
   const [livePreview, setLivePreview] = useState<string>("");
@@ -157,17 +176,30 @@ export default function EmailCampaigns() {
     return () => { alive = false; window.clearTimeout(timer); };
   }, [editor?.body_html]);
 
+  const importarHtml = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo || !editor) return;
+    try {
+      const texto = await arquivo.text();
+      if (!/<(html|body|div|p|table|h1)\b/i.test(texto)) {
+        toast.error("O arquivo não parece conter HTML válido.");
+        return;
+      }
+      setEditor({ ...editor, body_html: texto });
+      setModoEditor("visual");
+      toast.success("HTML importado. Edite clicando no preview.");
+    } catch {
+      toast.error("Não foi possível ler o arquivo.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   const openNew = () => {
     setEditor({ ...EMPTY });
     setModoEditor("visual");
     setTestEmail("");
   };
-
-  // HTML rico (tabelas, estilos inline, classes) nao sobrevive ao Tiptap:
-  // o setContent interpreta e descarta. Nesses casos o editor abre em Codigo
-  // e o modo Visual fica bloqueado para nao corromper o template.
-  const htmlRico = (html: string) =>
-    /<table|<style|style=|class=/i.test(html || "");
 
   const openEdit = (c: Campaign) => {
     setModoEditor("visual");
@@ -531,6 +563,23 @@ export default function EmailCampaigns() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-[12px] uppercase tracking-widest text-muted-foreground font-bold">Corpo do e-mail</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={arquivoHtml}
+                      type="file"
+                      accept=".html,.htm,text/html"
+                      className="hidden"
+                      onChange={importarHtml}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => arquivoHtml.current?.click()}
+                      title="Importar HTML gerado externamente (.html ou .htm)"
+                      className="px-2.5 py-1 rounded-md border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-[11px] font-bold"
+                    >
+                      Importar HTML
+                    </button>
+                  </div>
                   <div className="flex gap-1 rounded-lg bg-white/5 border border-white/10 p-0.5">
                     {(["visual", "codigo"] as const).map((m) => {
                       const bloqueado = false;
@@ -553,41 +602,29 @@ export default function EmailCampaigns() {
                     })}
                   </div>
                 </div>
-                {editor && htmlRico(editor.body_html) && (
-                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
-                    <p className="text-[11px] text-amber-500">
-                      Este e-mail usa tabelas ou estilos inline. A edição Visual agora acontece direto no preview e preserva o HTML original — clique em qualquer texto para alterá-lo.
-                    </p>
-                  </div>
-                )}
                 {modoEditor === "visual" ? (
-                  editor.body_html.trim() ? (
-                    livePreview ? (
-                      <InlineEmailEditor
-                        html={extrairCorpoEmail(livePreview)}
-                        onChange={(html) => setEditor({ ...editor, body_html: html })}
-                      />
-                    ) : (
-                      <div className="min-h-[160px] rounded-xl border border-white/10 bg-black/40 flex items-center justify-center gap-2 text-white/40 text-[13px]">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Preparando prévia editável…
-                      </div>
-                    )
-                  ) : (
-                    <HtmlEditor
-                      value={editor.body_html}
+                  livePreview ? (
+                    <IframeEmailEditor
+                      html={livePreview}
                       onChange={(html) => setEditor({ ...editor, body_html: html })}
-                      placeholder="Escreva o corpo do e-mail… negrito, títulos, listas e links."
                     />
+                  ) : (
+                    <div className="min-h-[160px] rounded-xl border border-white/10 bg-black/40 flex items-center justify-center gap-2 text-white/40 text-[13px]">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Preparando prévia editável…
+                    </div>
                   )
                 ) : (
                   <>
-                    <Textarea
-                      value={editor.body_html}
-                      onChange={(e) => setEditor({ ...editor, body_html: e.target.value })}
-                      placeholder="<h1>Olá!</h1><p>...</p>"
-                      className="bg-black/40 border-white/10 text-white rounded-[10px] min-h-[240px] text-[13px] font-mono"
-                    />
+                    <div className="rounded-lg overflow-hidden border border-white/10">
+                      <CodeMirror
+                        value={editor.body_html}
+                        height="280px"
+                        extensions={[htmlLang()]}
+                        theme={oneDark}
+                        basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true }}
+                        onChange={(valor) => setEditor({ ...editor, body_html: valor })}
+                      />
+                    </div>
                     {/* Preview ao vivo: mesma funcao de tracking do envio */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">

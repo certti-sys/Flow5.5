@@ -274,12 +274,23 @@
     e pixel.
   </p>
   <p>
-    <strong>Editor WYSIWYG → edição inline no preview:</strong> o Tiptap simplificava HTML rico
-    (7.999 bytes com <code>&lt;table&gt;</code> viravam 1.324 bytes sem estilos). Corrigido: o modo
-    Visual passou a editar <em>diretamente no preview</em> — clique no texto, altere, botão
-    "Salvar edição". O HTML original é preservado porque o browser edita o nó de texto, não
-    reinterpreta a estrutura. Rodapé e pixel são marcados com <code>data-flow-tracking</code> e
-    removidos antes de salvar. O modo Código continua com textarea para edição crua.
+    <strong>Editor em iframe + CodeMirror (decisão final):</strong> o Tiptap e a injeção em
+    <code>&lt;div&gt;</code> destruíam o HTML — <code>&lt;head&gt;</code>, <code>&lt;style&gt;</code> e o
+    doctype eram descartados a cada edição (7.999 → 5.875 bytes). A edição agora acontece
+    <em>dentro de um iframe</em> com o documento completo: clique no texto, altere, botão
+    "Salvar edição". O iframe isola o CSS do e-mail da admin e mantém doctype/head/style/table.
+    Ao salvar, serializa-se <code>documentElement.outerHTML</code> e remove-se apenas o que o envio
+    adiciona (rodapé/pixel via <code>data-flow-tracking</code> e links rastreados, revertidos pelo
+    parâmetro <code>u</code>). Campanha nova abre com modelo inicial simples, sem troca de editor.
+    Modo Código usa CodeMirror com highlight; há botão "Importar HTML" para arquivos
+    <code>.html/.htm</code> gerados por IA.
+  </p>
+  <p>
+    <strong>Base Getfy e prompts do ChatGPT:</strong> o Getfy não tem WYSIWYG — é
+    <code>&lt;textarea&gt;</code> + preview <code>v-html</code> com dados falsos; preserva HTML porque
+    nunca o transforma. GrapesJS (prompt 1) também reinterpreta o DOM e exigiria migration em
+    produção; o prompt 2 (central de disparo) já existe no Flow; o prompt 3 (Unlayer/Stripo) é um
+    projeto maior. Adotado o iframe + CodeMirror: mesma fidelidade do Getfy com edição visual.
   </p>
   <p>
     <strong>Resposta sobre cores:</strong> ficam as cores sóbrias atuais (preto/branco/cinza).
